@@ -3227,7 +3227,7 @@ function buildMaps() {
     const ent = m.routes.length, ex = new Set(m.routes.map(r => r[r.length - 1].join(','))).size;
     const ch = zoneChals(i), nch = ch.filter(c => (save.chal || {})[i + ':' + c]).length, rec = (save.endless || {})[curDiff + i] || 0;
     info.innerHTML = '<b>' + (locked ? '🔒 ' : '') + (i + 1) + '. ' + m.name + '</b><small>' + (curMode === 'endless' ? '∞ vagues · record : vague ' + rec : m.waves + ' vagues · ' + ent + ' entrée' + (ent > 1 ? 's' : '') + ' · ' + ex + ' sortie' + (ex > 1 ? 's' : '')) + '</small>' +
-      (curMode === 'endless' ? '' : '<span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + (best ? ' <i>' + best + '</i>' : '') + '</span><small class="chl" title="' + ch.map(c => CHALS[c].name).join(' / ') + '">🏅 ' + nch + '/2 · ' + ch.map(c => CHALS[c].name).join(' · ') + '</small>');
+      (curMode === 'endless' ? '' : '<span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + (best ? ' <i>' + best + '</i>' : '') + '</span>' + ch.map(c => '<small class="chl' + ((save.chal || {})[i + ':' + c] ? ' done' : '') + '">' + ((save.chal || {})[i + ':' + c] ? '🏅 ' : '◻ ') + CHALS[c].name + '</small>').join(''));
     b.appendChild(info);
     b.onclick = () => { if (locked) { toast('Termine la zone précédente pour débloquer celle-ci'); return; } initAudio(); startMap(i, curMode === 'endless' ? { endless: true } : {}); };
     g.appendChild(b);
