@@ -8,7 +8,7 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 ## Contenu
 - **18 grandes cartes** (3 mondes de 6) (26 × 15 cases) aux couloirs sinueux, avec ventilateurs animés et dissipateurs. Les cartes avancées ont **plusieurs entrées, plusieurs sorties et des couloirs qui se croisent** ; chaque virus suit son propre chemin. À partir de la vague 9, les vagues mélangent deux sortes de virus : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central, disque dur, carte réseau, carte son, serveur, pare-feu, noyau quantique, clé USB, ventirad, satellite, robot, data center, cœur de l'IA), de 20 à 60 vagues chacune, jusqu'à 4 entrées. Chaque zone débloque la suivante.
 - **5 difficultés** : Facile, Normal, Difficile, Cauchemar, Légende (vies, crédits de départ et résistance des virus).
-- **6 tourelles**, chacune améliorable jusqu'au **niveau 5**, qui débloque un pouvoir spécial (double tir, balles perforantes, méga-obus, gel total, rayon perforant, surcharge). Mode de visée réglable : premier, dernier, plus fort, plus proche.
+- **10 tourelles** (pulseur, mitrailleuse, canon, cryo, lance-flammes, lance-missiles, laser, tesla, amplificateur qui booste ses voisines, mineur crypto qui rapporte des crédits), chacune améliorable jusqu'au **niveau 5**, qui débloque un pouvoir spécial (double tir, balles perforantes, méga-obus, gel total, napalm, salve de missiles, rayon perforant, surcharge, surpuissance, ferme de minage). Mode de visée réglable : premier, dernier, plus fort, plus proche.
   | Tourelle | Prix | Rôle |
   |---|---|---|
   | Pulseur | 5 cr | pas cher, idéal pour couvrir les couloirs |
@@ -18,6 +18,8 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
   | Laser | 100 cr | longue portée, gros dégâts |
   | Tesla | 150 cr | éclair qui rebondit sur plusieurs virus |
 - **14 sortes de virus** : normal, coureur, essaim, blindé, volant, mutant (se régénère), diviseur (se coupe en deux), bouclier (bulle d'énergie), fantôme (intouchable par moments), soigneur, géant, sauteur (se téléporte), mini-virus et méga-virus (boss toutes les 10 vagues).
+- **Musique originale générée en direct** (ambiances menu / partie / méga-virus) et bruitages synthétisés, réglables dans les options.
+- Décor vivant : petits robots de maintenance et impulsions électriques qui circulent sur le circuit (jamais dans les couloirs des virus), reflet de lumière qui balaie la carte.
 - Animations : électricité dans les pistes, LED, portails, processeur qui pulse, tourelles qui recul/scannent, fumée, étincelles, tremblement d'écran, bannières de vague, partie de démonstration derrière le menu.
 - Revente des tourelles (70 %), bonus si on lance une vague en avance, vitesse ×1/×2/×3, vague suivante automatique, score, record et 1 à 3 étoiles par zone. Sauvegarde automatique.
 

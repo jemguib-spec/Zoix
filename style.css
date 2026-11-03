@@ -208,3 +208,28 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 .mapcard{transition:transform .15s,box-shadow .15s}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-height:500px){.panel.help{font-size:11.5px;line-height:1.25;gap:4px 12px}.panel.help p{margin:0}#help.screen{gap:6px}}
+
+/* ---- 10 tourelles dans le panneau ---- */
+#panel.land #towerBar{grid-template-columns:repeat(3,1fr)}
+#panel.port #towerBar{grid-template-columns:repeat(5,1fr)}
+#panel.port{height:calc(196px + env(safe-area-inset-bottom))}
+#panel.land .tbtn em{font-size:8px}
+@media (max-height:500px){#panel.land .tbtn canvas{width:22px;height:22px}#panel.land .tbtn em{font-size:7.5px}#panel.land .tbtn span{font-size:9px}#panel.land #tInfo .tbars{display:none}}
+
+#panel.land #towerBar{grid-template-columns:repeat(3,minmax(0,1fr))}
+#panel.port #towerBar{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tbtn{min-width:0}
+
+/* ---- panneau : 10 tourelles sans débordement ---- */
+#panel.port{height:calc(226px + env(safe-area-inset-bottom))}
+#panel.port .tbtn canvas{width:26px;height:26px}
+#panel.port .tbtn{padding:2px 1px 1px}
+#panel.port #towerBar{gap:4px}
+#panel.land #towerBar{flex:none}
+@media (max-height:500px){
+  #panel.land .tbtn em{display:none}
+  #panel.land .tbtn canvas{width:24px;height:24px}
+  #panel.land .tbtn{padding:2px 1px 2px}
+  #panel.land #tInfo{flex:1;min-height:0}
+}
+@media (max-height:340px){#panel.land #tInfo{display:none}}
