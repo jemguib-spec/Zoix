@@ -30,3 +30,15 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 ## Jouer sur téléphone
 1. Activer **GitHub Pages** sur ce dépôt (Settings → Pages → branche, dossier `/`).
 2. Ouvrir l'URL sur le téléphone, puis « Ajouter à l'écran d'accueil » pour jouer en plein écran (fonctionne aussi hors ligne).
+
+## Application Android (.apk)
+À chaque mise à jour du code, GitHub Actions compile automatiquement l'application
+(dossier `android/`, workflow `.github/workflows/android.yml`) et la publie dans les
+**Releases** du dépôt.
+
+1. Sur ton téléphone Android, ouvre la page **Releases** du dépôt et télécharge `VirusDefense.apk`.
+2. Ouvre le fichier et autorise l'installation d'applications « de source inconnue » si Android le demande.
+3. Lance **Virus Défense** depuis l'écran d'accueil.
+
+Les nouvelles versions s'installent par-dessus l'ancienne : la progression est conservée.
+Le bouton retour du téléphone met le jeu en pause ou revient au menu.
