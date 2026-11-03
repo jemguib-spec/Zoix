@@ -1259,24 +1259,26 @@ function flashTile(tx, ty) { if (tx >= 0 && ty >= 0 && tx < COLS && ty < ROWS) G
 /* ---------------- vagues ---------------- */
 function startWave() {
   if (!G || G.over || G.wave >= G.total) return;
-  const early = G.enemies.length > 0 || G.queue.length > 0;
+  const early = G.enemies.length > 0 || G.queue.length > 0, eb = earlyBonus();
   G.wave++;
   const wd = waveDef(G.wave), et = ETYPES[wd.type];
-  let t = G.queue.length ? G.queue[G.queue.length - 1].t + 1 : 0;
+  // vague anticipée : elle arrive EN MÊME TEMPS que la fin de la précédente (sans décaler celle-ci)
+  if (!G.queue.length) G.spawnT = 0;
+  let t = G.queue.length ? G.spawnT + .6 : 0;
   const t0 = t;
   for (let i = 0; i < wd.n; i++) { G.queue.push({ type: wd.type, t, wave: G.wave }); t += et.int; }
   if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < wd.n2; i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave }); t2 += ETYPES[wd.type2].int * 1.3; } }
-  if (wd.type === 'boss' || wd.wboss) for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: i * .6 + .5, wave: G.wave });
+  if (wd.type === 'boss' || wd.wboss) for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: t0 + i * .6 + .5, wave: G.wave });
   G.queue.sort((a, b) => a.t - b.t);
-  G.spawnT = 0;
-  const bonus = 2 + Math.floor(G.wave / 3) + (early ? 3 : 0) + gup('wave');
+  const bonus = 2 + Math.floor(G.wave / 3) + eb + gup('wave');
+  if (eb > 0 && !G.demo) { G.texts.push({ x: COLS / 2, y: 2, t: '⏩ ANTICIPÉE +' + eb + ' cr', col: '#ffd740', life: 1.3, big: true }); stat('early'); }
   G.cash += bonus; G.score += bonus * 10;
   for (const t of G.towers) if (t.type === 'miner') { const gn = t.st.gain + (t.st.bank ? Math.min(60, Math.floor(G.cash * .06)) : 0); G.cash += gn; G.texts.push({ x: t.x + .5, y: t.y + .2, t: '+' + gn, col: '#ffd740', life: 1.2, big: true }); coinFly(t.x + .5, t.y + .5, 2); }
   G.countdown = -1; fadeCraters(.12);
   const bw = wd.type === 'boss' || wd.wboss;
   if (bw) { G.alarm = wd.wboss ? 3.2 : 2.4; G.shake = wd.wboss ? 10 : 6; sfx('alarm'); }
   G.banner = { t: wd.wboss ? '☠ ' + et.name.toUpperCase() + ' ☠' : (wd.type === 'boss' ? '⚠ MÉGA-VIRUS ⚠' : 'VAGUE ' + G.wave), sub: wd.wboss ? 'Boss du monde · ' + EDESC[wd.type].replace(/^BOSS[^.]*\. /, '') : wd.n + ' × ' + et.name + (wd.type2 ? ' + ' + wd.n2 + ' × ' + ETYPES[wd.type2].name : ''), life: wd.wboss ? 3.2 : 2.2, max: wd.wboss ? 3.2 : 2.2, boss: bw };
-  toast((bw ? '⚠ ' : '') + 'Vague ' + G.wave + ' : ' + wd.n + ' × ' + et.name + (early ? ' · bonus anticipé +' + bonus : ' · +' + bonus + ' crédits'));
+  toast((bw ? '⚠ ' : '') + 'Vague ' + G.wave + ' : ' + wd.n + ' × ' + et.name + (eb > 0 ? ' · bonus anticipé +' + eb + ' (total +' + bonus + ')' : ' · +' + bonus + ' crédits'));
   sfx('wave'); updatePanel();
 }
 // fait apparaître un virus à l'endroit d'un autre (division, renforts, clone…)
@@ -1287,6 +1289,13 @@ function spawnFrom(type, e, hpMul) {
   Object.assign(c, { route: e.route, ri: e.ri, tx: e.tx, ty: e.ty, x: e.x + rand(-.2, .2), y: e.y + rand(-.2, .2), age: .2 });
   c.hp = c.max = c.max * (hpMul || 1);
   return c;
+}
+// prime pour une vague lancée en avance : plus il reste de virus (ou de temps), plus elle rapporte
+function earlyBonus() {
+  if (!G || G.wave === 0) return 0;
+  const left = G.enemies.length + G.queue.length;
+  if (left) return 3 + Math.min(40, Math.round(left * .5 + G.wave * .3));
+  return G.countdown > 0 ? Math.ceil(G.countdown * .6) : 0;
 }
 function spawnEnemy(type, wave, quiet) {
   const d = ETYPES[type], ri = quiet ? 0 : G.nextStart++ % G.m.routes.length, route = G.m.routes[ri], s = route[0];
@@ -2890,7 +2899,7 @@ function updatePanel(force) {
   let label;
   if (G.wave >= G.total) label = 'Dernière vague';
   else if (G.wave === 0) label = '▶ Vague 1';
-  else if (G.queue.length || G.enemies.length) label = '⏩ Vague ' + (G.wave + 1);
+  else if (G.queue.length || G.enemies.length) label = '⏩ Vague ' + (G.wave + 1) + ' · +' + earlyBonus();
   else label = '▶ Vague ' + (G.wave + 1);
   setTxt('#bWave', label);
   bw.classList.toggle('off', G.wave >= G.total);
@@ -3277,6 +3286,20 @@ $('#optMusic').onclick = () => { initAudio(); save.music = !save.music; persist(
 $('#optSide').onclick = () => { save.side = save.side === 'left' ? 'right' : 'left'; persist(); buildOptions(); };
 $('#optVibe').onclick = () => { save.vibe = !save.vibe; persist(); buildOptions(); };
 $('#optEco').onclick = () => { save.eco = !save.eco; persist(); buildOptions(); layout(); };
+ // codes développeur
+const CODES = {
+  PUCES5000: () => { save.chips = (save.chips || 0) + 5000; return '+5000 ⬢ puces'; },
+  TOUTDEBLOQUER: () => { for (const k in DIFFS) save.unlocked[k] = MAPS.length; for (const k of TORDER) (save.unlockT = save.unlockT || {})[k] = 1; return 'Toutes les zones et tourelles débloquées'; },
+  RECHERCHEMAX: () => { save.research = save.research || {}; for (const k of TORDER) save.research[k] = 5; return 'Toutes les recherches au maximum'; },
+  POUVOIRS: () => { save.pwStock = save.pwStock || {}; for (const k in POWERS) save.pwStock[k] = pwStock(k) + 50; return '+50 charges de chaque pouvoir'; }
+};
+$('#codeGo').onclick = () => {
+  const inp = $('#codeIn'), c = (inp.value || '').trim().toUpperCase().replace(/\s+/g, '');
+  const f = CODES[c]; inp.value = '';
+  if (!f) { toast('Code inconnu'); sfx('err'); return; }
+  const msg = f(); persist(); toast('🔓 Code accepté : ' + msg); sfx('up'); initAudio();
+};
+$('#codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#codeGo').click(); });
 $('#optTuto').onclick = () => { save.tuto = 0; persist(); curMode = 'campaign'; initAudio(); startMap(0); };
 $('#optExport').onclick = () => {
   const code = 'VD1:' + btoa(unescape(encodeURIComponent(JSON.stringify(save))));
