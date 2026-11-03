@@ -40,7 +40,19 @@ const MAPS = [
   { name: 'Pare-feu', base: '#a33a0c', acc: '#ffab40', waves: 45,
     paths: [[[12, 0], [12, 3], [2, 3], [2, 12], [23, 12], [23, 3], [16, 3], [16, 9], [7, 9], [7, 6], [12, 6]], [[20, 0], [20, 14]], [[5, 14], [5, 0]]] },
   { name: 'Noyau quantique', base: '#24123f', acc: '#ea80fc', waves: 50,
-    paths: [[[0, 1], [10, 1], [10, 3], [2, 3], [2, 5], [11, 5], [11, 7], [13, 7]], [[25, 1], [15, 1], [15, 3], [23, 3], [23, 5], [15, 5], [15, 7], [13, 7]], [[6, 14], [6, 12], [22, 12], [22, 9], [13, 9], [13, 7]]] }
+    paths: [[[0, 1], [10, 1], [10, 3], [2, 3], [2, 5], [11, 5], [11, 7], [13, 7]], [[25, 1], [15, 1], [15, 3], [23, 3], [23, 5], [15, 5], [15, 7], [13, 7]], [[6, 14], [6, 12], [22, 12], [22, 9], [13, 9], [13, 7]]] },
+  { name: 'Clé USB', base: '#0d47a1', acc: '#82b1ff', waves: 45,
+    paths: [[[0, 4], [8, 4], [8, 1], [17, 1], [17, 8], [3, 8], [3, 12], [25, 12]], [[25, 3], [21, 3], [21, 10], [12, 10], [12, 5]]] },
+  { name: 'Ventirad', base: '#455a64', acc: '#80deea', waves: 45,
+    paths: [[[0, 2], [23, 2], [23, 6], [2, 6], [2, 10], [25, 10]], [[9, 0], [9, 13], [16, 13], [16, 0]]] },
+  { name: 'Satellite', base: '#263238', acc: '#ffd740', waves: 45,
+    paths: [[[0, 3], [6, 3], [6, 11], [12, 11], [12, 3], [18, 3], [18, 11], [25, 11]], [[3, 14], [3, 7], [22, 7], [22, 0]], [[15, 0], [15, 13], [25, 13]]] },
+  { name: 'Robot', base: '#4a148c', acc: '#b388ff', waves: 50,
+    paths: [[[0, 1], [10, 1], [10, 4], [3, 4], [3, 7], [12, 7]], [[25, 1], [15, 1], [15, 4], [22, 4], [22, 7], [12, 7]], [[0, 9], [2, 9], [2, 13], [11, 13], [11, 9], [12, 9], [12, 7]], [[25, 9], [23, 9], [23, 13], [14, 13], [14, 9], [12, 9]]] },
+  { name: 'Data center', base: '#1b5e20', acc: '#ccff90', waves: 50,
+    paths: [[[0, 2], [24, 2], [24, 12], [1, 12], [1, 5], [21, 5], [21, 9], [4, 9]], [[12, 0], [12, 14]]] },
+  { name: 'Cœur de l\'IA', base: '#3e0f0f', acc: '#ff5252', waves: 60,
+    paths: [[[0, 1], [11, 1], [11, 4], [2, 4], [2, 7], [12, 7]], [[25, 1], [14, 1], [14, 4], [23, 4], [23, 7], [12, 7]], [[6, 14], [6, 10], [19, 10], [19, 14]]] }
 ];
 // fabrique la grille à partir des chemins : '#' circuit, '.' couloir, 'S' entrée, 'E' sortie
 for (const m of MAPS) {
@@ -82,7 +94,8 @@ const DIFFS = {
   easy: { name: 'Facile', hp: .7, lives: 30, cash: 35, col: '#4ade80', desc: 'Virus fragiles · 30 vies' },
   normal: { name: 'Normal', hp: 1, lives: 20, cash: 25, col: '#60a5fa', desc: 'L\'expérience équilibrée · 20 vies' },
   hard: { name: 'Difficile', hp: 1.4, lives: 15, cash: 22, col: '#f97316', desc: 'Virus coriaces · 15 vies' },
-  nightmare: { name: 'Cauchemar', hp: 1.75, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies' }
+  nightmare: { name: 'Cauchemar', hp: 1.75, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies' },
+  legend: { name: 'Légende', hp: 2.5, lives: 5, cash: 22, col: '#e040fb', desc: 'Impossible ? · 5 vies' }
 };
 
 const TOWERS = {
@@ -121,12 +134,19 @@ const ETYPES = {
   armor: { name: 'Blindé', hp: 28, spd: .95, rew: 3, col: '#9aa5b1', r: .33, int: 1.2, n: 6, armor: 2 },
   flyer: { name: 'Volant', hp: 9, spd: 1.4, rew: 2, col: '#6ec6ff', r: .25, int: .9, n: 8, fly: true },
   regen: { name: 'Mutant', hp: 20, spd: 1.3, rew: 2, col: '#b388ff', r: .28, int: 1, n: 8, regen: .05 },
+  splitter: { name: 'Diviseur', hp: 22, spd: 1.2, rew: 2, col: '#ff9e40', r: .3, int: 1, n: 8, split: true },
+  mini: { name: 'Mini-virus', hp: 6, spd: 2.1, rew: 1, col: '#ffcc80', r: .16, int: .3, n: 1 },
+  shield: { name: 'Bouclier', hp: 18, spd: 1.25, rew: 3, col: '#40c4ff', r: .28, int: 1, n: 8, shield: .8 },
+  ghost: { name: 'Fantôme', hp: 15, spd: 1.6, rew: 3, col: '#e1f5fe', r: .26, int: .8, n: 9, ghost: true },
+  healer: { name: 'Soigneur', hp: 22, spd: 1.1, rew: 3, col: '#ff80ab', r: .29, int: 1.3, n: 5, heal: .1 },
+  giant: { name: 'Géant', hp: 95, spd: .62, rew: 7, col: '#a1887f', r: .43, int: 2.2, n: 3, lives: 2, armor: 1.5 },
+  jumper: { name: 'Sauteur', hp: 13, spd: 1.3, rew: 2, col: '#b2ff59', r: .25, int: .9, n: 9, jump: true },
   boss: { name: 'MÉGA-VIRUS', hp: 260, spd: .7, rew: 25, col: '#ff3b3b', r: .45, int: 3, n: 1, lives: 5, armor: 3 }
 };
 function waveDef(w) {
   if (w % 10 === 0) return { type: 'boss', n: Math.ceil(w / 20) };
-  const intro = { 1: 'bug', 3: 'runner', 5: 'swarm', 6: 'armor', 8: 'flyer', 12: 'regen' };
-  const avail = ['bug']; if (w >= 3) avail.push('runner'); if (w >= 5) avail.push('swarm'); if (w >= 6) avail.push('armor'); if (w >= 8) avail.push('flyer'); if (w >= 12) avail.push('regen');
+  const intro = { 1: 'bug', 3: 'runner', 5: 'swarm', 6: 'armor', 8: 'flyer', 12: 'regen', 14: 'splitter', 16: 'shield', 18: 'ghost', 21: 'healer', 24: 'giant', 27: 'jumper' };
+  const avail = []; for (const k in intro) if (w >= +k) avail.push(intro[k]);
   const type = intro[w] || avail[(w * 7 + 3) % avail.length];
   const res = { type, n: Math.round(ETYPES[type].n * (1 + w * .025)) };
   if (w >= 9 && !intro[w]) { // à partir de la vague 9 : deux sortes de virus mélangées
@@ -140,7 +160,7 @@ const rewScale = w => 1 + (w - 1) * .04;
 
 /* ---------------- sauvegarde ---------------- */
 const SAVE_KEY = 'virusdef_save_v1';
-const DEFAULT_SAVE = { unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1 }, stars: {}, best: {}, sound: true, vibe: true, autoWave: true };
+const DEFAULT_SAVE = { unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1 }, side: 'right', stars: {}, best: {}, sound: true, vibe: true, autoWave: true };
 function loadSave() {
   const d = JSON.parse(JSON.stringify(DEFAULT_SAVE));
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) { Object.assign(d, s); d.unlocked = Object.assign({}, DEFAULT_SAVE.unlocked, s.unlocked); } } catch (e) { }
@@ -210,9 +230,11 @@ function layout() {
   L.port = SH > SW * 1.05;
   const panel = $('#panel'), pan = hasPanel();
   panel.classList.toggle('land', !L.port); panel.classList.toggle('port', L.port);
+  const left = save.side === 'left'; panel.classList.toggle('left', left && !L.port);
+  const PW = 176;
   if (!pan) { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH; }
-  else if (!L.port) { L.ax = sL + 4; L.ay = sT + 4; L.aw = SW - 150 - sR - sL - 8; L.ah = SH - sT - sB - 8; }
-  else { L.ax = sL + 4; L.ay = sT + 4; L.aw = SW - sL - sR - 8; L.ah = SH - sT - sB - 150 - 8; }
+  else if (!L.port) { L.ax = left ? PW + sL + 4 : sL; L.ay = 0; L.aw = SW - PW - sR - sL - 4; L.ah = SH; }
+  else { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH - sB - 150; }
   // T = taille d'une case quand toute la carte est visible
   L.T = L.port ? Math.min(L.aw / ROWS, L.ah / COLS) : Math.min(L.aw / COLS, L.ah / ROWS);
   if (!pan) L.T = L.port ? Math.max(L.aw / ROWS, L.ah / COLS) : Math.max(L.aw / COLS, L.ah / ROWS); // menu : la carte remplit l'écran
@@ -262,7 +284,62 @@ function addNoise(g, W, H, R, amt) {
   for (let i = 0; i < d.length; i += 4) { const n = (R() - .5) * amt; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
   g.putImageData(im, 0, 0);
 }
-function buildBG(mi, P) {
+// fond complet : la carte jouable + du circuit tout autour (aucune bande noire à l'écran)
+function buildBG(mi, P, M) {
+  const inner = buildMapBG(mi, P);
+  if (!M) return inner;
+  const m = MAPS[mi], W = (COLS + 2 * M) * P, H = (ROWS + 2 * M) * P;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), R = mulberry(mi * 313 + 99);
+  let gr = g.createRadialGradient(W / 2, H / 2, P * 4, W / 2, H / 2, W * .7);
+  gr.addColorStop(0, shade(m.base, .05)); gr.addColorStop(1, shade(m.base, -.5));
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let i = 0; i < 70; i++) { // pistes
+    let x = R() * W, y = R() * H, dir = Math.floor(R() * 4) * Math.PI / 2; const n = 1 + Math.floor(R() * 5), w = P * .05;
+    const pts = [[x, y]];
+    for (let k = 0; k < 3; k++) { const len = P * (1 + R() * 5); x += Math.round(Math.cos(dir)) * len; y += Math.round(Math.sin(dir)) * len; pts.push([x, y]); dir += (R() < .5 ? -1 : 1) * Math.PI / 2; }
+    for (let k = 0; k < n; k++) {
+      const o = (k - (n - 1) / 2) * P * .13;
+      g.beginPath(); pts.forEach(([px, py], j) => j ? g.lineTo(px + o, py + o) : g.moveTo(px + o, py + o));
+      g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = w + P * .03; g.stroke();
+      g.strokeStyle = shade(m.base, .22); g.lineWidth = w; g.stroke();
+    }
+    const [ex, ey] = pts[pts.length - 1]; g.fillStyle = '#d4a93c'; g.beginPath(); g.arc(ex, ey, P * .07, 0, TAU); g.fill();
+  }
+  for (let i = 0; i < 26; i++) { // puces
+    const w = P * (1 + R() * 2.5), h = P * (.6 + R() * 1.2), x = R() * W, y = R() * H;
+    g.fillStyle = '#c9c9c9'; for (let px = x + P * .12; px < x + w - P * .1; px += P * .15) { g.fillRect(px, y - P * .12, P * .06, P * .14); g.fillRect(px, y + h - 2, P * .06, P * .14); }
+    g.shadowColor = 'rgba(0,0,0,.6)'; g.shadowBlur = P * .2; g.shadowOffsetY = P * .08;
+    gr = g.createLinearGradient(x, y, x, y + h); gr.addColorStop(0, '#34343a'); gr.addColorStop(1, '#0c0c0e'); g.fillStyle = gr; g.fillRect(x, y, w, h);
+    g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
+  }
+  for (let i = 0; i < 90; i++) { const x = R() * W, y = R() * H; g.fillStyle = R() < .5 ? '#151515' : '#b88d5a'; g.fillRect(x, y, P * .3, P * .14); }
+  // couloirs d'entrée / sortie prolongés jusqu'au bord de l'écran
+  const ox = M * P, oy = M * P;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const ch = m.g[y][x]; if (ch !== 'S' && ch !== 'E') continue;
+    const dirs = []; if (x === 0) dirs.push([-1, 0]); if (x === COLS - 1) dirs.push([1, 0]); if (y === 0) dirs.push([0, -1]); if (y === ROWS - 1) dirs.push([0, 1]);
+    for (const [dx, dy] of dirs) {
+      const X = ox + x * P, Y = oy + y * P;
+      const rx = dx < 0 ? 0 : dx > 0 ? X + P : X, ry = dy < 0 ? 0 : dy > 0 ? Y + P : Y;
+      const rw = dx ? (dx < 0 ? X : W - rx) : P, rh = dy ? (dy < 0 ? Y : H - ry) : P;
+      g.fillStyle = '#100d0a'; g.fillRect(rx, ry, rw, rh);
+      g.strokeStyle = '#d8b25a'; g.lineWidth = P * .035; g.beginPath();
+      if (dx) { g.moveTo(rx, ry); g.lineTo(rx + rw, ry); g.moveTo(rx, ry + rh); g.lineTo(rx + rw, ry + rh); }
+      else { g.moveTo(rx, ry); g.lineTo(rx, ry + rh); g.moveTo(rx + rw, ry); g.lineTo(rx + rw, ry + rh); }
+      g.stroke();
+    }
+  }
+  // assombrir l'extérieur, puis poser la zone de jeu avec un cadre
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, 0, W, H);
+  g.shadowColor = 'rgba(0,0,0,.8)'; g.shadowBlur = P * .6; g.fillStyle = '#000'; g.fillRect(ox, oy, COLS * P, ROWS * P);
+  g.shadowColor = 'transparent'; g.shadowBlur = 0;
+  g.drawImage(inner, ox, oy);
+  g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = P * .04; g.setLineDash([P * .3, P * .2]); g.strokeRect(ox, oy, COLS * P, ROWS * P); g.setLineDash([]);
+  return c;
+}
+function buildMapBG(mi, P) {
   const m = MAPS[mi], c = document.createElement('canvas'), W = COLS * P, H = ROWS * P;
   c.width = W; c.height = H;
   const g = c.getContext('2d'), R = mulberry(mi * 977 + 13), rec = P >= 48;
@@ -515,7 +592,7 @@ function newGame(mi, demo) {
   };
   const keep = G; G = g;
   g.dist = computeDist();
-  g.bg = buildBG(mi, 64);
+  g.bg = buildBG(mi, 64, 6); g.bgM = 6;
   for (const tr of m.traces) { tr.pts = tr; tr.lens = []; tr.len = 0; for (let i = 0; i < tr.length - 1; i++) { const l = Math.hypot(tr[i + 1][0] - tr[i][0], tr[i + 1][1] - tr[i][1]) || .01; tr.lens.push(l); tr.len += l; } }
   g.pulses = [];
   for (let i = 0; i < 34; i++) g.pulses.push({ tr: Math.floor(Math.random() * m.traces.length), d: Math.random() * 6, spd: rand(1.5, 4), col: Math.random() < .7 ? m.acc : '#ffffff' });
@@ -531,8 +608,7 @@ function newGame(mi, demo) {
 function startMap(mi) {
   G = newGame(mi, false);
   L.zoom = 1; L.vx = COLS / 2; L.vy = ROWS / 2;
-  G.tool = 'pulse';
-  buildTowerBar(); closePopup();
+  buildTowerBar(); closePopup(); selectTool('pulse', true);
   setState('play');
   updatePanel(true);
   toast('Pose des tourelles sur le circuit, le long des couloirs !' + ('ontouchstart' in window ? ' Pince pour zoomer.' : ''));
@@ -634,9 +710,12 @@ function spawnEnemy(type, wave) {
   const e = {
     id: uid++, type, x: s[0] + .5, y: s[1] + .5, tx: s[0], ty: s[1], hp, max: hp, spd: d.spd, r: d.r, col: d.col,
     rew: Math.max(1, Math.round(d.rew * rewScale(wave))), armor: (d.armor || 0) * (1 + wave * .03), fly: !!d.fly, regen: d.regen || 0,
-    lives: d.lives || 1, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
+    lives: d.lives || 1, wave, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
   };
   e.hp = e.max = hp * (1 + G.mi * .025);
+  if (d.shield) e.sh = e.shMax = e.max * d.shield;
+  if (d.ghost) e.phaseT = rand(1, 3);
+  if (d.jump) e.jumpT = rand(2, 3.5);
   G.enemies.push(e);
 }
 function nextTile(e) {
@@ -661,6 +740,8 @@ function toast(msg) { if (G && G.demo) return; const el = $('#toast'); el.textCo
 /* ---------------- combat ---------------- */
 function hurt(e, dmg, pierce) {
   if (e.dead) return;
+  e.noHit = 0;
+  if (e.sh > 0) { const a = Math.min(e.sh, dmg); e.sh -= a; dmg -= a; e.shHit = .15; if (dmg <= 0) return; }
   e.hp -= pierce ? dmg : Math.max(dmg - e.armor, dmg * .25);
   e.hit = .08;
   if (e.hp <= 0) {
@@ -672,6 +753,11 @@ function hurt(e, dmg, pierce) {
     G.fx.push({ kind: 'splat', x: e.x, y: e.y, r: e.r * 1.7, life: 10, max: 10, col: rgbaA(e.col), seed: Math.random() * .97 + .013 });
     smoke(e.x, e.y, e.type === 'boss' ? 14 : 3, e.r * .7);
     sfx(e.type === 'boss' ? 'boom' : 'pop'); if (e.type === 'boss') { vibe(200); G.shake = 14; }
+    if (ETYPES[e.type].split) for (let k = 0; k < 2; k++) { // le diviseur se sépare en deux mini-virus
+      spawnEnemy('mini', e.wave || G.wave);
+      const m2 = G.enemies[G.enemies.length - 1];
+      Object.assign(m2, { route: e.route, ri: e.ri, tx: e.tx, ty: e.ty, x: e.x + rand(-.15, .15), y: e.y + rand(-.15, .15), age: .2 });
+    }
   }
 }
 function enemyProgress(e) {
@@ -681,7 +767,7 @@ function findTarget(t) {
   const cx = t.x + .5, cy = t.y + .5, r2 = t.st.range * t.st.range, ground = TOWERS[t.type].ground;
   let best = null, bp = Infinity;
   for (const e of G.enemies) {
-    if (e.dead || (ground && e.fly)) continue;
+    if (e.dead || (ground && e.fly) || e.phased) continue;
     const dx = e.x - cx, dy = e.y - cy;
     const d2 = dx * dx + dy * dy;
     if (d2 <= r2) {
@@ -763,6 +849,11 @@ function update(dt) {
     e.anim += dt; e.age = (e.age || 0) + dt; e.hit = Math.max(0, (e.hit || 0) - dt);
     if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slowF = 1; }
     if (e.regen && e.hp < e.max) e.hp = Math.min(e.max, e.hp + e.max * e.regen * dt);
+    e.noHit = (e.noHit || 0) + dt; e.shHit = Math.max(0, (e.shHit || 0) - dt);
+    if (e.shMax && e.noHit > 2.5) e.sh = Math.min(e.shMax, e.sh + e.shMax * .35 * dt);
+    if (e.phaseT !== undefined) { e.phaseT -= dt; if (e.phaseT <= 0) { e.phased = !e.phased; e.phaseT = e.phased ? 1.3 : rand(2.2, 3.2); } }
+    if (ETYPES[e.type].heal) { e.healT = (e.healT || 0) - dt; if (e.healT <= 0) { e.healT = 1; for (const o of G.enemies) if (!o.dead && o !== e && o.hp < o.max && Math.hypot(o.x - e.x, o.y - e.y) < 1.6) { o.hp = Math.min(o.max, o.hp + o.max * .1); G.texts.push({ x: o.x, y: o.y - .3, t: '+', col: '#76ff03', life: .6 }); } G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: 1.6, col: 'rgba(120,255,140,.5)', life: .4, max: .4 }); } }
+    if (e.jumpT !== undefined && !(e.stunT > 0)) { e.jumpT -= dt; if (e.jumpT <= 0) { e.jumpT = rand(2.5, 3.5); const to = Math.min(e.route.length - 2, e.ri + 4); if (to > e.ri) { G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); e.ri = to; const p2 = e.route[to]; e.x = p2[0] + .5; e.y = p2[1] + .5; G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); } } }
     if (e.frozen > 0) e.frozen -= dt;
     let mv = e.spd * e.slowF * dt;
     if (e.stunT > 0) { e.stunT -= dt; mv = 0; }
@@ -1015,6 +1106,7 @@ function drawEnemy(e) {
   softShadow(ctx, e.fly ? .16 : .05, e.fly ? .24 : .08, r * 1.3, r * 1.05, e.fly ? .35 : .6);
   if (e.fly) ctx.translate(0, -.06 + Math.sin(e.anim * 4) * .03);
   const grow = Math.min(1, (e.age || 0) / .35); if (grow < 1) { ctx.scale(grow, grow); ctx.globalAlpha = grow; }
+  if (e.type === 'ghost') ctx.globalAlpha *= e.phased ? .22 : .85;
   ctx.rotate(e.ang);
   const stunned = e.stunT > 0;
   if (!e.fly && !stunned) { const b = Math.sin(e.anim * (e.type === 'runner' ? 22 : 14)) * .07; ctx.scale(1 + b, 1 - b); }
@@ -1084,6 +1176,32 @@ function drawEnemy(e) {
     ctx.fillStyle = '#ffd600'; ctx.beginPath(); ctx.moveTo(-r * .38, r * .12); ctx.lineTo(-r * .38, -r * .12); ctx.lineTo(-r * .2, r * .02); ctx.lineTo(0, -r * .2); ctx.lineTo(r * .2, r * .02); ctx.lineTo(r * .38, -r * .12); ctx.lineTo(r * .38, r * .12); ctx.closePath(); ctx.fill();
     ctx.lineWidth = lw * .6; ctx.strokeStyle = OUT; ctx.stroke(); ctx.restore();
   }
+  // détails des nouveaux virus
+  if (e.type === 'splitter') { // couture : il va se couper en deux
+    ctx.strokeStyle = OUT; ctx.lineWidth = lw * .8; ctx.setLineDash([r * .18, r * .12]);
+    ctx.beginPath(); ctx.moveTo(-r * .95, 0); ctx.lineTo(r * .2, 0); ctx.stroke(); ctx.setLineDash([]);
+  }
+  if (e.type === 'ghost') { // queue ondulée
+    ctx.fillStyle = shade(d.col, -.1); ctx.beginPath(); ctx.moveTo(-r * .6, -r * .8);
+    for (let i = 0; i <= 6; i++) { const yy = -r * .8 + i * r * .27; ctx.lineTo(-r * (1.3 + .25 * Math.sin(e.anim * 8 + i)), yy); }
+    ctx.lineTo(-r * .6, r * .8); ctx.closePath(); ctx.fill(); ctx.lineWidth = lw * .7; ctx.strokeStyle = OUT; ctx.stroke();
+  }
+  if (e.type === 'healer') { // croix de soin
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = OUT; ctx.lineWidth = lw * .6;
+    ctx.beginPath(); ctx.rect(-r * .55, -r * .12, r * .4, r * .24); ctx.rect(-r * .47, -r * .2, r * .24, r * .4); ctx.fill();
+    ctx.fillStyle = '#ff1744'; ctx.fillRect(-r * .52, -r * .07, r * .34, r * .14); ctx.fillRect(-r * .42, -r * .17, r * .14, r * .34);
+  }
+  if (e.type === 'giant') { // cicatrices et petites cornes
+    ctx.strokeStyle = OUT; ctx.lineWidth = lw * .7;
+    ctx.beginPath(); ctx.moveTo(-r * .6, -r * .45); ctx.lineTo(-r * .15, -r * .1);
+    for (let i = 0; i < 4; i++) { const u = i / 3, x0 = -r * .6 + u * r * .45, y0 = -r * .45 + u * r * .35; ctx.moveTo(x0 - r * .08, y0 + r * .08); ctx.lineTo(x0 + r * .08, y0 - r * .08); }
+    ctx.stroke();
+    for (const s2 of [-1, 1]) { ctx.fillStyle = '#efebe9'; ctx.beginPath(); ctx.moveTo(r * .2, s2 * r * .75); ctx.lineTo(r * .05, s2 * r * 1.15); ctx.lineTo(-r * .1, s2 * r * .7); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  }
+  if (e.type === 'jumper') { // ressorts
+    ctx.strokeStyle = '#cfd8dc'; ctx.lineWidth = lw * .6;
+    for (const s2 of [-1, 1]) { ctx.beginPath(); for (let i = 0; i <= 8; i++) ctx.lineTo(-r * .2 + (i % 2 ? r * .12 : -r * .12), s2 * (r * .9 + i * r * .06)); ctx.stroke(); }
+  }
   // reflet principal
   ctx.save(); ctx.translate(lx * r * .45, ly * r * .45); ctx.rotate(Math.atan2(ly, lx) + Math.PI / 2);
   ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.ellipse(0, 0, r * .36, r * .16, 0, 0, TAU); ctx.fill(); ctx.restore();
@@ -1116,6 +1234,15 @@ function drawEnemy(e) {
     const c = e.frozen > 0 ? 'rgba(180,240,255,.75)' : e.slowT > 0 ? 'rgba(130,210,255,.5)' : 'rgba(120,255,140,.4)';
     glowDot(e.x, e.y, r * 1.8, c, 'rgba(255,255,255,.2)'); ctx.restore();
   }
+  if (e.sh > 0) { // bulle d'énergie
+    const k = e.sh / e.shMax;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(64,196,255,' + (.35 + .5 * k + (e.shHit > 0 ? .3 : 0)) + ')'; ctx.lineWidth = .05;
+    ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.55, 0, TAU); ctx.stroke();
+    glowDot(e.x, e.y, r * 1.7, 'rgba(64,196,255,' + (.12 + .15 * k).toFixed(2) + ')', 'rgba(255,255,255,0)');
+    ctx.restore();
+  }
+  if (e.type === 'healer') { ctx.strokeStyle = 'rgba(120,255,140,' + (.25 + .2 * Math.sin(e.anim * 5)) + ')'; ctx.lineWidth = .03; ctx.setLineDash([.1, .1]); ctx.beginPath(); ctx.arc(e.x, e.y, 1.6, 0, TAU); ctx.stroke(); ctx.setLineDash([]); }
   if (e.frozen > 0) { // bloc de glace
     ctx.fillStyle = 'rgba(200,240,255,.45)'; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = .03;
     ctx.beginPath(); for (let i = 0; i < 6; i++) { const q = i * TAU / 6 + .3; ctx.lineTo(e.x + Math.cos(q) * r * 1.35, e.y + Math.sin(q) * r * 1.35); } ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1212,7 +1339,7 @@ function render() {
   ctx.save(); ctx.beginPath(); ctx.rect(L.ax, L.ay, L.aw, L.ah); ctx.clip();
   const sh = G.shake || 0;
   mapTransform(sh ? rand(-sh, sh) : 0, sh ? rand(-sh, sh) : 0);
-  ctx.drawImage(G.bg, 0, 0, COLS, ROWS);
+  const BM = G.bgM || 0; ctx.drawImage(G.bg, -BM, -BM, COLS + 2 * BM, ROWS + 2 * BM);
   drawLive();
   // taches laissées par les virus détruits
   for (const f of G.fx) if (f.kind === 'splat') {
@@ -1222,17 +1349,6 @@ function render() {
     ctx.fillStyle = g; ctx.beginPath();
     for (let i = 0; i < 12; i++) { const q = i * TAU / 12, r2 = f.r * (.65 + ((f.seed * (i + 3)) % 1) * .45); ctx.lineTo(f.x + Math.cos(q) * r2, f.y + Math.sin(q) * r2); }
     ctx.fill();
-  }
-  // quand une tourelle est choisie : on montre les bonnes cases (près des couloirs)
-  if (G.tool && !G.demo) {
-    const rng = TOWERS[G.tool].range, pul = .14 + .08 * Math.sin(G.time * 5);
-    if (!G.near) { G.near = []; for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (G.m.g[y][x] === '#') { let md = 99; for (const f of G.flow) md = Math.min(md, Math.hypot(f.x - x, f.y - y)); G.near.push([x, y, md]); } }
-    for (const [x, y, md] of G.near) {
-      if (md > Math.min(rng, 1.5) || G.towerAt[y][x]) continue;
-      ctx.fillStyle = 'rgba(120,255,140,' + (md <= 1.01 ? pul : pul * .6).toFixed(2) + ')'; rr(ctx, x + .08, y + .08, .84, .84, .14); ctx.fill();
-      ctx.strokeStyle = 'rgba(200,255,210,.35)'; ctx.lineWidth = .03; ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = .05; ctx.beginPath(); ctx.moveTo(x + .4, y + .5); ctx.lineTo(x + .6, y + .5); ctx.moveTo(x + .5, y + .4); ctx.lineTo(x + .5, y + .6); ctx.stroke();
-    }
   }
   // case visée (souris ou glisser-déposer)
   if (G.tool && G.hover) {
@@ -1329,7 +1445,7 @@ function render() {
   // vignettage
   const vg = ctx.createRadialGradient(COLS / 2, ROWS / 2, ROWS * .35, COLS / 2, ROWS / 2, COLS * .62);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.5)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, COLS, ROWS);
+  ctx.fillStyle = vg; ctx.fillRect(-BM, -BM, COLS + 2 * BM, ROWS + 2 * BM);
   ctx.restore();
 
   // ----- écran (texte et barres toujours droits) -----
@@ -1353,8 +1469,8 @@ function render() {
     g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, 'rgba(255,0,0,' + (f.life / f.max * .5) + ')');
     ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
   }
-  if (G.banner) {
-    const b = G.banner, age = 2.2 - b.life, k = Math.min(1, age / .25), out = Math.min(1, b.life / .4);
+  if (G.banner && !G.demo) {
+    const b = G.banner, age = (b.max || 2.2) - b.life, k = Math.min(1, age / .25), out = Math.min(1, b.life / .4);
     const cx = L.ax + L.aw / 2, cy = L.ay + L.ah * .38, sc = (1.6 - .6 * k) ;
     ctx.save(); ctx.globalAlpha = out; ctx.translate(cx, cy); ctx.scale(sc, sc);
     const fs = Math.min(46, L.aw / 10);
@@ -1435,7 +1551,9 @@ function buildTowerBar() {
     const d = TOWERS[k], b = document.createElement('button'); b.className = 'tbtn'; b.dataset.t = k;
     const c = document.createElement('canvas'); c.width = c.height = 68;
     const g = c.getContext('2d'); g.setTransform(68, 0, 0, 68, 34, 34); drawTower(g, k, 1, -Math.PI / 4, 0);
-    b.appendChild(c); const s = document.createElement('span'); s.textContent = d.cost + 'cr'; b.appendChild(s);
+    b.appendChild(c);
+    const nm = document.createElement('em'); nm.textContent = d.name; b.appendChild(nm);
+    const s = document.createElement('span'); s.textContent = d.cost + ' cr'; b.appendChild(s);
     b.addEventListener('pointerdown', ev => { initAudio(); ev.preventDefault(); dragT = { k, id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, active: false, was: G.tool === k }; });
     bar.appendChild(b);
   }
@@ -1459,10 +1577,18 @@ function dragEnd(ev) {
   if (h && ev.type === 'pointerup') tryPlace(d.k, h[0], h[1]);
 }
 document.addEventListener('pointerup', dragEnd); document.addEventListener('pointercancel', dragEnd);
+function towerInfo() {
+  const el = $('#tInfo'); if (!el || !G) return;
+  const k = G.tool;
+  if (!k) { el.innerHTML = '<small>Choisis une tourelle puis touche le circuit</small>'; return; }
+  const d = TOWERS[k], st = tStats(k, 1), bar = (v, m) => '<i style="width:' + Math.round(Math.min(1, v / m) * 100) + '%"></i>';
+  el.innerHTML = '<b style="color:' + d.col + '">' + d.name + '</b><span class="tdesc">' + d.desc + '</span>' +
+    '<div class="tbars"><label>Dégâts</label><u>' + bar(st.dmg * st.rate * (st.chain || 1), 60) + '</u><label>Portée</label><u>' + bar(st.range, 4.5) + '</u><label>Cadence</label><u>' + bar(st.rate, 4) + '</u></div>';
+}
 function selectTool(k, quiet) {
-  G.tool = k; closePopup();
+  G.tool = k; closePopup(); towerInfo();
   document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('sel', b.dataset.t === k));
-  if (k && !quiet) toast(TOWERS[k].name + ' (' + TOWERS[k].cost + ' cr) : ' + TOWERS[k].desc + ' — touche une case verte ou glisse-la sur la carte');
+  if (k && !quiet) toast(TOWERS[k].name + ' (' + TOWERS[k].cost + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
 }
 const lastP = {};
 function setTxt(id, v) { if (lastP[id] !== v) { lastP[id] = v; $(id).textContent = v; } }
@@ -1518,8 +1644,8 @@ function placePopup() {
   const t = G.sel; if (!t) return;
   const p = $('#tpop'), [sx, sy] = toScreen(t.x + .5, t.y + .5), w = 190, h = p.offsetHeight || 150;
   let x = sx + L.s * .7, y = sy - h / 2;
-  if (x + w > SW - (L.port ? 6 : 160)) x = sx - L.s * .7 - w;
-  x = clamp(x, 6, SW - w - 6); y = clamp(y, 6, SH - h - (L.port ? 160 : 6));
+  if (x + w > L.ax + L.aw - 6) x = sx - L.s * .7 - w;
+  x = clamp(x, L.ax + 6, L.ax + L.aw - w - 6); y = clamp(y, 6, SH - h - (L.port ? 160 : 6));
   p.style.left = x + 'px'; p.style.top = y + 'px';
 }
 $('#tpClose').onclick = closePopup;
@@ -1529,8 +1655,12 @@ $('#tpMode').onclick = () => { const t = G.sel; if (!t) return; t.mode = MODES[(
 
 /* ---------------- fin de partie ---------------- */
 function endGame(win) {
-  G.over = true;
+  G.over = true; G.win = win; G.endT = 0; G.fwT = 0;
   closePopup();
+  // on arrête net les tirs : pas de rayon figé à l'écran
+  G.projs.length = 0; G.fx = G.fx.filter(f => f.kind === 'splat');
+  G.banner = { t: win ? 'ZONE NETTOYÉE !' : 'SYSTÈME INFECTÉ !', sub: win ? G.m.name + ' sauvée' : 'Les virus ont atteint le processeur', life: 3.2, max: 3.2, boss: !win, big: true };
+  if (!win) { for (const [x, y] of G.exits) { for (let i = 0; i < 30; i++) G.parts.push(part(x + .5, y + .5, i % 2 ? '#ff5252' : '#ffd740', 5)); smoke(x + .5, y + .5, 12, .5); } G.shake = 16; }
   if (win) {
     const k = G.lives / G.d.lives, st = k >= 1 ? 3 : k >= .5 ? 2 : 1, key = curDiff + G.mi;
     G.score += G.lives * 100;
@@ -1542,15 +1672,14 @@ function endGame(win) {
     const key = curDiff + G.mi; save.best[key] = Math.max(save.best[key] || 0, G.score); persist();
     sfx('lose'); vibe(300);
   }
-  const g = G; setTimeout(() => { if (G === g && G.over) showResult(win); }, 900);
 }
 function showResult(win) {
   setState('result');
   const last = G.mi === MAPS.length - 1;
   $('#resTitle').textContent = win ? (last ? '🏆 Ordinateur sauvé !' : 'Zone nettoyée !') : 'L\'ordinateur est infecté…';
   $('#resTitle').style.color = win ? '#a5d6a7' : '#ff8a80';
-  $('#resStars').textContent = win ? '★'.repeat(G.stars) + '☆'.repeat(3 - G.stars) : '';
-  $('#resBody').innerHTML = G.m.name + ' · ' + G.d.name + '<br>Vagues : <b>' + (win ? G.total : Math.max(0, G.wave - 1)) + ' / ' + G.total + '</b><br>Virus détruits : <b>' + G.kills + '</b><br>Score : <b style="color:#e6ee5a">' + G.score + '</b><br>Record : <b>' + (save.best[curDiff + G.mi] || 0) + '</b>';
+  $('#resStars').innerHTML = win ? [0, 1, 2].map(i => '<span class="st' + (i < G.stars ? ' on' : '') + '" style="animation-delay:' + (.25 + i * .25) + 's">★</span>').join('') : '<span class="skull">☠</span>';
+  $('#resBody').innerHTML = '<div><small>Zone</small><b>' + G.m.name + '</b></div><div><small>Difficulté</small><b>' + G.d.name + '</b></div><div><small>Vagues</small><b>' + (win ? G.total : Math.max(0, G.wave - 1)) + ' / ' + G.total + '</b></div><div><small>Virus détruits</small><b>' + G.kills + '</b></div><div><small>Score</small><b style="color:#e6ee5a">' + G.score + '</b></div><div><small>Record</small><b>' + (save.best[curDiff + G.mi] || 0) + '</b></div>';
   const nb = $('#resNext');
   if (win && !last) { nb.classList.remove('hidden'); nb.textContent = '▶ Zone suivante'; nb.onclick = () => startMap(G.mi + 1); }
   else nb.classList.add('hidden');
@@ -1578,23 +1707,31 @@ function buildDiff() {
     const d = DIFFS[k], b = document.createElement('button');
     b.className = 'big alt diffbtn'; b.style.boxShadow = 'inset 0 0 0 2px ' + d.col;
     b.innerHTML = '<span style="color:' + d.col + '">' + d.name + '</span><small>' + d.desc + ' · zones ' + save.unlocked[k] + '/' + MAPS.length + '</small>';
-    b.onclick = () => { curDiff = k; setState('maps'); };
+    b.onclick = () => { curDiff = k; mapPage = null; setState('maps'); };
     box.appendChild(b);
   }
 }
-const thumbs = {};
+const thumbs = {}; let mapPage = null;
+$('#mapPrev').onclick = () => { if (mapPage > 0) { mapPage--; buildMaps(); } };
+$('#mapNext').onclick = () => { if (mapPage < Math.ceil(MAPS.length / 6) - 1) { mapPage++; buildMaps(); } };
 function buildMaps() {
   const d = DIFFS[curDiff];
   $('#mapsTitle').innerHTML = 'Zones de combat · <span style="color:' + d.col + '">' + d.name + '</span>';
   const g = $('#mapGrid'); g.innerHTML = '';
+  const pages = Math.ceil(MAPS.length / 6);
+  if (mapPage === null) mapPage = Math.min(pages - 1, Math.floor((save.unlocked[curDiff] - 1) / 6));
+  $('#mapPage').innerHTML = 'Monde ' + (mapPage + 1) + ' / ' + pages + ' · <span style="color:' + d.col + '">' + d.name + '</span>';
+  $('#mapPrev').classList.toggle('off', mapPage === 0); $('#mapNext').classList.toggle('off', mapPage === pages - 1);
   MAPS.forEach((m, i) => {
+    if (Math.floor(i / 6) !== mapPage) return;
     const locked = i >= save.unlocked[curDiff], st = save.stars[curDiff + i] || 0, best = save.best[curDiff + i] || 0;
     const b = document.createElement('button'); b.className = 'mapcard' + (locked ? ' locked' : ''); b.style.setProperty('--c', m.acc);
     if (!thumbs[i]) thumbs[i] = buildBG(i, 16);
-    const c = document.createElement('canvas'); c.width = COLS * 16; c.height = ROWS * 16; c.getContext('2d').drawImage(thumbs[i], 0, 0);
+    const c = document.createElement('canvas'); c.width = COLS * 16; c.height = ROWS * 16; c.style.aspectRatio = COLS + '/' + ROWS; c.getContext('2d').drawImage(thumbs[i], 0, 0);
     b.appendChild(c);
     const info = document.createElement('div');
-    info.innerHTML = '<b>' + (locked ? '🔒 ' : '') + 'Zone ' + (i + 1) + ' · ' + m.name + '</b><small>' + m.waves + ' vagues' + (best ? ' · record ' + best : '') + '</small><span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + '</span>';
+    const ent = m.routes.length, ex = new Set(m.routes.map(r => r[r.length - 1].join(','))).size;
+    info.innerHTML = '<b>' + (locked ? '🔒 ' : '') + (i + 1) + '. ' + m.name + '</b><small>' + m.waves + ' vagues · ' + ent + ' entrée' + (ent > 1 ? 's' : '') + ' · ' + ex + ' sortie' + (ex > 1 ? 's' : '') + '</small><span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + (best ? ' <i>' + best + '</i>' : '') + '</span>';
     b.appendChild(info);
     b.onclick = () => { if (locked) { toast('Termine la zone précédente pour débloquer celle-ci'); return; } initAudio(); startMap(i); };
     g.appendChild(b);
@@ -1604,9 +1741,11 @@ function buildOptions() {
   $('#optAuto').textContent = 'Vague suivante automatique : ' + (save.autoWave ? 'OUI' : 'NON');
   $('#optSound').textContent = 'Son : ' + (save.sound ? 'OUI' : 'NON');
   $('#optVibe').textContent = 'Vibrations : ' + (save.vibe ? 'OUI' : 'NON');
+  $('#optSide').textContent = 'Panneau des armes : ' + (save.side === 'left' ? 'À GAUCHE' : 'À DROITE');
 }
 $('#optAuto').onclick = () => { save.autoWave = !save.autoWave; persist(); buildOptions(); };
 $('#optSound').onclick = () => { save.sound = !save.sound; persist(); buildOptions(); };
+$('#optSide').onclick = () => { save.side = save.side === 'left' ? 'right' : 'left'; persist(); buildOptions(); };
 $('#optVibe').onclick = () => { save.vibe = !save.vibe; persist(); buildOptions(); };
 $('#optReset').onclick = () => { if (confirm('Effacer toute la progression ?')) { const keep = { sound: save.sound, vibe: save.vibe, autoWave: save.autoWave }; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), keep); persist(); buildOptions(); } };
 
@@ -1628,15 +1767,39 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 
 /* ---------------- boucle ---------------- */
 let last = performance.now(), panelT = 0;
+// animation de fin : feu d'artifice (victoire) ou processeur qui explose (défaite)
+function updateEnd(dt) {
+  G.time += dt; G.endT += dt;
+  G.shake = Math.max(0, G.shake - dt * 25);
+  if (G.banner) { G.banner.life -= dt; if (G.banner.life <= 0) G.banner = null; }
+  for (const p of G.pulses) { p.d += p.spd * dt * (G.win ? 2 : .4); const tr = G.m.traces[p.tr]; if (p.d > tr.len) { p.tr = Math.floor(Math.random() * G.m.traces.length); p.d = 0; } }
+  for (const e of G.enemies) { e.anim += dt; }
+  G.fwT -= dt;
+  if (G.fwT <= 0) {
+    G.fwT = G.win ? rand(.12, .3) : rand(.35, .6);
+    if (G.win) {
+      const x = rand(1, COLS - 1), y = rand(1, ROWS - 1), cols = ['#ffd740', '#69f0ae', '#40c4ff', '#ff4081', '#e040fb', '#ffffff'], c = cols[Math.floor(Math.random() * cols.length)];
+      for (let i = 0; i < 26; i++) { const q = part(x, y, i % 4 ? c : '#ffffff', rand(3, 6)); q.life = q.max = rand(.6, 1.1); G.parts.push(q); }
+      G.fx.push({ kind: 'ring', x, y, r: 1.4, col: c, life: .45, max: .45 });
+      if (Math.random() < .5) sfx('pop');
+    } else {
+      const [x, y] = G.exits[Math.floor(Math.random() * G.exits.length)];
+      G.fx.push({ kind: 'ring', x: x + .5 + rand(-.5, .5), y: y + .5 + rand(-.5, .5), r: 1.2, col: '#ff5252', life: .4, max: .4 });
+      smoke(x + .5, y + .5, 3, .4); G.shake = Math.max(G.shake, 4);
+    }
+  }
+  if (G.win) for (const t of G.towers) t.ang += dt * 5; // les tourelles font la fête
+  for (let i = G.fx.length - 1; i >= 0; i--) { G.fx[i].life -= dt; if (G.fx[i].life <= 0) G.fx.splice(i, 1); }
+  for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= .93; q.vy *= .93; if (!q.smoke) q.vy += 1.5 * dt; if (q.life <= 0) G.parts.splice(i, 1); }
+  for (let i = G.texts.length - 1; i >= 0; i--) { const t = G.texts[i]; t.life -= dt; t.y -= .6 * dt; if (t.life <= 0) G.texts.splice(i, 1); }
+  if (G.endT > 2.8 && state === 'play') showResult(G.win);
+}
 function frame(now) {
   let dt = Math.min(.05, (now - last) / 1000); last = now;
   if (state === 'play' && G && !G.over) {
     for (let i = 0; i < G.speed; i++) update(dt);
     panelT -= dt; if (panelT <= 0) { panelT = .1; updatePanel(); }
-  } else if (state === 'play' && G) {
-    // animation de fin
-    for (const q of G.parts) { q.life -= dt; }
-  }
+  } else if (G && G.over && (state === 'play' || state === 'result')) updateEnd(dt);
   if (G && (state === 'play' || state === 'pause' || state === 'result')) render();
   else {
     // menus : une partie de démonstration tourne en fond

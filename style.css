@@ -25,11 +25,12 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 .panel{background:rgba(0,0,0,.35);border-radius:14px;padding:12px 18px;line-height:1.6;text-align:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
 .panel.help{text-align:left;max-width:520px;display:flex;flex-direction:column;gap:8px;font-size:15px}
 .stars{font-size:42px;letter-spacing:6px;color:#fde047;text-shadow:0 0 14px rgba(253,224,71,.6)}
-#mapGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;width:min(720px,100%)}
+#mapGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(760px,96vw,calc((100vh - 230px) * 2.2))}
+@media (orientation:portrait){#mapGrid{grid-template-columns:repeat(2,1fr);width:min(520px,94vw,calc((100vh - 260px) * .95))}}
 .mapcard{border-radius:14px;overflow:hidden;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 2px var(--c);text-align:left;padding:0;display:flex;flex-direction:column}
-.mapcard canvas{position:static;width:100%;aspect-ratio:18/10;display:block}
-.mapcard div{padding:6px 10px 8px;display:flex;flex-direction:column}
-.mapcard b{font-size:14px;color:var(--c)}
+.mapcard canvas{position:static;width:100%;display:block}
+.mapcard div{padding:4px 8px 6px;display:flex;flex-direction:column}
+.mapcard b{font-size:13px;color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mapcard small{font-size:12px;opacity:.85}
 .mapcard .st{color:#fde047;letter-spacing:2px}
 .mapcard.locked{opacity:.35;filter:grayscale(1)}
@@ -95,3 +96,81 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 @media (max-height:500px){.screen{gap:8px}.sub{display:none}.big{padding:10px 16px;font-size:17px}}
 #tpop .mode{width:100%;margin-top:6px;padding:7px;border-radius:8px;font-weight:800;font-size:12px;background:linear-gradient(180deg,#5c6bc0,#283593);box-shadow:0 2px 0 #1a237e}
 #tpop{width:210px}
+
+/* ---- écran de fin compact (pas de barre de défilement) ---- */
+#result.screen{background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,.35),rgba(0,0,0,.7) 80%)}
+.res-card{display:flex;gap:18px;align-items:center;background:linear-gradient(180deg,rgba(40,44,48,.95),rgba(15,17,19,.95));border-radius:18px;padding:16px 20px;box-shadow:0 0 0 2px #000,0 0 0 5px #8d9499,0 12px 30px rgba(0,0,0,.7);max-width:min(760px,96vw);animation:pop .45s cubic-bezier(.2,1.6,.4,1) both}
+.res-left{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:200px}
+.res-left h2{font-size:clamp(20px,5vh,30px)}
+.res-right{display:flex;flex-direction:column;gap:10px}
+.res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.res-stats div{background:#0c120c;border-radius:8px;padding:4px 8px;display:flex;flex-direction:column;box-shadow:inset 0 2px 5px rgba(0,0,0,.9)}
+.res-stats small{font-size:10px;opacity:.7}.res-stats b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-btns{display:flex;gap:8px;flex-wrap:wrap}.res-btns .big{flex:1;padding:10px 12px;font-size:16px;white-space:nowrap}
+.stars{font-size:clamp(34px,9vh,52px);letter-spacing:4px;min-height:1.1em}
+.stars .st{display:inline-block;color:#4a4a4a;animation:starpop .5s cubic-bezier(.2,1.8,.4,1) both}
+.stars .st.on{color:#ffd740;text-shadow:0 0 16px rgba(255,215,64,.8)}
+.stars .skull{color:#ff5252;text-shadow:0 0 16px rgba(255,82,82,.8);animation:starpop .5s both}
+@keyframes starpop{0%{transform:scale(0) rotate(-90deg);opacity:0}100%{transform:none;opacity:1}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:none;opacity:1}}
+@media (orientation:portrait){.res-card{flex-direction:column;gap:10px}.res-stats{grid-template-columns:repeat(2,1fr)}.res-left{min-width:0}}
+.pager{display:flex;align-items:center;gap:14px}.pager b{font-size:16px;min-width:110px;text-align:center}
+.pg{width:44px;height:36px;border-radius:10px;background:linear-gradient(180deg,#5c6bc0,#283593);font-weight:900;box-shadow:0 2px 0 #1a237e}.pg.off{opacity:.3}
+/* menus compacts sur écran peu haut (téléphone couché) : pas de barre de défilement */
+@media (max-height:500px){
+  h2{font-size:20px}
+  #diffList{display:grid;grid-template-columns:1fr 1fr;width:min(640px,96vw)}
+  #diffList .big{padding:8px 12px;font-size:15px}
+  #options .col{display:grid;grid-template-columns:1fr 1fr;width:min(640px,96vw)}
+  .panel.help{display:grid;grid-template-columns:1fr 1fr;max-width:860px;font-size:12.5px;line-height:1.35;gap:6px 14px;padding:8px 12px}
+  .back{padding:6px 14px}
+  .mapcard small{font-size:11px}
+}
+
+/* ---- panneau des armes amélioré ---- */
+#panel.land{width:calc(176px + env(safe-area-inset-right));gap:5px}
+#panel.land.left{right:auto;left:0;border-radius:0 16px 16px 0;padding:calc(6px + env(safe-area-inset-top)) 6px calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left))}
+.tbtn{position:relative;padding:3px 2px 2px;gap:0}
+.tbtn canvas{width:32px;height:32px}
+.tbtn em{font-style:normal;font-size:9.5px;font-weight:800;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;color:#263238}
+.tbtn span{font-size:11px;color:#1b5e20;background:rgba(255,255,255,.6);border-radius:6px;padding:0 5px;margin-top:1px}
+.tbtn.poor span{color:#b71c1c}
+.tbtn.poor{opacity:.55;filter:grayscale(.6)}
+#tInfo{background:linear-gradient(180deg,#0c120c,#162016);border-radius:8px;padding:5px 7px;box-shadow:inset 0 2px 5px rgba(0,0,0,.9);font-size:10px;line-height:1.25;min-height:30px}
+#tInfo b{font-size:12px;display:block}
+#tInfo .tdesc{display:block;opacity:.8;margin:1px 0 3px}
+#tInfo small{opacity:.7}
+.tbars{display:grid;grid-template-columns:auto 1fr;gap:2px 6px;align-items:center}
+.tbars label{font-size:9px;opacity:.75}
+.tbars u{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.12);text-decoration:none;overflow:hidden}
+.tbars u i{display:block;height:100%;background:linear-gradient(90deg,#76ff03,#ffd740)}
+#panel.port #tInfo{display:none}
+#panel.port .tbtn em{font-size:8.5px}
+@media (max-height:420px){#tInfo .tdesc{display:none}#panel.land #nextInfo{display:none}}
+
+/* ---- cartes en tuiles horizontales : 6 par page, sans défilement ---- */
+#mapGrid{width:min(820px,96vw)!important}
+.mapcard{flex-direction:row;align-items:stretch}
+.mapcard canvas{width:46%!important;flex:none;object-fit:cover}
+.mapcard div{flex:1;min-width:0;justify-content:center;gap:1px}
+.mapcard b{font-size:13px}
+.mapcard small{font-size:10.5px}
+.mapcard .st{font-size:13px}.mapcard .st i{font-style:normal;font-size:10px;color:#fff;opacity:.7;letter-spacing:0}
+.pager b{min-width:190px}
+@media (orientation:portrait){#mapGrid{grid-template-columns:1fr!important;width:min(460px,94vw)!important}.mapcard canvas{width:40%!important}}
+@media (max-height:500px){#mapsTitle{display:none}#maps.screen{gap:8px}}
+/* ---- panneau compact sur téléphone couché ---- */
+@media (max-height:500px){
+  #panel.land .stats div{padding:1px 4px}
+  #panel.land .stats b{font-size:13px}
+  #panel.land .stats small{font-size:7px}
+  #panel.land #towerBar{gap:4px;flex:none}
+  #panel.land .tbtn{padding:2px 1px 1px}
+  #panel.land .tbtn canvas{width:24px;height:24px}
+  #panel.land .tbtn em{font-size:8.5px}
+  #panel.land .tbtn span{font-size:9.5px;padding:0 4px}
+  #panel.land #tInfo{padding:3px 6px;min-height:0;flex:1;overflow:hidden}
+  #panel.land #tInfo b{font-size:11px}
+  #panel.land .tbars{gap:1px 5px}
+  #panel.land .ctrls button{padding:6px 3px;font-size:12px}
+}
