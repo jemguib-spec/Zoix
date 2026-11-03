@@ -436,3 +436,28 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #toast{background:rgba(6,10,12,.94);box-shadow:0 0 0 1px rgba(255,255,255,.15),0 6px 16px rgba(0,0,0,.6)}
 #maps.screen{background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--wc,#000) 45%,rgba(4,8,10,.7)),rgba(2,4,6,.9) 72%)}
 .back.shopmini{background:linear-gradient(180deg,#ffd54f,#ff8f00);color:#3b1f00;text-shadow:none;box-shadow:0 3px 0 #8a4b00}
+
+/* ---- pouvoirs : icônes vectorielles parfaitement centrées ---- */
+#powers{align-items:flex-end}
+#powers .pw{padding:0;color:#fff;line-height:0}
+#powers .pw i{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1}
+#powers .pw i svg{width:56%;height:56%;display:block;filter:drop-shadow(0 1px 1px rgba(0,0,0,.8))}
+#powers .pw[data-p="strike"]{color:#ffb74d}#powers .pw[data-p="freeze"]{color:#80d8ff}#powers .pw[data-p="reboot"]{color:#69f0ae}
+#powers .pw span{inset:0;bottom:auto;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;z-index:3}
+#powers .pw span:empty{display:none}
+#powers .pw.cool i{opacity:.3}
+#powers .pw em{position:absolute;z-index:4;top:-2px;right:-2px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#ffd740;color:#2a1d00;font-style:normal;font-size:11px;font-weight:900;line-height:17px;text-align:center;box-shadow:0 0 0 2px #000}
+#powers .pw.empty{filter:grayscale(1) brightness(.6)}
+#powers .pw.empty em{background:#ff5252;color:#fff}
+#powers .pw{overflow:visible}
+#powers .pw::after{border-radius:50%}
+#powers .pw.undo{color:#2a1300}
+#powers .pw.undo i{position:static;inset:auto;width:18px;height:18px}
+#powers .pw.undo i svg{width:18px;height:18px;filter:none}
+#powers .pw.undo span{position:static;height:auto;display:inline;font-size:12px;color:#2a1300}
+.sic.pwic{color:#ffd740;display:flex;align-items:center;justify-content:center}.sic.pwic svg{width:26px;height:26px}
+.sinfo .stock b{color:#ffd740}
+#shopList.powers{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (orientation:portrait){#shopList.powers{grid-template-columns:1fr}}
+#powers .pw.tool.undo{width:auto!important;height:36px;padding:0 12px 0 9px;gap:5px;display:flex;align-items:center}
+#powers .pw.undo span{position:static!important;inset:auto!important;height:auto!important;display:inline!important;font-size:13px}

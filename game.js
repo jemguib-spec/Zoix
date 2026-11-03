@@ -101,11 +101,12 @@ for (const m of MAPS) {
 }
 
 const DIFFS = {
-  easy: { name: 'Facile', hp: .7, lives: 30, cash: 35, col: '#4ade80', desc: 'Virus fragiles · 30 vies' },
-  normal: { name: 'Normal', hp: 1, lives: 20, cash: 25, col: '#60a5fa', desc: 'L\'expérience équilibrée · 20 vies' },
-  hard: { name: 'Difficile', hp: 1.4, lives: 15, cash: 22, col: '#f97316', desc: 'Virus coriaces · 15 vies' },
-  nightmare: { name: 'Cauchemar', hp: 1.75, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies' },
-  legend: { name: 'Légende', hp: 2.5, lives: 5, cash: 22, col: '#e040fb', desc: 'Impossible ? · 5 vies' }
+  easy: { name: 'Facile', hp: .75, lives: 30, cash: 35, col: '#4ade80', desc: 'Virus fragiles · 30 vies' },
+  normal: { name: 'Normal', hp: 1.15, lives: 20, cash: 25, col: '#60a5fa', desc: 'L\'expérience équilibrée · 20 vies' },
+  hard: { name: 'Difficile', hp: 1.65, lives: 15, cash: 22, col: '#f97316', desc: 'Virus coriaces · 15 vies' },
+  nightmare: { name: 'Cauchemar', hp: 2.3, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies' },
+  legend: { name: 'Légende', hp: 3, lives: 5, cash: 22, col: '#e040fb', desc: 'Impossible ? · 5 vies', spd: 1.05 },
+  apocalypse: { name: 'Apocalypse', hp: 4.2, lives: 3, cash: 20, col: '#ff1744', desc: 'Virus 15 % plus rapides · 3 vies', spd: 1.15 }
 };
 
 const TOWERS = {
@@ -173,7 +174,7 @@ const GUP = {
   wave: { name: 'Bonus de vague', ic: '⏩', desc: '+1 crédit à chaque nouvelle vague', cost: [25, 45, 75, 115, 165] },
   sell: { name: 'Revente', ic: '♻', desc: '+5 % du prix récupéré à la revente', cost: [20, 40, 65, 100, 150] }
 };
-const CHIP_MULT = { easy: .8, normal: 1, hard: 1.4, nightmare: 1.8, legend: 2.5 };
+const CHIP_MULT = { easy: .8, normal: 1, hard: 1.4, nightmare: 1.9, legend: 2.6, apocalypse: 3.5 };
 const isDemo = () => G && G.demo;
 const resLvl = k => isDemo() ? 3 : ((save.research || {})[k] || 0);
 const gup = k => isDemo() ? 0 : ((save.gup || {})[k] || 0);
@@ -244,19 +245,19 @@ function waveDef(w) {
   const intro = { 1: 'bug', 3: 'runner', 5: 'swarm', 6: 'armor', 8: 'flyer', 12: 'regen', 14: 'splitter', 16: 'shield', 18: 'ghost', 21: 'healer', 24: 'giant', 27: 'jumper' };
   const avail = []; for (const k in intro) if (w >= +k) avail.push(intro[k]);
   const type = intro[w] || avail[(w * 7 + 3) % avail.length];
-  const res = { type, n: Math.round(ETYPES[type].n * (1 + w * .025)) };
+  const res = { type, n: Math.round(ETYPES[type].n * (1 + w * .035)) };
   if (w >= 9 && !intro[w]) { // à partir de la vague 9 : deux sortes de virus mélangées
     const t2 = avail[(w * 5 + 1) % avail.length];
     if (t2 !== type) { res.type2 = t2; res.n2 = Math.round(ETYPES[t2].n * (.45 + w * .012)); }
   }
   return res;
 }
-const hpScale = w => (1 + .13 * (w - 1) + .011 * (w - 1) * (w - 1));
-const rewScale = w => 1 + (w - 1) * .04;
+const hpScale = w => (1 + .15 * (w - 1) + .015 * (w - 1) * (w - 1));
+const rewScale = w => 1 + (w - 1) * .032;
 
 /* ---------------- sauvegarde ---------------- */
 const SAVE_KEY = 'virusdef_save_v1';
-const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false };
+const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1, apocalypse: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false };
 function loadSave() {
   const d = JSON.parse(JSON.stringify(DEFAULT_SAVE));
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) { Object.assign(d, s); d.unlocked = Object.assign({}, DEFAULT_SAVE.unlocked, s.unlocked); } } catch (e) { }
@@ -1299,7 +1300,8 @@ function spawnEnemy(type, wave, quiet) {
   if (G.th === 'ice') e.spd *= 1.2;
   if (G.mod === 'fast') e.spd *= 1.25;
   if (G.mod === 'armored') e.armor += 3;
-  if (G.endless && wave > G.m.waves) e.hp = e.max = e.max * (1 + (wave - G.m.waves) * .02);
+  if (G.d.spd) e.spd *= G.d.spd;
+  if (G.endless && wave > G.m.waves) { const k = wave - G.m.waves; e.hp = e.max = e.max * (1 + k * .06); e.spd *= 1 + Math.min(.5, k * .01); }
   e.spd0 = e.spd; if (d.boss === 2) e.abT = 4;
   if (!G.demo && !(save.seen || {})[type]) { save.seen = save.seen || {}; save.seen[type] = 1; persist(); if (d.world !== undefined || d.boss) toast('📖 Nouveau virus : ' + d.name + ' — ' + EDESC[type]); }
   if (G.fx.length < 300 && !quiet) G.fx.push({ kind: 'ring', x: s[0] + .5, y: s[1] + .5, r: .9, col: '#ff5252', life: .35, max: .35 });
@@ -1650,6 +1652,8 @@ function update(dt) {
       }
     }
     e.prog = enemyProgress(e);
+    // sécurité : un virus bloqué au même endroit trop longtemps est retiré (sinon la vague suivante ne partirait jamais)
+    if (e.ri !== e.lastRi) { e.lastRi = e.ri; e.stuckT = 0; } else if (!(e.stunT > 0) && !(e.reviveT > 0)) { e.stuckT = (e.stuckT || 0) + dt; if (e.stuckT > 25 || !isFinite(e.x + e.y + e.hp)) { e.dead = true; } }
   }
   // tourelles
   for (const t of G.towers) {
@@ -2961,6 +2965,18 @@ $('#tpSell').onclick = () => G.sel && sellTower(G.sel);
 $('#tpMode').onclick = () => { const t = G.sel; if (!t) return; t.mode = MODES[(MODES.indexOf(t.mode || 'first') + 1) % MODES.length]; fillPopup(); sfx('build'); };
 
 /* ---------------- pouvoirs actifs ---------------- */
+const SVGA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">';
+const PWSVG = {
+  strike: SVGA + '<circle cx="15" cy="15" r="4.5" fill="currentColor" stroke="none"/><path d="M12 12 4 4M15.5 9.5 9 3M9.5 15.5 3 9"/></svg>',
+  freeze: SVGA + '<path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M12 2l-2.5 2.5M12 2l2.5 2.5M12 22l-2.5-2.5M12 22l2.5-2.5"/></svg>',
+  reboot: SVGA + '<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3v6h-6"/></svg>',
+  cov: SVGA + '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>',
+  undo: SVGA + '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>'
+};
+document.querySelectorAll('#powers .pw[data-p]').forEach(b => { b.querySelector('i').innerHTML = PWSVG[b.dataset.p]; b.insertAdjacentHTML('beforeend', '<em></em>'); });
+$('#bCov').querySelector('i').innerHTML = PWSVG.cov; $('#bUndo').querySelector('i').innerHTML = PWSVG.undo;
+const pwStock = k => G && G.demo ? 99 : ((save.pwStock || {})[k] ?? 5);
+const PW_PACK = { strike: [3, 30], freeze: [3, 35], reboot: [3, 45] }; // [charges, prix en puces]
 const POWERS = {
   strike: { name: 'Frappe orbitale', ic: '☄', cd: 40, desc: 'Touche ensuite la carte : énorme explosion.' },
   freeze: { name: 'Gel système', ic: '❄', cd: 55, desc: 'Fige tous les virus pendant 3 s.' },
@@ -2969,6 +2985,7 @@ const POWERS = {
 function usePower(k) {
   if (!G || G.over || state !== 'play') return;
   initAudio();
+  if (pwStock(k) <= 0) { toast(POWERS[k].ic + ' Plus de charges de ' + POWERS[k].name + ' : achète-en dans la Boutique (onglet Pouvoirs) 🛒'); sfx('err'); return; }
   if (G.pw[k] > 0) { toast(POWERS[k].ic + ' ' + POWERS[k].name + ' : prêt dans ' + Math.ceil(G.pw[k]) + ' s'); sfx('err'); return; }
   if (!G.enemies.length) { toast(POWERS[k].ic + ' ' + POWERS[k].name + ' : ' + POWERS[k].desc + ' (attends les virus)'); sfx('err'); return; }
   if (k === 'strike') { G.aim = G.aim ? null : 'strike'; if (G.aim) { closePopup(); toast('☄ Touche la carte pour lancer la frappe orbitale'); } updatePowers(); return; }
@@ -2976,6 +2993,7 @@ function usePower(k) {
 }
 function doPower(k, x, y) {
   G.pw[k] = POWERS[k].cd; G.powerUsed = true; G.aim = null; stat('powers'); vibe(40);
+  if (!G.demo) { save.pwStock = save.pwStock || {}; save.pwStock[k] = Math.max(0, pwStock(k) - 1); persist(); }
   if (k === 'strike') {
     const dmg = 70 * hpScale(Math.max(1, G.wave)) * G.d.hp; G.shooter = null;
     for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < 1.8 + e.r) hurt(e, dmg * (isBoss(e) ? .5 : 1), true);
@@ -2998,8 +3016,11 @@ function updatePowers() {
   box.querySelectorAll('.pw[data-p]').forEach(b => {
     const k = b.dataset.p, cd = G.pw[k] || 0;
     b.style.setProperty('--cd', Math.round(cd / POWERS[k].cd * 100) + '%');
-    b.classList.toggle('ready', cd <= 0); b.classList.toggle('aim', G.aim === k);
-    b.querySelector('span').textContent = cd > 0 ? Math.ceil(cd) : '';
+    const st = pwStock(k);
+    b.classList.toggle('ready', cd <= 0 && st > 0); b.classList.toggle('aim', G.aim === k); b.classList.toggle('empty', st <= 0);
+    b.querySelector('span').textContent = cd > 0 && st > 0 ? Math.ceil(cd) : '';
+    b.querySelector('em').textContent = st;
+    b.classList.toggle('cool', cd > 0 && st > 0);
   });
   $('#bCov').classList.toggle('on', !!G.showCov);
   const u = G.undo && G.towers.includes(G.undo.t);
@@ -3028,7 +3049,7 @@ const TUTO = [
   { t: 'Bravo ! Pose encore <b>2 tourelles</b> le long du couloir.', done: () => G.towers.length >= 3 },
   { t: 'Prêt ? Lance la <b>première vague</b> !', el: () => $('#bWave'), done: () => G.wave >= 1 },
   { t: 'Chaque virus détruit rapporte des crédits. <b>Touche une tourelle</b> posée pour l\'améliorer ⬆, ou pose-en d\'autres.', done: () => G.towers.some(t => t.lvl >= 2) || G.wave >= 3 },
-  { t: 'En cas de coup dur, utilise un <b>pouvoir</b> : ☄ frappe, ❄ gel, ⟲ redémarrage. Ils se rechargent tout seuls.', el: () => $('#powers'), done: () => G.powerUsed || G.wave >= 5 }
+  { t: 'En cas de coup dur, utilise un <b>pouvoir</b> : ☄ frappe, ❄ gel, ⟲ redémarrage. Tu as 5 charges de chacun, d\'autres s\'achètent en Boutique.', el: () => $('#powers'), done: () => G.powerUsed || G.wave >= 5 }
 ];
 function tutoTick() {
   const box = $('#tuto'), on = G && !G.demo && G.tuto !== undefined && state === 'play' && !G.over;
@@ -3075,7 +3096,7 @@ function endGame(win) {
     G.record = sc > (DD.best || 0); DD.best = Math.max(DD.best || 0, sc);
     DD.top = (DD.top || []).concat([sc]).sort((x, y) => y - x).slice(0, 5);
     G.chipsWon = Math.floor(waves * .8);
-    if (win && !DD.won) { DD.won = true; DD.wins = (DD.wins || 0) + 1; S.dailyWins = (S.dailyWins || 0) + 1; G.chipsWon += 40; }
+    if (win && !DD.won) { DD.won = true; DD.wins = (DD.wins || 0) + 1; S.dailyWins = (S.dailyWins || 0) + 1; G.chipsWon += 40; save.pwStock = save.pwStock || {}; for (const k in POWERS) save.pwStock[k] = pwStock(k) + 1; }
     if (win) sfx('win'); else { sfx('lose'); vibe(300); }
     G.stars = win ? 3 : 0;
   } else if (win) {
@@ -3154,6 +3175,15 @@ function buildShop() {
     }
     const k = shopSel || 'pulse', d = TOWERS[k], r = resLvl(k);
     $('#shopInfo').innerHTML = '<b style="color:' + d.col + '">' + d.name + '</b> — ' + d.desc + '<br><small>Recherche ' + r + '/5 : +' + (8 * r) + ' % dégâts, +' + (3 * r) + ' % portée' + (r >= 2 ? ' · niveau 5 débloqué' : ' · le niveau 5 se débloque à la recherche 2') + '<br>Voie A · ' + SPECIAL[k] + '<br>Voie B · ' + SPECIALB[k] + (r >= 5 ? ' · −10 % sur le prix' : ' · recherche 5 : −10 % sur le prix') + '</small>';
+  } else if (shopTab === 'powers') {
+    for (const k in POWERS) {
+      const P = POWERS[k], [n, cost] = PW_PACK[k], c = document.createElement('div'); c.className = 'scard';
+      c.innerHTML = '<div class="sic pwic">' + PWSVG[k] + '</div><div class="sinfo"><b>' + P.name + '</b><small>' + P.desc + '</small><small class="stock">Charges : <b>' + pwStock(k) + '</b> · recharge ' + P.cd + ' s</small></div>';
+      const bt = document.createElement('button'); bt.className = 'sbuy'; bt.textContent = '+' + n + ' · ' + cost + ' ⬢'; bt.classList.toggle('off', save.chips < cost);
+      bt.onclick = () => buyChips(cost, () => { save.pwStock = save.pwStock || {}; save.pwStock[k] = pwStock(k) + n; });
+      c.appendChild(bt); list.appendChild(c);
+    }
+    $('#shopInfo').innerHTML = '<small>Chaque utilisation d\'un pouvoir consomme 1 charge. Tu commences avec 5 charges de chaque. Gagner le défi du jour rapporte +1 charge de chaque pouvoir.</small>';
   } else {
     for (const k in GUP) {
       const u = GUP[k], l = (save.gup || {})[k] || 0, c = document.createElement('div'); c.className = 'scard';
