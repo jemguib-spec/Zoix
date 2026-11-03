@@ -6,9 +6,9 @@ place des **tourelles automatiques** sur le circuit, le long des couloirs qu'ils
 HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode paysage et en mode portrait, avec zoom (pincer) et déplacement (glisser).
 
 ## Contenu
-- **6 grandes cartes** (26 × 15 cases) aux couloirs sinueux : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central), de 20 à 40 vagues chacune. Chaque zone débloque la suivante.
+- **12 grandes cartes** (26 × 15 cases) aux couloirs sinueux, avec ventilateurs animés et dissipateurs : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central, disque dur, carte réseau, carte son, serveur, pare-feu, noyau quantique), de 20 à 50 vagues chacune. Chaque zone débloque la suivante.
 - **4 difficultés** : Facile, Normal, Difficile, Cauchemar (vies, crédits de départ et résistance des virus).
-- **6 tourelles**, chacune améliorable jusqu'au niveau 4 :
+- **6 tourelles**, chacune améliorable jusqu'au **niveau 5**, qui débloque un pouvoir spécial (double tir, balles perforantes, méga-obus, gel total, rayon perforant, surcharge). Mode de visée réglable : premier, dernier, plus fort, plus proche.
   | Tourelle | Prix | Rôle |
   |---|---|---|
   | Pulseur | 5 cr | pas cher, idéal pour couvrir les couloirs |
@@ -22,7 +22,7 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - Revente des tourelles (70 %), bonus si on lance une vague en avance, vitesse ×1/×2/×3, vague suivante automatique, score, record et 1 à 3 étoiles par zone. Sauvegarde automatique.
 
 ## Commandes
-- Touche une tourelle dans le panneau, puis touche des cases du circuit (zones colorées) pour la poser.
+- Touche une tourelle dans le panneau : les cases vertes montrent les bons emplacements. Touche une case verte, ou glisse la tourelle du panneau jusqu'à la carte.
 - Pince pour zoomer, glisse pour te déplacer (molette de la souris sur ordinateur).
 - Touche une tourelle posée pour l'améliorer ou la vendre.
 - Au clavier : touches 1 à 6 pour choisir une tourelle, Espace pour lancer la vague, U pour améliorer, S pour vendre, P pour mettre en pause.
