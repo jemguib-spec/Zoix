@@ -738,97 +738,146 @@ function drawTower(c, type, lvl, ang, time, flash, cached) {
   if (cached) c.drawImage(towerBase(type, lvl), -.55, -.55, 1.2, 1.2); else drawTowerBase(c, type, lvl);
   drawTurret(c, type, lvl, ang, time, flash);
 }
+// ---- style « jouet brillant » : contours épais, couleurs vives, reflets ----
+const OUT = '#1b1230';
+function star(c, x, y, r) {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr2 = i % 2 ? r * .45 : r; c.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); }
+  c.closePath(); c.fillStyle = '#ffd600'; c.fill(); c.lineWidth = r * .25; c.strokeStyle = OUT; c.stroke();
+}
+// boule brillante avec contour et reflet
+function gball(c, x, y, r, col, lx, ly) {
+  const g = c.createRadialGradient(x + lx * r * .4, y + ly * r * .4, r * .1, x, y, r);
+  g.addColorStop(0, shade(col, .55)); g.addColorStop(.55, col); g.addColorStop(1, shade(col, -.45));
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  c.lineWidth = r * .16; c.strokeStyle = OUT; c.stroke();
+  c.save(); c.translate(x + lx * r * .42, y + ly * r * .42); c.rotate(Math.atan2(ly, lx) + Math.PI / 2);
+  c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.ellipse(0, 0, r * .42, r * .2, 0, 0, TAU); c.fill(); c.restore();
+}
+// canon arrondi brillant (axe x)
+function gbar(c, x, y, w, h, col) {
+  const g = c.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, shade(col, .45)); g.addColorStop(.4, col); g.addColorStop(1, shade(col, -.5));
+  c.fillStyle = g; rr(c, x, y, w, h, Math.min(h, w) * .35); c.fill();
+  c.lineWidth = .035; c.strokeStyle = OUT; c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.55)'; rr(c, x + w * .1, y + h * .16, w * .8, h * .2, h * .1); c.fill();
+}
+
 function drawTowerBase(c, type, lvl) {
   const d = TOWERS[type];
-  // ombre portée du socle
-  c.fillStyle = 'rgba(0,0,0,.55)'; rr(c, -.4, -.37, .93, .93, .16); c.fill();
-  // socle en acier biseauté
-  let g = c.createLinearGradient(-.46, -.46, .46, .46);
-  g.addColorStop(0, '#f6f8f9'); g.addColorStop(.5, '#a9b3b9'); g.addColorStop(1, '#58646c');
-  c.fillStyle = g; rr(c, -.46, -.46, .92, .92, .15); c.fill();
-  c.strokeStyle = 'rgba(0,0,0,.65)'; c.lineWidth = .022; c.stroke();
-  g = c.createLinearGradient(-.38, -.38, .38, .38); g.addColorStop(0, '#c9d1d6'); g.addColorStop(1, '#7f8b93');
-  c.fillStyle = g; rr(c, -.39, -.39, .78, .78, .11); c.fill();
-  // stries brossées
-  c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = .008; c.beginPath();
-  for (let k = -.36; k < .37; k += .05) { c.moveTo(-.37, k); c.lineTo(.37, k); } c.stroke();
-  // vis
-  for (const [sx, sy] of [[-.32, -.32], [.32, -.32], [-.32, .32], [.32, .32]]) {
-    ball(c, sx, sy, .045, '#9aa3a8', -.7, -.7, '#ffffff');
-    c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = .013; c.beginPath(); c.moveTo(sx - .028, sy + .028); c.lineTo(sx + .028, sy - .028); c.stroke();
-  }
-  // tourelle : alvéole + bague de couleur
-  c.fillStyle = '#161b1f'; c.beginPath(); c.arc(0, 0, .3, 0, TAU); c.fill();
-  g = c.createLinearGradient(0, -.3, 0, .3); g.addColorStop(0, shade(d.col, .45)); g.addColorStop(1, shade(d.col, -.55));
-  c.strokeStyle = g; c.lineWidth = .045; c.stroke();
-  // LED de niveau
-  for (let i = 0; i < TMAX - 1; i++) {
-    const on = i < lvl - 1, x = -.12 + i * .12, y = .405;
-    if (on) { c.fillStyle = 'rgba(120,255,60,.35)'; c.beginPath(); c.arc(x, y, .065, 0, TAU); c.fill(); }
-    ball(c, x, y, .03, on ? '#76ff03' : '#203020', -.7, -.7, on ? '#f4ffe0' : '#3a4a3a');
-  }
+  // ombre
+  c.fillStyle = 'rgba(0,0,0,.5)'; rr(c, -.41, -.37, .92, .92, .22); c.fill();
+  // tuile blanche bombée
+  let g = c.createLinearGradient(0, -.46, 0, .46);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#e6eaf2'); g.addColorStop(1, '#a3adc0');
+  c.fillStyle = g; rr(c, -.46, -.46, .92, .92, .22); c.fill();
+  c.lineWidth = .055; c.strokeStyle = lvl >= TMAX ? '#7a5200' : OUT; c.stroke();
+  if (lvl >= TMAX) { c.lineWidth = .03; c.strokeStyle = '#ffca28'; rr(c, -.42, -.42, .84, .84, .19); c.stroke(); }
+  // liseré de couleur de la tourelle
+  c.lineWidth = .035; c.strokeStyle = shade(d.col, .1); rr(c, -.38, -.38, .76, .76, .16); c.stroke();
+  // cuvette sombre
+  g = c.createRadialGradient(0, .06, .04, 0, 0, .33);
+  g.addColorStop(0, shade(d.col, -.75)); g.addColorStop(1, shade(d.col, -.35));
+  c.fillStyle = g; c.beginPath(); c.arc(0, 0, .31, 0, TAU); c.fill();
+  c.lineWidth = .04; c.strokeStyle = OUT; c.stroke();
+  // reflet sur la tuile
+  c.save(); rr(c, -.46, -.46, .92, .92, .22); c.clip();
+  c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(-.18, -.47, .42, .14, -.15, 0, TAU); c.fill();
+  c.restore();
+  // étoiles de niveau
+  for (let i = 0; i < lvl - 1; i++) star(c, (i - (lvl - 2) / 2) * .2, .37, .075);
 }
+
 function drawTurret(c, type, lvl, ang, time, flash) {
-  const d = TOWERS[type];
-  let g;
+  const d = TOWERS[type], col = d.col;
   const a = type === 'tesla' ? 0 : ang, [lx, ly] = lightFor(a);
-  softShadow(c, .06, .08, .3, .3, .55);
+  softShadow(c, .05, .07, .3, .3, .5);
   c.save(); c.rotate(a);
-  if (flash > 0 && type !== 'tesla') c.translate(-flash / .07 * .07, 0);
+  if (flash > 0 && type !== 'tesla') c.translate(-flash / .07 * .08, 0);
   let muzzle = .46;
-  switch (type) {
-    case 'pulse':
-      cyl(c, 0, -.065, .4, .13, '#454b52'); cyl(c, .34, -.085, .08, .17, '#2a2e33');
-      ball(c, 0, 0, .2, d.col, lx, ly); c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = .02; c.stroke();
-      ball(c, 0, 0, .075, '#d7dde1', lx, ly, '#fff'); muzzle = .44; break;
-    case 'gatling': {
-      const spin = time * 25;
-      for (let i = 0; i < 3; i++) { const o = Math.sin(spin + i * 2.1) * .085; cyl(c, .05, o - .03, .4, .06, '#3c4248'); }
-      cyl(c, .3, -.15, .06, .3, '#9aa4aa'); cyl(c, .12, -.15, .05, .3, '#9aa4aa');
-      g = c.createLinearGradient(0, -.19, 0, .19); g.addColorStop(0, shade(d.col, .45)); g.addColorStop(.5, d.col); g.addColorStop(1, shade(d.col, -.6));
-      c.fillStyle = g; rr(c, -.22, -.19, .34, .38, .08); c.fill(); c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = .02; c.stroke();
-      ball(c, -.05, 0, .07, '#cfd6da', lx, ly, '#fff'); muzzle = .47; break;
+  const fins = () => { // ailerons (niveau 2+)
+    if (lvl < 2) return;
+    for (const s of [-1, 1]) {
+      c.beginPath(); c.moveTo(-.12, s * .14); c.lineTo(-.3, s * .3); c.lineTo(-.02, s * .2); c.closePath();
+      c.fillStyle = shade(col, -.2); c.fill(); c.lineWidth = .03; c.strokeStyle = OUT; c.stroke();
     }
-    case 'cannon':
-      cyl(c, -.02, -.12, .42, .24, '#33383e'); cyl(c, .33, -.14, .1, .28, shade(d.col, -.15));
-      c.fillStyle = '#050505'; c.beginPath(); c.ellipse(.43, 0, .025, .09, 0, 0, TAU); c.fill();
-      ball(c, 0, 0, .25, '#6e7d87', lx, ly); ball(c, 0, 0, .12, d.col, lx, ly);
-      c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = .02; c.beginPath(); c.arc(0, 0, .19, 0, TAU); c.stroke(); muzzle = .46; break;
+  };
+  switch (type) {
+    case 'pulse': {
+      fins();
+      if (lvl >= 3) { gbar(c, 0, -.15, .4, .11, '#4a4f63'); gbar(c, 0, .04, .4, .11, '#4a4f63'); }
+      else gbar(c, 0, -.075, .42, .15, '#4a4f63');
+      gbar(c, .34, lvl >= 3 ? -.18 : -.1, .1, lvl >= 3 ? .36 : .2, col);
+      gball(c, 0, 0, .22, col, lx, ly);
+      muzzle = .48; break;
+    }
+    case 'gatling': {
+      fins();
+      const spin = time * 25, n = lvl >= 3 ? 4 : 3;
+      for (let i = 0; i < n; i++) { const o = Math.sin(spin + i * TAU / n) * .09; gbar(c, .04, o - .035, .42, .07, '#3d4254'); }
+      gbar(c, .26, -.16, .07, .32, '#c7ccd8'); gbar(c, .12, -.16, .06, .32, '#c7ccd8');
+      const g = c.createLinearGradient(0, -.2, 0, .2); g.addColorStop(0, shade(col, .5)); g.addColorStop(.5, col); g.addColorStop(1, shade(col, -.5));
+      c.fillStyle = g; rr(c, -.24, -.2, .36, .4, .1); c.fill(); c.lineWidth = .04; c.strokeStyle = OUT; c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.6)'; rr(c, -.2, -.17, .26, .07, .035); c.fill();
+      gball(c, -.06, 0, .07, '#e0e4ec', lx, ly);
+      muzzle = .48; break;
+    }
+    case 'cannon': {
+      fins();
+      gbar(c, -.02, -.13, .42, .26, '#3b3f52');
+      gbar(c, .32, -.16, .12, .32, col);
+      if (lvl >= 3) gbar(c, .16, -.15, .06, .3, '#ffd54f');
+      c.fillStyle = '#050505'; c.beginPath(); c.ellipse(.44, 0, .03, .1, 0, 0, TAU); c.fill();
+      gball(c, 0, 0, .25, col, lx, ly);
+      for (let i = 0; i < 6; i++) { const q = i * TAU / 6; c.fillStyle = OUT; c.beginPath(); c.arc(Math.cos(q) * .17, Math.sin(q) * .17, .022, 0, TAU); c.fill(); }
+      muzzle = .47; break;
+    }
     case 'frost': {
-      cyl(c, 0, -.05, .38, .1, '#617482');
-      c.fillStyle = 'rgba(79,195,247,.25)'; c.beginPath(); c.arc(0, 0, .28, 0, TAU); c.fill();
-      g = c.createRadialGradient(lx * .1, ly * .1, .02, 0, 0, .23); g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#81d4fa'); g.addColorStop(1, '#0277bd');
-      c.fillStyle = g; c.beginPath(); for (let i = 0; i < 6; i++) { const q = i * TAU / 6; c.lineTo(Math.cos(q) * .23, Math.sin(q) * .23); } c.closePath(); c.fill();
-      c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = .015; c.stroke();
-      c.beginPath(); for (let i = 0; i < 6; i++) { const q = i * TAU / 6; c.moveTo(0, 0); c.lineTo(Math.cos(q) * .23, Math.sin(q) * .23); } c.strokeStyle = 'rgba(255,255,255,.35)'; c.stroke();
+      fins();
+      gbar(c, 0, -.055, .38, .11, '#5c7d99');
+      c.fillStyle = 'rgba(150,230,255,.3)'; c.beginPath(); c.arc(0, 0, .3, 0, TAU); c.fill();
+      const g = c.createRadialGradient(lx * .1, ly * .1, .02, 0, 0, .25);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(.45, '#8fe3ff'); g.addColorStop(1, '#0288d1');
+      c.fillStyle = g; c.beginPath(); for (let i = 0; i < 6; i++) { const q = i * TAU / 6 + time * .5; c.lineTo(Math.cos(q) * .25, Math.sin(q) * .25); } c.closePath(); c.fill();
+      c.lineWidth = .04; c.strokeStyle = OUT; c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = .02; c.beginPath();
+      for (let i = 0; i < 3; i++) { const q = i * Math.PI / 3 + time * .5; c.moveTo(Math.cos(q) * .16, Math.sin(q) * .16); c.lineTo(-Math.cos(q) * .16, -Math.sin(q) * .16); } c.stroke();
+      if (lvl >= 3) { c.globalCompositeOperation = 'lighter'; glowDot(0, 0, .4, 'rgba(120,220,255,.35)'); c.globalCompositeOperation = 'source-over'; }
       muzzle = .4; break;
     }
-    case 'laser':
-      cyl(c, 0, -.045, .48, .09, '#2f3439'); cyl(c, .14, -.075, .05, .15, '#c2cbd0'); cyl(c, .27, -.07, .04, .14, '#c2cbd0');
-      g = c.createLinearGradient(0, -.17, 0, .17); g.addColorStop(0, '#5b656d'); g.addColorStop(.5, '#2b3137'); g.addColorStop(1, '#111518');
-      c.fillStyle = g; rr(c, -.25, -.17, .37, .34, .08); c.fill();
-      c.fillStyle = 'rgba(255,40,40,' + (.35 + .25 * Math.sin(time * 6)) + ')'; c.beginPath(); c.arc(-.06, 0, .15, 0, TAU); c.fill();
-      ball(c, -.06, 0, .095, d.col, lx, ly, '#fff'); muzzle = .5; break;
+    case 'laser': {
+      fins();
+      gbar(c, 0, -.05, .52, .1, '#40444f');
+      gbar(c, .15, -.085, .06, .17, col); gbar(c, .3, -.08, .05, .16, col);
+      if (lvl >= 3) gbar(c, .42, -.07, .05, .14, '#ffd54f');
+      const g = c.createLinearGradient(0, -.2, 0, .2); g.addColorStop(0, '#6a7186'); g.addColorStop(.5, '#2f3442'); g.addColorStop(1, '#151821');
+      c.fillStyle = g; rr(c, -.26, -.19, .38, .38, .1); c.fill(); c.lineWidth = .04; c.strokeStyle = OUT; c.stroke();
+      c.globalCompositeOperation = 'lighter'; glowDot(-.07, 0, .22 + Math.sin(time * 6) * .03, 'rgba(255,40,40,.6)'); c.globalCompositeOperation = 'source-over';
+      gball(c, -.07, 0, .1, col, lx, ly);
+      muzzle = .53; break;
+    }
     case 'tesla': {
-      for (let i = 0; i < 5; i++) {
-        g = c.createLinearGradient(-.2, 0, .2, 0); g.addColorStop(0, '#5a2d0c'); g.addColorStop(.35, '#f0a060'); g.addColorStop(1, '#6b3510');
-        c.strokeStyle = g; c.lineWidth = .045; c.beginPath(); c.ellipse(0, .16 - i * .07, .19 - i * .018, .045, 0, 0, TAU); c.stroke();
+      for (let i = 0; i < 4 + (lvl >= 3 ? 1 : 0); i++) {
+        const y = .17 - i * .075, w = .2 - i * .018;
+        const g = c.createLinearGradient(-w, 0, w, 0); g.addColorStop(0, '#7a3d12'); g.addColorStop(.35, '#ffb26b'); g.addColorStop(1, '#7a3d12');
+        c.fillStyle = g; c.beginPath(); c.ellipse(0, y, w, .05, 0, 0, TAU); c.fill(); c.lineWidth = .025; c.strokeStyle = OUT; c.stroke();
       }
-      const p = .13 + Math.sin(time * 8) * .015;
-      c.globalCompositeOperation = 'lighter';
-      g = c.createRadialGradient(0, -.2, 0, 0, -.2, p * 2.6); g.addColorStop(0, 'rgba(255,240,120,.7)'); g.addColorStop(1, 'rgba(255,230,0,0)');
-      c.fillStyle = g; c.beginPath(); c.arc(0, -.2, p * 2.6, 0, TAU); c.fill();
-      c.globalCompositeOperation = 'source-over';
-      ball(c, 0, -.2, p, '#d9dde0', -.7, -.7, '#ffffff');
-      if (Math.sin(time * 13) > .6) { c.strokeStyle = 'rgba(255,255,200,.9)'; c.lineWidth = .015; c.beginPath(); c.moveTo(0, -.2); for (let k = 1; k < 4; k++) c.lineTo(rand(-.25, .25), -.2 + rand(-.2, .2)); c.stroke(); }
+      const p = .14 + Math.sin(time * 8) * .015, oy = lvl >= 3 ? -.25 : -.2;
+      c.globalCompositeOperation = 'lighter'; glowDot(0, oy, p * 3, 'rgba(255,235,59,.55)'); c.globalCompositeOperation = 'source-over';
+      gball(c, 0, oy, p, '#fff59d', -.7, -.7);
+      if (Math.sin(time * 13) > .5) {
+        c.strokeStyle = 'rgba(255,255,180,.95)'; c.lineWidth = .02; c.beginPath();
+        for (let k = 0; k < 2; k++) { c.moveTo(0, oy); for (let j = 1; j < 4; j++) c.lineTo(rand(-.3, .3), oy + rand(-.2, .25)); }
+        c.stroke();
+      }
       muzzle = 0; break;
     }
   }
   if (flash > 0 && muzzle) {
     c.globalCompositeOperation = 'lighter';
-    const f = flash / .07, g2 = c.createRadialGradient(muzzle, 0, 0, muzzle, 0, .26 * f + .05);
-    g2.addColorStop(0, 'rgba(255,255,255,.95)'); g2.addColorStop(.35, d.col); g2.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g2; c.beginPath(); c.arc(muzzle, 0, .26 * f + .05, 0, TAU); c.fill();
+    const f = flash / .07, g2 = c.createRadialGradient(muzzle, 0, 0, muzzle, 0, .28 * f + .05);
+    g2.addColorStop(0, 'rgba(255,255,255,.95)'); g2.addColorStop(.35, col); g2.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g2; c.beginPath(); c.arc(muzzle, 0, .28 * f + .05, 0, TAU); c.fill();
     c.globalCompositeOperation = 'source-over';
   }
   c.restore();
