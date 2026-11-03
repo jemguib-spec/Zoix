@@ -33,6 +33,12 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - **Aperçu de la vague suivante** à chaque entrée, avec le trajet des virus.
 - **Séries d'éliminations** (bonus de crédits, sons de plus en plus aigus), micro-pauses et zoom sur les gros impacts, musique propre à chaque monde.
 
+## Nouveautés
+- **2 nouveaux mondes** : *Ordinateur rétro* (disquettes, clavier, écrans cathodiques ; règle « mémoire limitée » à 28 tourelles ; virus Pixel ; boss Ordinateur central qui donne des boucliers) et *Le Nuage* (ciel, serveurs flottants ; règle « orages » avec la foudre ; virus Drone volant ; boss Tempête). 24 zones au total.
+- **Lisibilité** : pastilles au-dessus des virus dangereux, alerte quand un virus approche du processeur, chiffres de dégâts (option).
+- **Ciblage** « Soigneurs d'abord » / « Spéciaux d'abord », bouton « ⇉ Toutes » pour régler toutes les tourelles, **double-tap** pour améliorer, **vitesse ×4** sur les zones déjà gagnées.
+- **Prestige** (bonus permanents), **apparences** de tourelles, **histoire** racontée par AVA l'antivirus et une vraie fin.
+
 ## Rejouabilité
 - **2 défis par zone** (sans revente, sans pouvoir, 3 types de tourelles…), récompensés en puces.
 - **Mode infini** avec record par zone et par difficulté (boss de monde toutes les 25 vagues).

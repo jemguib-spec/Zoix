@@ -44,7 +44,7 @@
     <button id="tpSell" class="sell"></button>
   </div>
   <div id="tpPaths" class="tp-paths hidden"><button class="pa"></button><button class="pb"></button></div>
-  <button id="tpMode" class="mode"></button>
+  <div class="tp-modes"><button id="tpMode" class="mode"></button><button id="tpModeAll" class="mode all" title="Appliquer ce ciblage à toutes les tourelles">⇉ Toutes</button></div>
 </div>
 <!-- pouvoirs actifs + outils -->
 <div id="powers" class="hidden">
@@ -54,6 +54,8 @@
   <button class="pw tool" id="bCov" title="Voir la couverture des couloirs"><i>👁</i></button>
   <button class="pw tool undo hidden" id="bUndo" title="Annuler la dernière pose"><i>↶</i><span></span></button>
 </div>
+<!-- histoire -->
+<div id="story" class="hidden"><div class="story-card"><div class="story-av">🛡</div><div class="story-body"><b id="storyTitle"></b><p id="storyTxt"></p><button id="storyOk" class="big">Compris !</button></div></div></div>
 <!-- tutoriel -->
 <div id="tuto" class="hidden"><div id="tutoRing"></div><div id="tutoBox"><p id="tutoTxt"></p><button id="tutoSkip">Passer le tutoriel</button></div></div>
 <div id="toast"></div>
@@ -93,13 +95,14 @@
     <p>🧰 <b>10 tourelles</b> : Pulseur, Mitrailleuse, Canon, Cryo, Lance-flammes (brûle), Lance-missiles (tête chercheuse), Laser, Tesla, <b>Amplificateur</b> (booste les tourelles voisines) et <b>Mineur crypto</b> (rapporte des crédits à chaque vague).</p>
     <p>🛒 Termine des zones pour gagner des <b>puces ⬢</b> (plus si tu as des étoiles et en difficulté élevée). Dans la <b>Boutique</b>, débloque de nouvelles tourelles, fais leurs <b>recherches</b> (plus de dégâts et de portée, niveau 5 et prix réduit) et achète des améliorations permanentes (budget, vies, primes…).</p>
     <p>⭐ Chaque tourelle a <b>5 niveaux</b>. Au niveau 5 elle gagne un <b>pouvoir spécial</b> (double tir, balles perforantes, méga-obus, gel total, rayon perforant, surcharge). Choisis aussi sa cible : premier, dernier, plus fort ou plus proche.</p>
-    <p>🌍 <b>6 mondes</b> de 3 zones, chacun avec son propre décor : circuit imprimé, fournaise, flux de données, salle des serveurs, zone cryogénique et cyberespace.</p>
+    <p>🌍 <b>8 mondes</b> de 3 zones, chacun avec son propre décor : circuit imprimé, fournaise, flux de données, salle des serveurs, zone cryogénique, cyberespace, ordinateur rétro et le Nuage.</p>
     <p>🔀 Au <b>niveau 5</b>, choisis une <b>voie</b> : A (pouvoir spécial) ou B (variante très différente : mortier, tempête électrique, banque…).</p>
     <p>🧪 <b>Combinaisons</b> : Cryo + Lance-flammes = choc thermique, Cryo + Tesla = surtension, Lance-flammes + Laser = fusion, gel + explosions = éclatement.</p>
     <p>☄ <b>Pouvoirs</b> (en bas de la carte) : frappe orbitale, gel système, redémarrage. Chacun a une recharge et consomme une <b>charge</b> (5 offertes, d'autres en Boutique). 👁 montre les couloirs mal couverts, ↶ annule la dernière pose.</p>
     <p>👑 Chaque monde a sa <b>règle</b> (cases brûlantes, portails, coupures de courant, verglas, piratage), son <b>virus exclusif</b> et un <b>boss</b> à la dernière vague de chaque zone.</p>
     <p>🏅 Chaque zone a 2 <b>défis</b> bonus. ♾ Le <b>mode infini</b> et 📅 le <b>défi du jour</b> ont leurs records.</p>
     <p>🔍 Pince l'écran avec deux doigts pour zoomer, et glisse un doigt pour te déplacer sur la carte.</p>
+    <p>👆 <b>Double-tap</b> sur une tourelle pour l'améliorer directement. 🎯 Ciblage « Soigneurs d'abord » / « Spéciaux d'abord », et « ⇉ Toutes » pour régler toutes les tourelles d'un coup. Les pastilles au-dessus des virus montrent les dangereux (✚ soigneur, ◈ bouclier…).</p>
     <p>⬆ Touche une tourelle posée pour l'<b>améliorer</b> (4 niveaux) ou la <b>revendre</b>.</p>
     <p>🪰 Les virus volants survolent les couloirs : le canon ne peut pas les toucher.</p>
     <p>🧬 Méfie-toi des virus spéciaux : le <b>Diviseur</b> se coupe en deux, le <b>Bouclier</b> a une bulle d'énergie qui se recharge, le <b>Fantôme</b> devient intouchable par moments, le <b>Soigneur</b> soigne ses voisins, le <b>Géant</b> est énorme et coûte 2 vies, le <b>Sauteur</b> se téléporte plus loin.</p>
@@ -117,6 +120,7 @@
     <button class="big alt" id="optVibe"></button>
     <button class="big alt" id="optSide"></button>
     <button class="big alt" id="optEco"></button>
+    <button class="big alt" id="optDmg"></button>
     <div class="row2"><button class="big alt" id="optExport">📤 Exporter</button><button class="big alt" id="optImport">📥 Importer</button></div>
     <button class="big alt" id="optTuto">🎓 Revoir le tutoriel</button>
     <div class="row2 codebox"><input id="codeIn" type="text" placeholder="Code secret…" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="big alt" id="codeGo">Valider</button></div>
@@ -126,7 +130,7 @@
 </section>
 
 <section id="shop" class="screen hidden">
-  <div class="shop-head"><h2>🛒 Boutique</h2><div class="chipbox">⬢ <b id="chips">0</b> <small>puces</small></div><div class="tabs"><button class="tab on" data-tab="towers">Tourelles</button><button class="tab" data-tab="global">Améliorations</button><button class="tab" data-tab="powers">Pouvoirs</button></div></div>
+  <div class="shop-head"><h2>🛒 Boutique</h2><div class="chipbox">⬢ <b id="chips">0</b> <small>puces</small></div><div class="tabs"><button class="tab on" data-tab="towers">Tourelles</button><button class="tab" data-tab="global">Améliorations</button><button class="tab" data-tab="powers">Pouvoirs</button><button class="tab" data-tab="skins">Apparences</button></div></div>
   <div id="shopList"></div>
   <div id="shopInfo"></div>
   <button class="back" id="shopBack">← Retour</button>
