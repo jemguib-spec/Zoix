@@ -11,7 +11,7 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - **6 tourelles**, chacune améliorable jusqu'au niveau 4 :
   | Tourelle | Prix | Rôle |
   |---|---|---|
-  | Pulseur | 5 cr | pas cher, sert à construire le labyrinthe |
+  | Pulseur | 5 cr | pas cher, idéal pour couvrir les couloirs |
   | Mitrailleuse | 12 cr | cadence très rapide |
   | Canon | 25 cr | obus explosifs (ne touche pas les volants) |
   | Cryo | 35 cr | ralentit les virus |
