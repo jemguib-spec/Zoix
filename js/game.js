@@ -737,7 +737,7 @@ function update(dt) {
   const clear = !G.queue.length && !G.enemies.length;
   if (clear && G.wave > 0 && G.recapW !== G.wave && !G.demo) { // bilan de la vague
     G.recapW = G.wave; let mvp = null; for (const t of G.towers) if ((t.wdmg || 0) > ((mvp && mvp.wdmg) || 0)) mvp = t;
-    G.recap = { t: 'Vague ' + G.wave + ' ✔', parts: [(G.wKills || 0) + ' virus', '+' + (G.wEarn || 0) + ' cr', G.wLeak ? '−' + G.wLeak + ' ❤' : 'aucune vie perdue', mvp ? 'MVP : ' + TOWERS[mvp.type].name : ''].filter(Boolean), life: 3.5, max: 3.5, bad: !!G.wLeak };
+    G.recap = { t: 'Vague ' + G.wave + ' ✔', parts: [(G.wKills || 0) + ' virus', '+' + (G.wEarn || 0) + ' cr', G.wLeak ? '−' + G.wLeak + ' ❤' : 'aucune vie perdue', mvp ? 'MVP : ' + tName(mvp.type) : ''].filter(Boolean), life: 3.5, max: 3.5, bad: !!G.wLeak };
   }
   if (G.recap) { G.recap.life -= dt; if (G.recap.life <= 0) G.recap = null; }
   if (clear && G.wave >= G.total && !G.over) { endGame(true); return; }

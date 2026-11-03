@@ -72,7 +72,7 @@ function showResult(win) {
   const recKey = curDiff + G.mi;
   let html = '<div><small>' + (daily ? 'Défi' : 'Zone') + '</small><b>' + G.m.name + '</b></div><div><small>Difficulté</small><b>' + G.d.name + '</b></div><div><small>Vagues</small><b>' + waves + (endless ? '' : ' / ' + G.total) + '</b></div><div><small>Virus détruits</small><b>' + G.kills + '</b></div><div><small>Score</small><b style="color:#e6ee5a">' + G.score + '</b></div>' +
     '<div><small>Record</small><b>' + (endless ? 'vague ' + ((save.endless || {})[recKey] || 0) : daily ? (save.daily.best || 0) : (save.best[recKey] || 0)) + '</b></div>';
-  if (mvp && tot > 0) html += '<div class="wide"><small>Tourelle MVP</small><b style="color:' + TOWERS[mvp.type].col + '">' + TOWERS[mvp.type].name + ' niv. ' + mvp.lvl + ' · ' + Math.round(100 * mvp.dmg / tot) + ' % des dégâts</b></div>';
+  if (mvp && tot > 0) html += '<div class="wide"><small>Tourelle MVP</small><b style="color:' + TOWERS[mvp.type].col + '">' + tName(mvp.type) + ' niv. ' + mvp.lvl + ' · ' + Math.round(100 * mvp.dmg / tot) + ' % des dégâts</b></div>';
   if (G.chalRes) html += '<div class="wide chal"><small>Défis de la zone</small>' + G.chalRes.map(r => '<b class="' + (r.ok ? 'ok' : 'ko') + '">' + (r.ok ? '🏅 ' : '✘ ') + CHALS[r.c].name + (r.isNew ? ' <i>+12 ⬢</i>' : '') + '</b>').join('') + '</div>';
   if (G.newAch && G.newAch.length) html += '<div class="wide"><small>Succès débloqués</small><b>' + G.newAch.map(a => a.ic + ' ' + a.name).join(' · ') + '</b></div>';
   $('#resBody').innerHTML = html;
@@ -89,7 +89,8 @@ function buyChips(cost, fn) {
 }
 function buildShop() {
   $('#chips').textContent = save.chips || 0;
-  document.querySelectorAll('#shop .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === shopTab));
+  document.querySelectorAll('#shop .tab[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === shopTab));
+  buildShopWorlds();
   const list = $('#shopList'); list.innerHTML = ''; list.className = shopTab;
   const pips = (l, m) => '<div class="pips">' + Array.from({ length: m }, (_, i) => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div>';
   if (shopTab === 'towers') {
@@ -99,10 +100,10 @@ function buildShop() {
       const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 72; const g = cv2.getContext('2d'); g.setTransform(72, 0, 0, 72, 36, 36); drawTower(g, k, un ? Math.min(TMAX, 1 + r) : 1, -Math.PI / 4, 0, 0);
       c.appendChild(cv2);
       const info = document.createElement('div'); info.className = 'sinfo';
-      info.innerHTML = '<b style="color:' + d.col + '">' + (d.short || d.name) + '</b>' + (un ? pips(r, 5) : '<small>🔒 verrouillée</small>');
+      info.innerHTML = '<b style="color:' + d.col + '">' + tName(k, true) + '</b>' + (un ? pips(r, 5) : '<small>🔒 verrouillée</small>');
       c.appendChild(info);
       const bt = document.createElement('button'); bt.className = 'sbuy';
-      if (!un) { bt.textContent = UNLOCK[k] + ' ⬢'; bt.classList.toggle('off', save.chips < UNLOCK[k]); bt.onclick = ev => { ev.stopPropagation(); buyChips(UNLOCK[k], () => { save.unlockT = save.unlockT || {}; save.unlockT[k] = 1; shopSel = k; toast('🔓 ' + d.name + ' débloquée !'); }); }; }
+      if (!un) { bt.textContent = UNLOCK[k] + ' ⬢'; bt.classList.toggle('off', save.chips < UNLOCK[k]); bt.onclick = ev => { ev.stopPropagation(); buyChips(UNLOCK[k], () => { save.unlockT = save.unlockT || {}; save.unlockT[k] = 1; shopSel = k; toast('🔓 ' + tName(k) + ' débloquée !'); }); }; }
       else if (r < 5) { bt.textContent = '⬆ ' + RES_COST[r] + ' ⬢'; bt.classList.toggle('off', save.chips < RES_COST[r]); bt.onclick = ev => { ev.stopPropagation(); buyChips(RES_COST[r], () => { save.research = save.research || {}; save.research[k] = r + 1; shopSel = k; }); }; }
       else { bt.textContent = 'MAX'; bt.className = 'sbuy off'; }
       c.appendChild(bt);
@@ -110,7 +111,7 @@ function buildShop() {
       list.appendChild(c);
     }
     const k = shopSel || 'pulse', d = TOWERS[k], r = resLvl(k);
-    $('#shopInfo').innerHTML = '<b style="color:' + d.col + '">' + d.name + '</b> — ' + d.desc + '<br><small>Recherche ' + r + '/5 : +' + (8 * r) + ' % dégâts, +' + (3 * r) + ' % portée' + (r >= 2 ? ' · niveau 5 débloqué' : ' · le niveau 5 se débloque à la recherche 2') + '<br>Voie A · ' + SPECIAL[k] + '<br>Voie B · ' + SPECIALB[k] + (r >= 5 ? ' · −10 % sur le prix' : ' · recherche 5 : −10 % sur le prix') + '</small>';
+    $('#shopInfo').innerHTML = '<b style="color:' + d.col + '">' + tName(k) + '</b> — ' + tDesc(k) + '<br><small>Recherche ' + r + '/5 : +' + (8 * r) + ' % dégâts, +' + (3 * r) + ' % portée' + (r >= 2 ? ' · niveau 5 débloqué' : ' · le niveau 5 se débloque à la recherche 2') + '<br>Voie A · ' + SPECIAL[k] + '<br>Voie B · ' + SPECIALB[k] + (r >= 5 ? ' · −10 % sur le prix' : ' · recherche 5 : −10 % sur le prix') + '</small>';
   } else if (shopTab === 'skins') {
     save.skins = save.skins || { classic: 1 };
     for (const k in SKINS) {
@@ -157,7 +158,17 @@ function buildShop() {
     $('#shopInfo').innerHTML = '<small>Les améliorations sont permanentes et s\'appliquent à toutes les zones et toutes les difficultés.</small>';
   }
 }
-function openShop(from) { shopFrom = from; setState('shop'); }
+function openShop(from) { const w = G ? worldIdx(G.mi) : (mapPage || 0); shopFrom = from; setState('shop'); shopWorld = w; buildShop(); }
+// aperçu du style des tourelles dans chaque monde
+function buildShopWorlds() {
+  const box = $('#shopWorlds'); if (!box) return; box.innerHTML = '';
+  box.classList.toggle('hidden', shopTab !== 'towers');
+  WORLDS.forEach((w, i) => {
+    const b = document.createElement('button'), on = curWorld() === i; b.className = 'tab' + (on ? ' on' : ''); b.title = w.name;
+    b.innerHTML = w.ic + (on ? ' <span>' + w.name + '</span>' : '');
+    b.onclick = () => { shopWorld = i; buildShop(); }; box.appendChild(b);
+  });
+}
 document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { shopTab = b.dataset.tab; buildShop(); }));
 $('#shopBack').onclick = () => setState(shopFrom === 'result' ? 'maps' : shopFrom);
 
@@ -177,6 +188,7 @@ function show(id) {
 }
 function setState(s) {
   state = s;
+  if (s !== 'shop') shopWorld = null;
   $('#panel').classList.toggle('hidden', s !== 'play' && s !== 'pause');
   $('#edPanel').classList.toggle('hidden', s !== 'edit');
   if (s === 'play') { for (const id of screens) $('#' + id).classList.add('hidden'); }

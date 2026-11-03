@@ -20,14 +20,14 @@ function segDist(px, py, x1, y1, x2, y2) {
    Les tourelles se posent sur le circuit (zones colorées), pas dans les couloirs. */
 // 6 mondes de 3 zones, chacun avec son propre décor, ses obstacles et son ambiance
 const WORLDS = [
-  { name: 'Circuit imprimé', style: 'pcb', desc: 'Là où tout commence : pistes de cuivre, puces et robots de maintenance.', panel: ['#c62828', '#9a1313', '#6d0a0a'], obst: ['fan', 'sink', 'fan'], leds: ['#76ff03', '#ff1744', '#ffab00', '#00e5ff'] },
-  { name: 'La Fournaise', style: 'forge', desc: 'Alimentation en surchauffe : le métal rougeoie et les braises volent.', panel: ['#ef6c00', '#a63f00', '#4e1a00'], obst: ['coil', 'sink', 'coil'], leds: ['#ff3d00', '#ffab00', '#ff6d00', '#ffd740'] },
-  { name: 'Flux de données', style: 'data', desc: 'Fibres optiques et disques : les paquets filent à la vitesse de la lumière.', panel: ['#1976d2', '#0d47a1', '#051e44'], obst: ['disk', 'disk', 'disk'], leds: ['#40c4ff', '#64ffda', '#18ffff', '#b388ff'] },
-  { name: 'Salle des serveurs', style: 'rack', desc: 'Baies métalliques, câbles et ventilation : le réseau est attaqué.', panel: ['#7b8a95', '#4e5b64', '#262d33'], obst: ['fan', 'fan', 'fan'], leds: ['#76ff03', '#76ff03', '#00e5ff', '#ffab00'] },
-  { name: 'Zone cryogénique', style: 'ice', desc: 'Refroidissement extrême : le circuit est couvert de givre.', panel: ['#4fb3e8', '#1f78b4', '#0b3a63'], obst: ['tank', 'fan', 'tank'], leds: ['#b3e5fc', '#80deea', '#ffffff', '#40c4ff'] },
-  { name: 'Cyberespace', style: 'neon', desc: 'Au cœur du code : néons, hologrammes et IA corrompue.', panel: ['#9c27b0', '#5e1272', '#23062e'], obst: ['holo', 'holo', 'holo'], leds: ['#ff2bd6', '#00e5ff', '#ffea00', '#ff1744'] },
-  { name: 'Ordinateur rétro', style: 'retro', desc: 'Un vieux PC 8 bits : disquettes, câbles en nappe et écrans cathodiques.', panel: ['#c49a5a', '#8a6232', '#3f2a12'], obst: ['crt', 'floppy', 'crt'], leds: ['#ff3d00', '#76ff03', '#ffab00', '#ff3d00'] },
-  { name: 'Le Nuage', style: 'cloud', desc: 'Les serveurs du cloud flottent dans le ciel… et l\'orage gronde.', panel: ['#5c9ce6', '#2f6bb8', '#16365f'], obst: ['antenna', 'cumulus', 'antenna'], leds: ['#40c4ff', '#ffffff', '#b388ff', '#40c4ff'] }
+  { name: 'Circuit imprimé', style: 'pcb', ic: '🔌', desc: 'Là où tout commence : pistes de cuivre, puces et robots de maintenance.', panel: ['#c62828', '#9a1313', '#6d0a0a'], obst: ['fan', 'sink', 'fan'], leds: ['#76ff03', '#ff1744', '#ffab00', '#00e5ff'] },
+  { name: 'La Fournaise', style: 'forge', ic: '🔥', desc: 'Alimentation en surchauffe : le métal rougeoie et les braises volent.', panel: ['#ef6c00', '#a63f00', '#4e1a00'], obst: ['coil', 'sink', 'coil'], leds: ['#ff3d00', '#ffab00', '#ff6d00', '#ffd740'] },
+  { name: 'Flux de données', style: 'data', ic: '💾', desc: 'Fibres optiques et disques : les paquets filent à la vitesse de la lumière.', panel: ['#1976d2', '#0d47a1', '#051e44'], obst: ['disk', 'disk', 'disk'], leds: ['#40c4ff', '#64ffda', '#18ffff', '#b388ff'] },
+  { name: 'Salle des serveurs', style: 'rack', ic: '🗄', desc: 'Baies métalliques, câbles et ventilation : le réseau est attaqué.', panel: ['#7b8a95', '#4e5b64', '#262d33'], obst: ['fan', 'fan', 'fan'], leds: ['#76ff03', '#76ff03', '#00e5ff', '#ffab00'] },
+  { name: 'Zone cryogénique', style: 'ice', ic: '❄', desc: 'Refroidissement extrême : le circuit est couvert de givre.', panel: ['#4fb3e8', '#1f78b4', '#0b3a63'], obst: ['tank', 'fan', 'tank'], leds: ['#b3e5fc', '#80deea', '#ffffff', '#40c4ff'] },
+  { name: 'Cyberespace', style: 'neon', ic: '🌐', desc: 'Au cœur du code : néons, hologrammes et IA corrompue.', panel: ['#9c27b0', '#5e1272', '#23062e'], obst: ['holo', 'holo', 'holo'], leds: ['#ff2bd6', '#00e5ff', '#ffea00', '#ff1744'] },
+  { name: 'Ordinateur rétro', style: 'retro', ic: '🕹', desc: 'Un vieux PC 8 bits : disquettes, câbles en nappe et écrans cathodiques.', panel: ['#c49a5a', '#8a6232', '#3f2a12'], obst: ['crt', 'floppy', 'crt'], leds: ['#ff3d00', '#76ff03', '#ffab00', '#ff3d00'] },
+  { name: 'Le Nuage', style: 'cloud', ic: '☁', desc: 'Les serveurs du cloud flottent dans le ciel… et l\'orage gronde.', panel: ['#5c9ce6', '#2f6bb8', '#16365f'], obst: ['antenna', 'cumulus', 'antenna'], leds: ['#40c4ff', '#ffffff', '#b388ff', '#40c4ff'] }
 ];
 const worldIdx = mi => (MAPS[mi] && MAPS[mi].world !== undefined) ? MAPS[mi].world : Math.min(WORLDS.length - 1, Math.floor(mi / 3));
 const worldOf = mi => WORLDS[worldIdx(mi)];
@@ -162,6 +162,31 @@ const TOWERS = {
   mine: { name: 'Poseur de mines', short: 'Mines', cost: 75, range: 2.4, rate: .7, dmg: 30, splash: .9, col: '#8bc34a', proj: 'mine', ground: true, desc: 'Sème des mines dans le couloir, qui explosent au passage des virus.' },
   vortex: { name: 'Vortex', cost: 140, range: 2.2, rate: .3, dmg: 8, col: '#7c4dff', proj: 'vortex', desc: 'Impulsion gravitationnelle qui renvoie les virus en arrière.' }
 };
+// ---- chaque monde donne son style aux tourelles : [famille de dessin, variante] ----
+// moderne = tourelles high-tech, retro = bois/pierre/fer (catapultes…), neo = néon futuriste
+const WTSTYLE = { pcb: ['modern', 'classic'], forge: ['retro', 'forge'], data: ['neo', 'data'], rack: ['modern', 'carbon'], ice: ['modern', 'ice'], neon: ['neo', 'neon'], retro: ['retro', 'wood'], cloud: ['neo', 'cloud'] };
+let shopWorld = null; // monde choisi dans la boutique pour l'aperçu
+const curWorld = () => shopWorld !== null ? shopWorld : (G ? worldIdx(G.mi) : 0);
+const curTS = () => WTSTYLE[WORLDS[curWorld()].style] || WTSTYLE.pcb;
+const curStyle = () => curTS()[0];
+// [nom, nom court, description]
+const TNAMES = {
+  retro: {
+    pulse: ['Arbalète', 0, 'Pas chère : des carreaux pour couvrir les couloirs.'], gatling: ['Baliste', 0, 'Tire des volées de flèches très rapides.'],
+    cannon: ['Catapulte', 0, 'Lance de gros rochers. Ne touche pas les volants.'], frost: ['Chaudron givré', 'Givre', 'Potion glacée qui ralentit les virus.'],
+    flame: ['Tête de dragon', 'Dragon', 'Crache du feu sur tous les virus devant lui.'], missile: ['Trébuchet', 0, 'Boules de feu guidées, très longue portée.'],
+    laser: ['Tour du mage', 'Mage', 'Rayon magique : longue portée, dégâts énormes.'], tesla: ['Pilier runique', 'Runes', 'Foudre magique qui rebondit sur plusieurs virus.'],
+    mine: ['Poudrière', 0, 'Sème des tonneaux de poudre qui explosent au passage des virus.'], vortex: ['Moulin à vent', 'Moulin', 'Ses ailes soufflent les virus en arrière.'],
+    boost: ['Tambour de guerre', 'Tambour', 'Encourage les tourelles voisines : plus de dégâts.'], miner: ['Coffre au trésor', 'Trésor', 'Rapporte des pièces d\'or à chaque vague.']
+  },
+  neo: {
+    pulse: ['Blaster ionique', 'Blaster'], gatling: ['Plasma-rafale', 'Rafale'], cannon: ['Canon gravitique', 'Gravité'], frost: ['Champ de stase', 'Stase'],
+    flame: ['Lance-plasma', 'Plasma'], missile: ['Essaim de drones', 'Drones'], laser: ['Rayon photonique', 'Photon'], tesla: ['Arc quantique', 'Arc'],
+    mine: ['Mines plasma', 'Mines'], vortex: ['Trou noir', 0], boost: ['Nexus', 0], miner: ['Mineur quantique', 'Q-Mineur']
+  }
+};
+const tName = (k, short) => { const n = (TNAMES[curStyle()] || {})[k]; return n ? (short && n[1] || n[0]) : (short && TOWERS[k].short || TOWERS[k].name); };
+const tDesc = k => { const n = (TNAMES[curStyle()] || {})[k]; return n && n[2] || TOWERS[k].desc; };
 const TORDER = ['pulse', 'gatling', 'cannon', 'frost', 'flame', 'missile', 'laser', 'tesla', 'mine', 'vortex', 'boost', 'miner'];
 const TMAX = 5, UPMULT = [.8, 1.4, 2.4, 4];
 // au niveau 5, chaque tourelle choisit une voie : A (pouvoir historique) ou B
