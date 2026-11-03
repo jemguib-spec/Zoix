@@ -135,9 +135,11 @@ const TOWERS = {
   flame: { name: 'Lance-flammes', short: 'Flammes', cost: 60, range: 1.9, rate: 8, dmg: 1.4, burn: 5, col: '#ff6d00', proj: 'flame', desc: 'Brûle tous les virus devant lui.' },
   missile: { name: 'Lance-missiles', short: 'Missiles', cost: 90, range: 4.5, rate: .45, dmg: 42, splash: .9, col: '#ff5252', proj: 'missile', spd: 3, desc: 'Missiles à tête chercheuse, longue portée.' },
   boost: { name: 'Amplificateur', short: 'Ampli', cost: 120, range: 1.6, rate: 0, dmg: 0, col: '#00e676', proj: 'none', desc: 'Augmente les dégâts des tourelles voisines.' },
-  miner: { name: 'Mineur crypto', short: 'Mineur', cost: 70, range: 0, rate: 0, dmg: 0, col: '#ffd740', proj: 'none', desc: 'Rapporte des crédits à chaque vague.' }
+  miner: { name: 'Mineur crypto', short: 'Mineur', cost: 70, range: 0, rate: 0, dmg: 0, col: '#ffd740', proj: 'none', desc: 'Rapporte des crédits à chaque vague.' },
+  mine: { name: 'Poseur de mines', short: 'Mines', cost: 75, range: 2.4, rate: .7, dmg: 30, splash: .9, col: '#8bc34a', proj: 'mine', ground: true, desc: 'Sème des mines dans le couloir, qui explosent au passage des virus.' },
+  vortex: { name: 'Vortex', cost: 140, range: 2.2, rate: .3, dmg: 8, col: '#7c4dff', proj: 'vortex', desc: 'Impulsion gravitationnelle qui renvoie les virus en arrière.' }
 };
-const TORDER = ['pulse', 'gatling', 'cannon', 'frost', 'flame', 'missile', 'laser', 'tesla', 'boost', 'miner'];
+const TORDER = ['pulse', 'gatling', 'cannon', 'frost', 'flame', 'missile', 'laser', 'tesla', 'mine', 'vortex', 'boost', 'miner'];
 const TMAX = 5, UPMULT = [.8, 1.4, 2.4, 4];
 // au niveau 5, chaque tourelle choisit une voie : A (pouvoir historique) ou B
 const PATHS = {
@@ -150,7 +152,9 @@ const PATHS = {
   laser: [['Rayon perforant', 'traverse tous les virus alignés'], ['Surchauffe', 'dégâts qui montent jusqu\'à ×3 sur la même cible']],
   tesla: [['Surcharge', '+3 rebonds et étourdit'], ['Tempête', 'frappe TOUS les virus à portée']],
   boost: [['Surpuissance', '+60 % de dégâts aux voisines'], ['Accélérateur', '+40 % de cadence aux voisines']],
-  miner: [['Ferme de minage', 'gains doublés'], ['Banque', '+6 % de tes crédits à chaque vague (max 60)']]
+  miner: [['Ferme de minage', 'gains doublés'], ['Banque', '+6 % de tes crédits à chaque vague (max 60)']],
+  mine: [['Fragmentation', 'explosions 50 % plus larges qui étourdissent'], ['Mines collantes', 'engluent les virus (très ralentis 3 s)']],
+  vortex: [['Trou noir', 'renvoie 3 cases en arrière, dégâts ×2'], ['Distorsion', 'portée +1 et ralentit les virus repoussés']]
 };
 const PATHCOL = ['#ffd740', '#40c4ff'];
 const SPECIAL = {}, SPECIALB = {};
@@ -176,12 +180,16 @@ function tStats(type, lvl, path) {
     case 'tesla': s.storm = true; break;
     case 'boost': s.boost = .2; s.rateB = .4; break;
     case 'miner': s.bank = true; break;
+    case 'mine': s.sticky = true; break;
+    case 'vortex': s.range += 1; s.warp = true; break;
   }
+  if (type === 'mine') { s.maxMines = 3 + k + (A ? 2 : 0); if (A) { s.splash *= 1.5; s.stun = .6; } }
+  if (type === 'vortex') { s.push = 1 + (k >= 2 ? 1 : 0) + (A ? 1 : 0); if (A) s.dmg *= 2; }
   return s;
 }
 const upCost = t => Math.round(TOWERS[t.type].cost * UPMULT[t.lvl - 1]);
 /* ---------------- boutique (puces ⬢ gagnées à chaque partie) ---------------- */
-const UNLOCK = { pulse: 0, gatling: 0, cannon: 0, frost: 60, flame: 90, missile: 130, laser: 170, tesla: 220, boost: 260, miner: 200 };
+const UNLOCK = { pulse: 0, gatling: 0, cannon: 0, frost: 60, flame: 90, missile: 130, laser: 170, tesla: 220, boost: 260, miner: 200, mine: 150, vortex: 240 };
 const RES_COST = [25, 45, 75, 115, 170];   // prix des 5 niveaux de recherche d'une tourelle
 const GUP = {
   cash: { name: 'Budget de départ', ic: '💰', desc: '+8 crédits au début de chaque partie', cost: [30, 55, 90, 140, 210] },
@@ -416,6 +424,7 @@ function sfx(n, p) {
     case 'tesla': noise(.16, .1, 5000, 0, 0, 'highpass', 1200); tone(70, .14, 'square', .035, 140); break;
     case 'missile': noise(.45, .07, 400, 0, 0, 'bandpass', 2500); tone(300, .4, 'sawtooth', .015, 900); break;
     case 'flame': noise(.12, .05, 900, 0, 0, 'lowpass', 300); break;
+    case 'vortex': tone(90, .5, 'sine', .12, 40, 0, 0, true); tone(600, .4, 'triangle', .03, 120); break;
     case 'pop': { const k = Math.pow(1.06, Math.min(24, p || 0)); tone(320 * k, .09, 'sine', .07, 900 * k); tone(640 * k, .06, 'triangle', .03, 1400 * k, t + .02); break; }
     case 'boom': noise(.8, .3, 2600); tone(90, .7, 'sine', .22, 28); break;
     case 'leak': tone(440, .12, 'square', .05, 220); tone(330, .25, 'sawtooth', .05, 110, t + .1); break;
@@ -1224,7 +1233,7 @@ function newGame(mi, demo, opts) {
   const g = {
     mi, m, d, demo: !!demo, total: demo ? 9999 : opts.endless ? Infinity : opts.daily ? 30 : m.waves, wave: 0, lives: d.lives + (demo ? 0 : 2 * ((save.gup || {}).lives || 0)), cash: demo ? 1e9 : d.cash + (m.routes.length - 1) * 12 + 8 * ((save.gup || {}).cash || 0), score: 0, time: 0,
     starts, exits, towers: [], towerAt: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
-    enemies: [], projs: [], fx: [], parts: [], texts: [], queue: [], spawnT: 0, nextStart: 0,
+    enemies: [], projs: [], fx: [], parts: [], texts: [], queue: [], mines: [], spawnT: 0, nextStart: 0,
     tool: null, sel: null, hover: null, speed: 1, countdown: -1, over: false, kills: 0, shake: 0, banner: null, aiT: 0
   };
   g.endless = !!opts.endless; g.daily = !!opts.daily; g.mod = opts.mod || null; g.allowed = opts.allowed || null;
@@ -1396,6 +1405,7 @@ function sellTower(t, refund) {
   if (G.undo && G.undo.t === t) G.undo = null;
   G.covDirty = true;
   G.cash += r; G.towers.splice(G.towers.indexOf(t), 1); G.towerAt[t.y][t.x] = null; recalcBoosts();
+  G.mines = G.mines.filter(m => m.src !== t);
   smoke(t.x + .5, t.y + .5, 5, .25);
   G.fx.push({ kind: 'sold', x: t.x + .5, y: t.y + .5, type: t.type, lvl: t.lvl, ang: t.ang, life: .45, max: .45 });
   floatText(t.x + .5, t.y + .5, '+' + r, '#e6ee5a');
@@ -1642,6 +1652,43 @@ function combo(e, k) {
   if (!save.combos[k]) { save.combos[k] = 1; persist(); toast('🧪 Combinaison découverte : ' + COMBOS[k].name + ' — ' + COMBOS[k].desc); unlockAch('combo1'); if (Object.keys(save.combos).length >= 4) unlockAch('combo4'); }
 }
 const chilled = o => o.frozen > 0 || o.slowT > 0;
+// mines : case de couloir libre à portée, de préférence sur un passage
+function mineSpot(t) {
+  const r = t.st.range, c = [];
+  for (let y = Math.max(0, t.y - 3); y <= Math.min(ROWS - 1, t.y + 3); y++) for (let x = Math.max(0, t.x - 3); x <= Math.min(COLS - 1, t.x + 3); x++) {
+    if (!walkable(x, y) || G.m.g[y][x] === 'E' || Math.hypot(x - t.x, y - t.y) > r) continue;
+    if (G.mines.some(m => Math.abs(m.x - x - .5) < .6 && Math.abs(m.y - y - .5) < .6)) continue;
+    c.push([x, y]);
+  }
+  return c.length ? c[Math.floor(Math.random() * c.length)] : null;
+}
+function layMine(t, x, y) {
+  const s = t.boost > 1 ? t.st.dmg * t.boost : t.st.dmg;
+  G.mines.push({ x: x + .5 + rand(-.15, .15), y: y + .5 + rand(-.15, .15), sx: t.x + .5, sy: t.y + .5, k: 0, arm: .6, dmg: s, splash: t.st.splash, stun: t.st.stun || 0, sticky: t.st.sticky, src: t, col: t.st.alt ? '#40c4ff' : t.st.special ? '#ffd740' : '#8bc34a' });
+  t.nMines = (t.nMines || 0) + 1; sfx('build');
+}
+function updateMines(dt) {
+  for (let i = G.mines.length - 1; i >= 0; i--) {
+    const m = G.mines[i];
+    if (m.k < 1) { m.k = Math.min(1, m.k + dt * 3); continue; } // vol de la mine vers sa case
+    if (m.arm > 0) { m.arm -= dt; continue; }
+    if (!G.towers.includes(m.src)) { G.mines.splice(i, 1); continue; } // tourelle vendue : ses mines disparaissent
+    let hit = null; for (const e of G.enemies) if (!e.dead && !e.fly && !e.phased && Math.hypot(e.x - m.x, e.y - m.y) < .38 + e.r * .5) { hit = e; break; }
+    if (!hit) continue;
+    G.shooter = m.src;
+    for (const e of G.enemies) {
+      if (e.dead || e.fly || Math.hypot(e.x - m.x, e.y - m.y) > m.splash + e.r) continue;
+      let dm = m.dmg; if (e.frozen > 0) { dm *= 2.5; combo(e, 'shatter'); }
+      hurt(e, dm);
+      if (m.stun) e.stunT = Math.max(e.stunT || 0, m.stun);
+      if (m.sticky && !ETYPES[e.type].noslow) { e.slowF = Math.min(e.slowT > 0 ? e.slowF : 1, .3); e.slowT = Math.max(e.slowT, 3); }
+    }
+    G.fx.push({ kind: 'ring', x: m.x, y: m.y, r: m.splash, col: m.col, life: .3, max: .3 });
+    for (let k = 0; k < 8; k++) G.parts.push(part(m.x, m.y, k % 2 ? m.col : '#ffd740', 3));
+    smoke(m.x, m.y, 3, .2); crater(m.x, m.y, .25, '#555555'); G.shake = Math.max(G.shake, 1.5); sfx('cannon');
+    m.src.nMines = Math.max(0, (m.src.nMines || 1) - 1); G.mines.splice(i, 1);
+  }
+}
 function fire(t, e) {
   const d = TOWERS[t.type], s = t.boost > 1 ? Object.assign({}, t.st, { dmg: t.st.dmg * t.boost }) : t.st, cx = t.x + .5, cy = t.y + .5;
   const mx = cx + Math.cos(t.ang) * .4, my = cy + Math.sin(t.ang) * .4;
@@ -1667,6 +1714,20 @@ function fire(t, e) {
         }
       }
       for (let k = 0; k < 3; k++) { const a = a0 + rand(-.35, .35), sp = rand(3, 5); G.parts.push({ fire: true, x: mx, y: my, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: s.range / sp, max: s.range / sp, size: rand(.12, .2), col: '#ff9100' }); }
+      break;
+    }
+    case 'vortex': { // impulsion : repousse les virus à portée
+      let n = 0;
+      for (const o of G.enemies) {
+        if (o.dead || o.reviveT > 0 || Math.hypot(o.x - cx, o.y - cy) > s.range + o.r) continue;
+        hurt(o, s.dmg);
+        if (o.dead || o.pushT > G.time) continue;
+        const back = isBoss(o) ? 1 : s.push; o.pushT = G.time + 2.5; // chaque virus ne peut être repoussé qu'une fois toutes les 2,5 s
+        o.ri = Math.max(0, o.ri - back); const p = o.route[o.ri]; o.x = p[0] + .5; o.y = p[1] + .5; o.tx = p[0]; o.ty = p[1]; n++;
+        if (s.warp && !ETYPES[o.type].noslow) { o.slowF = Math.min(o.slowT > 0 ? o.slowF : 1, .5); o.slowT = Math.max(o.slowT, 2); }
+        G.fx.push({ kind: 'ring', x: o.x, y: o.y, r: .45, col: '#b388ff', life: .3, max: .3 });
+      }
+      G.fx.push({ kind: 'ring', x: cx, y: cy, r: s.range, col: s.special ? 'rgba(20,0,40,.7)' : 'rgba(124,77,255,.55)', life: .45, max: .45 });
       break;
     }
     case 'missile': {
@@ -1843,6 +1904,11 @@ function update(dt) {
     if (t.offT > 0) { t.offT -= dt; continue; }
     if (t.hacked > 0) { t.hacked -= dt; continue; }
     if (t.type === 'boost' || t.type === 'miner') { t.ang += dt * (t.type === 'miner' ? 3 : 1); continue; }
+    if (t.type === 'mine') { // pose des mines sur les cases de couloir à portée
+      t.ang += dt * .5;
+      if (t.cd <= 0 && (t.nMines || 0) < t.st.maxMines) { const c = mineSpot(t); if (c) { layMine(t, c[0], c[1]); t.cd = 1 / (t.st.rate * (1 + (t.rateB || 0))); t.flash = .1; } else t.cd = .5; }
+      continue;
+    }
     const e = findTarget(t);
     if (e) {
       const ta = Math.atan2(e.y - (t.y + .5), e.x - (t.x + .5));
@@ -1850,6 +1916,7 @@ function update(dt) {
       if (t.cd <= 0) { fire(t, e); t.cd = 1 / (t.st.rate * (1 + (t.rateB || 0))); t.flash = .07; }
     } else if (t.type !== 'tesla') t.ang += Math.sin(G.time * .8 + t.id) * dt * .9;
   }
+  updateMines(dt);
   // projectiles
   for (let i = G.projs.length - 1; i >= 0; i--) {
     const p = G.projs[i];
@@ -1995,7 +2062,7 @@ function drawTowerBase(c, type, lvl) {
 
 function drawTurret(c, type, lvl, ang, time, flash) {
   const d = TOWERS[type], col = d.col;
-  const a = (type === 'tesla' || type === 'boost' || type === 'miner') ? 0 : ang, [lx, ly] = lightFor(a);
+  const a = (type === 'tesla' || type === 'boost' || type === 'miner' || type === 'vortex') ? 0 : ang, [lx, ly] = lightFor(a);
   softShadow(c, .05, .07, .3, .3, .5);
   c.save(); c.rotate(a);
   if (flash > 0 && type !== 'tesla') c.translate(-flash / .07 * .08, 0);
@@ -2095,6 +2162,21 @@ function drawTurret(c, type, lvl, ang, time, flash) {
       c.fillStyle = g; c.beginPath(); c.moveTo(0, -.2 * p); c.lineTo(.12, 0); c.lineTo(0, .2 * p); c.lineTo(-.12, 0); c.closePath(); c.fill();
       c.lineWidth = .035; c.strokeStyle = OUT; c.stroke();
       c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(-.02, -.15); c.lineTo(.05, -.03); c.lineTo(-.04, -.03); c.closePath(); c.fill();
+      muzzle = 0; break;
+    }
+    case 'mine': { // lanceur de mines : tambour avec mines prêtes
+      fins();
+      gbar(c, .02, -.09, .3, .18, '#4e5a3a');
+      for (let k = 0; k < 3; k++) { const q = time * .8 + k * TAU / 3, mx2 = Math.cos(q) * .14, my2 = Math.sin(q) * .14; c.fillStyle = '#33402a'; c.beginPath(); c.arc(mx2, my2, .08, 0, TAU); c.fill(); c.lineWidth = .025; c.strokeStyle = OUT; c.stroke(); c.fillStyle = Math.sin(time * 6 + k) > 0 ? '#ff1744' : '#5d0000'; c.beginPath(); c.arc(mx2, my2, .025, 0, TAU); c.fill(); }
+      gball(c, 0, 0, .1 + (lvl >= 3 ? .02 : 0), col, lx, ly);
+      muzzle = .34; break;
+    }
+    case 'vortex': { // spirale gravitationnelle
+      c.save(); c.rotate(-time * 3);
+      for (let k = 0; k < 3; k++) { c.rotate(TAU / 3); c.strokeStyle = k % 2 ? '#b388ff' : '#7c4dff'; c.lineWidth = .06; c.lineCap = 'round'; c.beginPath(); for (let j = 0; j <= 12; j++) { const u = j / 12, rr2 = .06 + u * (.26 + (lvl >= 3 ? .04 : 0)), aa = u * 3.2; j ? c.lineTo(Math.cos(aa) * rr2, Math.sin(aa) * rr2) : c.moveTo(Math.cos(aa) * rr2, Math.sin(aa) * rr2); } c.stroke(); }
+      c.restore();
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, .13); g.addColorStop(0, '#000'); g.addColorStop(.7, '#1a0040'); g.addColorStop(1, '#7c4dff');
+      c.fillStyle = g; c.beginPath(); c.arc(0, 0, .12, 0, TAU); c.fill(); c.lineWidth = .03; c.strokeStyle = OUT; c.stroke();
       muzzle = 0; break;
     }
     case 'miner': {
@@ -2779,6 +2861,13 @@ function render() {
   drawRules();
   drawCoverage();
   drawPreview();
+  for (const m of G.mines) { // mines posées
+    const x = m.sx + (m.x - m.sx) * m.k, y = m.sy + (m.y - m.sy) * m.k - Math.sin(m.k * Math.PI) * .6;
+    softShadow(ctx, x + .03, y + .05, .14, .1, .5);
+    ctx.fillStyle = '#2e3a23'; ctx.beginPath(); ctx.arc(x, y, .14, 0, TAU); ctx.fill(); ctx.lineWidth = .03; ctx.strokeStyle = OUT; ctx.stroke();
+    ctx.strokeStyle = m.col; ctx.lineWidth = .025; ctx.beginPath(); ctx.arc(x, y, .1, 0, TAU); ctx.stroke();
+    const on = m.arm <= 0 && Math.sin(G.time * 8 + m.x * 3) > 0; ctx.fillStyle = on ? '#ff1744' : m.arm > 0 ? '#ffd740' : '#5d0000'; ctx.beginPath(); ctx.arc(x, y, .04, 0, TAU); ctx.fill();
+  }
   // taches laissées par les virus détruits
   for (const f of G.fx) if (f.kind === 'splat') {
     const a = Math.min(1, f.life / 2);
@@ -3157,7 +3246,7 @@ function updatePanel(force) {
   let label;
   if (G.wave >= G.total) label = '🏁 Finale';
   else if (G.wave === 0) label = '▶ Vague 1';
-  else if (G.queue.length || G.enemies.length) label = '⏩ Vague ' + (G.wave + 1) + ' · +' + earlyBonus();
+  else if (G.queue.length || G.enemies.length) label = '⏩ ' + (G.wave + 1) + ' · +' + earlyBonus();
   else label = '▶ Vague ' + (G.wave + 1);
   setTxt('#bWave', label);
   bw.classList.toggle('off', G.wave >= G.total);

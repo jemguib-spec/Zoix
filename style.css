@@ -493,3 +493,4 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #tpop .tp-modes #tpMode{flex:1}
 #tpop.dock .tp-modes .mode{margin-top:4px}
 #shopList.skins .scard canvas{width:54px!important;height:54px!important}
+#shopList.towers{grid-template-columns:repeat(6,minmax(0,1fr))!important}@media (orientation:portrait){#shopList.towers{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
