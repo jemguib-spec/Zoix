@@ -1,0 +1,56 @@
+name: Application Android
+
+on:
+  push:
+    paths-ignore: ['README.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Copier le jeu dans l'application
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp index.html style.css game.js icon.svg manifest.json android/app/src/main/assets/www/
+
+      - name: Compiler l'APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Renommer l'APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk VirusDefense.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VirusDefense-apk
+          path: VirusDefense.apk
+
+      - name: Publier dans la page de téléchargement (Releases)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="android-${GITHUB_REF_NAME//\//-}"
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" VirusDefense.apk \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Virus Défense — application Android (version 1.0.${{ github.run_number }})" \
+            --notes "Télécharge **VirusDefense.apk** depuis ton téléphone Android, ouvre-le et autorise l'installation. Les nouvelles versions s'installent par-dessus l'ancienne (ta progression est gardée)."

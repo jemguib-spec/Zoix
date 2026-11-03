@@ -1393,6 +1393,13 @@ $('#btnRestart').onclick = () => startMap(G.mi);
 $('#btnQuit').onclick = () => setState('maps');
 $('#resRetry').onclick = () => startMap(G.mi);
 $('#resMaps').onclick = () => setState('maps');
+// bouton retour d'Android (appli) : pause, reprise, retour au menu ; sinon l'appli se ferme
+window.onAndroidBack = () => {
+  if (state === 'play') { if (G && G.sel) { closePopup(); return true; } pauseGame(); return true; }
+  if (state === 'pause') { resumeGame(); return true; }
+  if (state === 'menu') return false;
+  setState(state === 'maps' ? 'diff' : 'menu'); return true;
+};
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 
 /* ---------------- boucle ---------------- */
