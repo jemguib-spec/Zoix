@@ -12,8 +12,10 @@ function endGame(win) {
   if (!win) { for (const [x, y] of G.exits) { for (let i = 0; i < 30; i++) G.parts.push(part(x + .5, y + .5, i % 2 ? '#ff5252' : '#ffd740', 5)); smoke(x + .5, y + .5, 12, .5); } G.shake = 16; }
   const S = save.stats; G.chalRes = null; G.record = false;
   S.waves = (S.waves || 0) + waves; S.playTime = (S.playTime || 0) + G.time;
-  if (G.custom) { // niveau créé : petite récompense, pas de record
-    G.chipsWon = Math.min(15, Math.floor(waves * .3)); G.stars = win ? 3 : 0;
+  if (G.custom) { // niveau créé : petite récompense + record de ce niveau
+    G.chipsWon = Math.min(15, Math.floor(waves * .3));
+    const lk = G.lives / (G.maxLives || G.d.lives); G.stars = win ? (lk >= 1 ? 3 : lk >= .5 ? 2 : 1) : 0;
+    if (G.opts && G.opts.lvKey) { save.lvBest = save.lvBest || {}; const r = save.lvBest[G.opts.lvKey] || { s: 0, st: 0, w: 0, n: 0 }; r.n++; if (G.score > r.s) { r.s = G.score; G.record = r.n > 1; } r.st = Math.max(r.st, G.stars); r.w = Math.max(r.w, waves); save.lvBest[G.opts.lvKey] = r; }
     if (win) sfx('win'); else { sfx('lose'); vibe(300); }
   } else if (endless) {
     const key = curDiff + G.mi; save.endless = save.endless || {};

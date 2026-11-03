@@ -83,6 +83,29 @@ async function test(name, page, fn) {
     const c = lvlEncode(d), d2 = lvlDecode(c);
     return !!d2 && JSON.stringify(d2.paths) === JSON.stringify(d.paths) && d2.name === 'Essai' && d2.world === 3 || 'décodage différent';
   });
+  await test('éditeur : obstacles, bonus, tourelles, règles et réglages se codent (VD3)', page, () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Complet', world: 6, waves: 25, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]],
+      obst: [[5, 5], [6, 5]], bonus: [[8, 3]], allowed: ['pulse', 'cannon'], hp: 150, spd: 80, rew: 200, noRule: true, noPower: true, desc: 'Bonne chance !' });
+    const c = lvlEncode(d), d2 = lvlDecode(c);
+    if (!d2 || !c.startsWith('VD3~')) return 'code invalide';
+    const keys = ['obst', 'bonus', 'allowed', 'hp', 'spd', 'rew', 'noRule', 'noPower', 'desc'];
+    for (const k of keys) if (JSON.stringify(d2[k]) !== JSON.stringify(d[k])) return k + ' différent';
+    return true;
+  });
+  await test('éditeur : obstacles bloquent, bonus +30 %, règle et pouvoirs coupés', page, () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Jeu', world: 6, waves: 10, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]],
+      obst: [[5, 5]], bonus: [[8, 3]], allowed: ['pulse', 'gatling'], hp: 200, noRule: true, noPower: true });
+    playLevel(lvlEncode(d)); G.cash = 1000;
+    if (canPlace(5, 5) === null) return 'obstacle constructible';
+    tryPlace('pulse', 8, 3); const t = G.towers[0]; if (!t || !t.bonus || Math.abs(t.boost - 1.3) > .01) return 'bonus absent';
+    if (!G.allowed || G.allowed.length !== 2) return 'tourelles autorisées ignorées';
+    if (!G.muts.nopower) return 'pouvoirs actifs';
+    for (let i = 0; i < 40; i++) tryPlace('pulse', 1 + (i % 24), 4 + Math.floor(i / 24) * 2);
+    if (G.towers.length < 29) return 'règle du monde (28 tourelles max) encore active : ' + G.towers.length;
+    startWave(); for (let i = 0; i < 200 && !G.enemies.length; i++) update(1 / 30);
+    const e = G.enemies[0]; if (!e || Math.abs(e.max / (ETYPES[e.type].hp * hpScale(e.wave || 1) * G.d.hp * (1 + G.mi * .025)) - 2) > .05) return 'PV non multipliés';
+    setState('menu'); return true;
+  });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties
     const d = Object.assign({ name: 'Div', world: 0, waves: 20, paths: [[[0, 3], [12, 3], [12, 12]], [[12, 6], [22, 6]]] }, ED_DEF);

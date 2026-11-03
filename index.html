@@ -71,9 +71,8 @@
     <div class="row2 modes"><button class="big alt" id="menuEndless">♾ Mode infini</button><button class="big alt" id="menuDaily">📅 Défi du jour</button></div>
     <div class="row2 modes"><button class="big alt" id="menuTrophy">🏆 Trophées &amp; missions</button><button class="big alt" id="menuLevels">🛠 Créer des niveaux</button></div>
     <button class="big shopbtn" id="menuShop">🛒 Boutique · <b id="menuChips">0</b> ⬢</button>
-    <button class="big alt" data-go="help">❓ Comment jouer</button>
-    <button class="big alt" data-go="options">⚙ Options</button>
   </div>
+  <button class="menu-ico" id="menuOpts" data-go="options" title="Options" aria-label="Options">⚙</button>
 </section>
 
 <section id="diff" class="screen hidden">
@@ -116,12 +115,13 @@
     <p>🧬 Méfie-toi des virus spéciaux : le <b>Diviseur</b> se coupe en deux, le <b>Bouclier</b> a une bulle d'énergie qui se recharge, le <b>Fantôme</b> devient intouchable par moments, le <b>Soigneur</b> soigne ses voisins, le <b>Géant</b> est énorme et coûte 2 vies, le <b>Sauteur</b> se téléporte plus loin.</p>
     <p>⏩ Lance la vague suivante plus tôt pour gagner un bonus, et accélère le jeu avec ×2 / ×3.</p>
   </div>
-  <button class="back" data-go="menu">← Retour</button>
+  <button class="back" data-go="options">← Retour</button>
 </section>
 
 <section id="options" class="screen hidden">
   <h2>Options</h2>
   <div class="col">
+    <button class="big alt" data-go="help">❓ Comment jouer</button>
     <button class="big alt" id="optAuto"></button>
     <button class="big alt" id="optMusic"></button>
     <button class="big alt" id="optSound"></button>
@@ -173,12 +173,12 @@
   <button id="edName" class="ed-name"></button>
   <div class="ed-sel"><button id="edWPrev">❮</button><b id="edWorld"></b><button id="edWNext">❯</button></div>
   <div class="ed-sel"><button id="edVMinus">−</button><b id="edWaves"></b><button id="edVPlus">+</button></div>
-  <button id="edOptsBtn" class="ed-opts">⚙ Virus, boss, crédits…</button>
+  <button id="edOptsBtn" class="ed-opts">🎚 Réglages du niveau</button>
   <small id="edStats"></small>
   <p id="edHint"></p>
-  <div class="ed-grid"><button id="edNewPath">＋ Entrée</button><button id="edUndo">↶ Annuler</button><button id="edClear">🗑 Effacer</button><button id="edSave">💾 Garder</button></div>
-  <div class="ed-grid"><button id="edTest" class="go">▶ Tester</button><button id="edShare" class="share">⇪ Partager</button></div>
-  <button id="edBack" class="ed-back">← Mes niveaux</button>
+  <div id="edTools" class="ed-tools"><button data-tool="path">✎ Couloir</button><button data-tool="obst">🧱 Obstacle</button><button data-tool="bonus">⭐ Bonus</button><button data-tool="erase">🧽 Gomme</button></div>
+  <div class="ed-grid"><button id="edUndo">↶ Annuler</button><button id="edRedo">↷ Rétablir</button><button id="edGen">🎲 Générer</button><button id="edClear">🗑 Effacer</button><button id="edNewPath" class="hidden">＋ Entrée</button></div>
+  <div class="ed-grid"><button id="edTest" class="go">▶ Tester</button><button id="edShare" class="share">⇪ Partager</button><button id="edSave">💾 Garder</button><button id="edBack">← Retour</button></div>
 </div>
 
 <div id="edOpts" class="hidden"><div class="eo-card"><h3>⚙ Réglages du niveau</h3><div id="edOptsBody"></div><button id="edOptsOk" class="big">✔ Valider</button></div></div>

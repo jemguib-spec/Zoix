@@ -23,6 +23,12 @@ cv.addEventListener('pointermove', e => {
     gesture.moved = true;
   } else if (!gesture.pinch) {
     if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 12) gesture.moved = true;
+    if (state === 'edit' && ED && ED.tool && ED.tool !== 'path' && ptrs.size === 1 && gesture.moved) { // peindre en glissant
+      const [mx, my] = toMap(e.clientX, e.clientY), tx = Math.floor(mx), ty = Math.floor(my), k = tx + ',' + ty;
+      if (!gesture.paint) { gesture.paint = new Set(); edSnap(); const [sx0, sy0] = toMap(p.sx, p.sy), arr = ED.tool === 'obst' ? ED.obst : ED.bonus; gesture.mode = ED.tool === 'erase' ? 'del' : tileIn(arr, Math.floor(sx0), Math.floor(sy0)) >= 0 ? 'del' : 'add'; edPaint(Math.floor(sx0), Math.floor(sy0), gesture.mode); gesture.paint.add(Math.floor(sx0) + ',' + Math.floor(sy0)); }
+      if (!gesture.paint.has(k)) { gesture.paint.add(k); if (edPaint(tx, ty, gesture.mode)) { sfx('build'); edUpdate(); } }
+      return;
+    }
     if (gesture.tower && gesture.moved) { G.dragSell = { t: gesture.tower, x: e.clientX, y: e.clientY, out: !inArea(e.clientX, e.clientY) }; dragGhost(G.dragSell); return; } // glisser une tourelle hors de la carte pour la vendre
     if (gesture.moved && L.zoom > 1.01) {
       if (L.port) { L.vx -= dy / L.s; L.vy += dx / L.s; } else { L.vx -= dx / L.s; L.vy -= dy / L.s; }
@@ -332,26 +338,39 @@ const onEdge = (x, y) => x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
 // virus et boss qu'on peut choisir dans l'éditeur (l'ordre fixe le code de partage : ne pas le changer)
 const ED_VIR = ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper', 'worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone'];
 const ED_BOSS = ['', 'boss'].concat(WBOSS);
-const ED_DEF = { vir: ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper'], boss: 'auto', megas: true, cash: 0, lives: 0 };
+const ED_DEF = { vir: ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper'], boss: 'auto', megas: true, cash: 0, lives: 0,
+  obst: [], bonus: [], allowed: null, hp: 100, spd: 100, rew: 100, noRule: false, noPower: false, desc: '' };
+const tilesStr = a => (a || []).map(([x, y]) => x.toString(36) + y.toString(36)).join('');
+const strTiles = t => { const p = []; for (let i = 0; i + 1 < (t || '').length; i += 2) p.push([parseInt(t[i], 36), parseInt(t[i + 1], 36)]); return p; };
 const edBossIdx = d => d.boss === 'auto' ? 99 : Math.max(0, ED_BOSS.indexOf(d.boss));
+// format VD3 (les anciens codes VD1 et VD2 restent lisibles)
 function lvlEncode(d) {
   const mask = (d.vir || ED_DEF.vir).reduce((a, k) => a + (ED_VIR.indexOf(k) >= 0 ? Math.pow(2, ED_VIR.indexOf(k)) : 0), 0);
-  return 'VD2~' + encodeURIComponent((d.name || 'Niveau').replace(/~/g, '').slice(0, 30)) + '~' + d.world + '~' + d.waves + '~' +
+  const am = d.allowed && d.allowed.length < TORDER.length ? d.allowed.reduce((a, k) => a + Math.pow(2, TORDER.indexOf(k)), 0) : 0;
+  return 'VD3~' + encodeURIComponent((d.name || 'Niveau').replace(/~/g, '').slice(0, 30)) + '~' + d.world + '~' + d.waves + '~' +
     d.paths.filter(p => p.length >= 2).map(p => p.map(([x, y]) => x.toString(36) + y.toString(36)).join('')).join('.') + '~' +
-    mask.toString(36) + '~' + edBossIdx(d) + '~' + (d.megas === false ? 0 : 1) + '~' + (d.cash || 0) + '~' + (d.lives || 0);
+    mask.toString(36) + '~' + edBossIdx(d) + '~' + (d.megas === false ? 0 : 1) + '~' + (d.cash || 0) + '~' + (d.lives || 0) + '~' +
+    tilesStr(d.obst) + '~' + tilesStr(d.bonus) + '~' + am.toString(36) + '~' + (d.hp || 100) + '~' + (d.spd || 100) + '~' + (d.rew || 100) + '~' +
+    ((d.noRule ? 1 : 0) + (d.noPower ? 2 : 0)) + '~' + encodeURIComponent((d.desc || '').replace(/~/g, '').slice(0, 140));
 }
 function lvlDecode(code) {
   try {
-    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10))) return null;
+    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10) || (a[0] === 'VD3' && a.length === 18))) return null;
     const world = +a[2], waves = +a[3];
-    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 10 && waves <= 99)) return null;
-    const paths = a[4].split('.').filter(Boolean).map(t => { const p = []; for (let i = 0; i + 1 < t.length; i += 2) p.push([parseInt(t[i], 36), parseInt(t[i + 1], 36)]); return p; });
-    const d = Object.assign({ name: decodeURIComponent(a[1]) || 'Niveau', world, waves, paths }, JSON.parse(JSON.stringify(ED_DEF)));
-    if (a[0] === 'VD2') {
+    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 5 && waves <= 99)) return null;
+    const paths = a[4].split('.').filter(Boolean).map(strTiles);
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: decodeURIComponent(a[1]) || 'Niveau', world, waves, paths });
+    if (a[0] !== 'VD1') {
       const mask = parseInt(a[5], 36), bi = +a[6];
       d.vir = ED_VIR.filter((k, i) => Math.floor(mask / Math.pow(2, i)) % 2); if (!d.vir.length) return null;
       d.boss = bi === 99 ? 'auto' : ED_BOSS[bi]; if (d.boss === undefined) return null;
       d.megas = a[7] !== '0'; d.cash = clamp(+a[8] || 0, 0, 2000); d.lives = clamp(+a[9] || 0, 0, 99);
+    }
+    if (a[0] === 'VD3') {
+      d.obst = strTiles(a[10]); d.bonus = strTiles(a[11]);
+      const am = parseInt(a[12], 36) || 0; d.allowed = am ? TORDER.filter((k, i) => Math.floor(am / Math.pow(2, i)) % 2) : null;
+      d.hp = clamp(+a[13] || 100, 25, 400); d.spd = clamp(+a[14] || 100, 50, 200); d.rew = clamp(+a[15] || 100, 25, 300);
+      const fl = +a[16] || 0; d.noRule = !!(fl & 1); d.noPower = !!(fl & 2); d.desc = decodeURIComponent(a[17] || '');
     }
     return edCheck(d) ? null : d;
   } catch (e) { return null; }
@@ -371,42 +390,98 @@ function edCheck(d) { // renvoie le problème, ou null si le niveau est jouable
   }
   if (!entries) return 'Il faut au moins une entrée sur un bord';
   if (all.size < 10) return 'Le couloir est trop court (10 cases minimum)';
+  if ((d.obst || []).length > 80 || (d.bonus || []).length > 30) return 'Trop d\'obstacles ou de cases bonus';
+  if ((d.obst || []).concat(d.bonus || []).some(([x, y]) => !(x >= 0 && y >= 0 && x < COLS && y < ROWS))) return 'Case hors de la carte';
   return null;
 }
 function defToMap(d, seed) {
   const b = MAPS[d.world * 3];
   return processMap({ name: d.name, base: b.base, acc: b.acc, waves: d.waves, world: d.world, custom: true, paths: d.paths.filter(p => p.length >= 2).map(p => p.map(q => q.slice())),
-    vir: (d.vir || ED_DEF.vir).slice(), bossK: d.boss === undefined ? 'auto' : d.boss, megas: d.megas !== false, cashC: d.cash || 0, livesC: d.lives || 0 }, seed);
+    vir: (d.vir || ED_DEF.vir).slice(), bossK: d.boss === undefined ? 'auto' : d.boss, megas: d.megas !== false, cashC: d.cash || 0, livesC: d.lives || 0,
+    obstC: (d.obst || []).map(q => q.slice()), bonusC: (d.bonus || []).map(q => q.slice()), allowedC: d.allowed && d.allowed.length ? d.allowed.slice() : null,
+    hpC: (d.hp || 100) / 100, spdC: (d.spd || 100) / 100, rewC: (d.rew || 100) / 100, noRule: !!d.noRule, noPower: !!d.noPower, desc: d.desc || '' }, seed);
 }
+// ---- outils de l'éditeur : couloir, obstacle, case bonus, gomme ----
+const ED_TOOLS = { path: 'Couloir', obst: 'Obstacle', bonus: 'Bonus', erase: 'Gomme' };
+const tileIn = (arr, x, y) => (arr || []).findIndex(q => q[0] === x && q[1] === y);
+const onCorridor = (x, y) => ED.paths.some(p => (p.length >= 2 ? pathTiles(p) : p).some(c => c[0] === x && c[1] === y));
+function edSnap() { // historique pour Annuler / Rétablir
+  ED.hist = ED.hist || []; ED.redo = [];
+  ED.hist.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); if (ED.hist.length > 80) ED.hist.shift();
+}
+function edRestore(js) { const st = JSON.parse(js); ED.paths = st.p; ED.obst = st.o; ED.bonus = st.b; ED.cur = st.c; edUpdate(); }
 function edUpdate() {
   if (!ED) return;
+  ED.obst = ED.obst || []; ED.bonus = ED.bonus || [];
+  // un couloir dessiné par-dessus efface les obstacles et bonus qu'il recouvre
+  ED.obst = ED.obst.filter(([x, y]) => !onCorridor(x, y)); ED.bonus = ED.bonus.filter(([x, y]) => !onCorridor(x, y) && tileIn(ED.obst, x, y) < 0);
   ED.map = null; try { if (ED.paths.some(p => p.length >= 2)) ED.map = defToMap(ED, 1); } catch (e) { }
   $('#edName').textContent = '✎ ' + ED.name; $('#edWorld').textContent = WORLDS[ED.world].name; $('#edWaves').textContent = ED.waves + ' vagues';
   const err = edCheck(ED);
   const nEx = ED.map ? new Set(ED.map.routes.map(r => r[r.length - 1] + '')).size : 0, nEn = ED.map ? ED.map.entries.length : 0, nBr = ED.map ? ED.map.branchAt.length : 0;
-  $('#edStats').textContent = nEn + ' entrée' + (nEn > 1 ? 's' : '') + ' · ' + nBr + ' division' + (nBr > 1 ? 's' : '') + ' · ' + nEx + ' sortie' + (nEx > 1 ? 's' : '') + ' · ' + (ED.vir || ED_DEF.vir).length + ' virus';
-  $('#edHint').innerHTML = ED.cur < 0 ? (ED.paths.length ? (err ? '⚠ ' + err + '<br>' : '✔ Niveau jouable !<br>') + 'Touche un <b>bord</b> : nouvelle entrée. Touche un <b>couloir</b> : division (les virus choisissent leur voie).' : 'Touche une case du <b>bord</b> de la carte : ce sera l\'entrée des virus.')
-    : 'Touche une case pour prolonger le couloir. Le <b>dernier point</b> termine : un <b>processeur</b> (sortie) y est placé, sauf si tu rejoins un autre couloir.';
+  const len = ED.map ? Math.round(ED.map.routes.reduce((a, r) => a + r.length, 0) / Math.max(1, ED.map.routes.length)) : 0;
+  // estimation de difficulté : couloirs courts, beaucoup d'entrées, virus costauds = plus dur
+  const diff = ED.map ? clamp(Math.round(1.5 + (nEn - 1) * .8 + (nEx - 1) * .3 + Math.max(0, (45 - len) / 15) + (ED.hp - 100) / 50 + (ED.spd - 100) / 25 + (ED.waves - 30) / 30 - ED.bonus.length * .1), 1, 5) : 0;
+  $('#edStats').innerHTML = nEn + ' entrée' + (nEn > 1 ? 's' : '') + ' · ' + nBr + ' division' + (nBr > 1 ? 's' : '') + ' · ' + nEx + ' sortie' + (nEx > 1 ? 's' : '') +
+    '<br>' + len + ' cases de trajet · ' + ED.obst.length + ' obstacle' + (ED.obst.length > 1 ? 's' : '') + ' · ' + ED.bonus.length + ' bonus' + (diff ? '<br>Difficulté estimée : ' + '★'.repeat(diff) + '☆'.repeat(5 - diff) : '');
+  const tips = {
+    path: ED.cur < 0 ? (ED.paths.length ? 'Touche un <b>bord</b> : nouvelle entrée. Touche un <b>couloir</b> : division (les virus choisissent leur voie).' : 'Touche une case du <b>bord</b> de la carte : ce sera l\'entrée des virus.')
+      : 'Touche une case pour prolonger le couloir. Retouche le <b>dernier point</b> pour finir : un <b>processeur</b> y est placé, sauf si tu rejoins un autre couloir.',
+    obst: 'Touche ou <b>glisse</b> sur le circuit pour poser des <b>obstacles</b> : on ne peut pas construire dessus.',
+    bonus: 'Touche ou <b>glisse</b> pour poser des <b>cases bonus</b> : une tourelle posée dessus fait <b>+30 % de dégâts</b>.',
+    erase: 'Touche un <b>couloir</b> pour le supprimer, ou <b>glisse</b> sur les obstacles et bonus pour les effacer.'
+  };
+  $('#edHint').innerHTML = (err ? '⚠ ' + err : '✔ Niveau jouable !') + '<br>' + tips[ED.tool || 'path'];
+  document.querySelectorAll('#edTools [data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === (ED.tool || 'path')));
+  $('#edUndo').classList.toggle('off', !(ED.hist && ED.hist.length)); $('#edRedo').classList.toggle('off', !(ED.redo && ED.redo.length));
   $('#edTest').classList.toggle('off', !!err); $('#edShare').classList.toggle('off', !!err);
-
+}
+// poser / retirer un obstacle ou un bonus (mode = 'add' | 'del')
+function edPaint(tx, ty, mode) {
+  if (!ED || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
+  const tool = ED.tool;
+  if (tool === 'erase') {
+    let k = tileIn(ED.obst, tx, ty); if (k >= 0) { ED.obst.splice(k, 1); return true; }
+    k = tileIn(ED.bonus, tx, ty); if (k >= 0) { ED.bonus.splice(k, 1); return true; }
+    return false;
+  }
+  const arr = tool === 'obst' ? ED.obst : ED.bonus, k = tileIn(arr, tx, ty);
+  if (mode === 'del') { if (k >= 0) { arr.splice(k, 1); return true; } return false; }
+  if (k >= 0 || onCorridor(tx, ty)) return false;
+  if (arr.length >= (tool === 'obst' ? 80 : 30)) { toast(tool === 'obst' ? '80 obstacles au maximum' : '30 cases bonus au maximum'); return false; }
+  const other = tool === 'obst' ? ED.bonus : ED.obst, ko = tileIn(other, tx, ty); if (ko >= 0) other.splice(ko, 1);
+  arr.push([tx, ty]); return true;
 }
 function edTap(tx, ty) {
   if (!ED || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
+  const tool = ED.tool || 'path';
+  if (tool === 'obst' || tool === 'bonus') {
+    if (onCorridor(tx, ty)) { toast('Pas sur un couloir : pose-le sur le circuit'); sfx('err'); return; }
+    const arr = tool === 'obst' ? ED.obst : ED.bonus; edSnap();
+    edPaint(tx, ty, tileIn(arr, tx, ty) >= 0 ? 'del' : 'add'); sfx('build'); edUpdate(); return;
+  }
+  if (tool === 'erase') {
+    edSnap();
+    if (edPaint(tx, ty)) { sfx('sell'); edUpdate(); return; }
+    let pi = -1; ED.paths.forEach((p, i) => { if ((p.length >= 2 ? pathTiles(p) : p).some(c => c[0] === tx && c[1] === ty)) pi = i; });
+    if (pi < 0) { ED.hist.pop(); toast('Rien à effacer ici'); return; }
+    ED.paths.splice(pi, 1); ED.cur = -1; sfx('sell'); toast('Couloir supprimé'); edUpdate(); return;
+  }
   if (ED.cur < 0) {
     const onCorr = ED.paths.some(o => o.length >= 2 && pathTiles(o).some(c => c[0] === tx && c[1] === ty));
     if (!onEdge(tx, ty) && !onCorr) { toast('Touche un bord (nouvelle entrée) ou un couloir existant (division)'); sfx('err'); return; }
     if (ED.paths.filter(p => p.length >= 2).length >= 8) { toast('8 couloirs au maximum'); sfx('err'); return; }
-    ED.paths.push([[tx, ty]]); ED.cur = ED.paths.length - 1; sfx('build');
+    edSnap(); ED.paths.push([[tx, ty]]); ED.cur = ED.paths.length - 1; sfx('build');
     if (!onEdge(tx, ty)) toast('🔀 Division : trace la nouvelle branche'); edUpdate(); return;
   }
   const p = ED.paths[ED.cur], last = p[p.length - 1];
-  if (tx === last[0] && ty === last[1]) { if (p.length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; sfx('coin'); edUpdate(); return; }
+  if (tx === last[0] && ty === last[1]) { edSnap(); if (p.length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; sfx('coin'); edUpdate(); return; }
   if (p.length >= 40) { toast('Chemin trop long'); return; }
   const add = []; if (tx !== last[0] && ty !== last[1]) add.push([tx, last[1]]); add.push([tx, ty]);
   const own = new Set((p.length >= 2 ? pathTiles(p) : [last]).map(q => q + ''));
   let prev = last;
   for (const q of add) { for (const c of pathTiles([prev, q]).slice(1)) { if (own.has(c + '')) { toast('Le couloir ne peut pas repasser sur lui-même'); sfx('err'); return; } own.add(c + ''); } prev = q; }
-  p.push(...add); sfx('build');
+  edSnap(); p.push(...add); sfx('build');
   // arrivé sur un autre couloir : on s'y raccorde et on termine
   const other = ED.paths.some((o, i) => i !== ED.cur && o.length >= 2 && pathTiles(o).some((c, ci) => c[0] === tx && c[1] === ty));
   if (other) { ED.cur = -1; toast('🔗 Couloir raccordé'); }
@@ -420,17 +495,29 @@ function edCommit() {
 }
 function openEditor(idx) {
   const d = idx >= 0 ? lvlDecode(save.levels[idx].code) : null;
-  ED = d ? Object.assign(d, { idx, cur: -1 }) : Object.assign({ name: 'Mon niveau', world: 0, waves: 30, paths: [], cur: -1, idx: -1 }, JSON.parse(JSON.stringify(ED_DEF)));
+  ED = d ? Object.assign(d, { idx, cur: -1 }) : Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Mon niveau', world: 0, waves: 30, paths: [], cur: -1, idx: -1 });
+  ED.tool = 'path'; ED.hist = []; ED.redo = [];
   L.zoom = 1; L.vx = COLS / 2; L.vy = ROWS / 2; setState('edit'); edUpdate();
+}
+// génère un niveau au hasard (couloirs, obstacles, bonus) en gardant les réglages
+function edGenerate() {
+  edSnap();
+  const seed = Math.floor(Math.random() * 1e6), d = randomDef(seed), R2 = mulberry(seed + 9);
+  ED.paths = d.paths; ED.cur = -1; ED.obst = []; ED.bonus = [];
+  const free = []; for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) if (!onCorridor(x, y)) free.push([x, y]);
+  for (let i = 0; i < 6 && free.length; i++) { const [x, y] = free.splice(Math.floor(R2() * free.length), 1)[0]; ED.obst.push([x, y]); if (R2() < .5 && x + 1 < COLS - 1 && !onCorridor(x + 1, y)) ED.obst.push([x + 1, y]); }
+  const near = free.filter(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => onCorridor(x + a, y + b)) && tileIn(ED.obst, x, y) < 0);
+  for (let i = 0; i < 3 && near.length; i++) ED.bonus.push(near.splice(Math.floor(R2() * near.length), 1)[0]);
+  sfx('up'); edUpdate(); toast('🎲 Niveau généré : modifie-le à ta guise !');
 }
 function playLevel(code, fromEditor) {
   const d = lvlDecode(code); if (!d) { toast('Niveau invalide'); return; }
   MAPS[NCAMP] = defToMap(d, hashStr(code)); delete thumbs[NCAMP]; initAudio();
-  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor });
+  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor, lvKey: hashStr(code.split('~').slice(2).join('~')) });
 }
 // partage : fenêtre avec le code, copie et partage natif (navigateur ou appli Android)
 const APP = window.AndroidApp || null; // pont fourni par l'appli Android
-const LVL_RE = /VD[12]~[^\s#&]+/;
+const LVL_RE = /VD[123]~[^\s#&]+/;
 const shareLink = code => location.protocol.startsWith('http') ? location.href.split('#')[0].split('?')[0] + '#lvl=' + code : '';
 function copyText(t, okMsg) {
   const ok = () => { toast(okMsg); sfx('coin'); };
@@ -509,6 +596,19 @@ function renderEditor() {
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = .04; ctx.beginPath(); ctx.moveTo(bx + .5, by + .15); ctx.lineTo(bx + .85, by + .5); ctx.lineTo(bx + .5, by + .85); ctx.lineTo(bx + .15, by + .5); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#000'; ctx.font = '900 .38px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('⑂', bx + .5, by + .52);
   }
+  for (const [x, y] of ED.obst || []) { // obstacles
+    ctx.fillStyle = '#4a545c'; ctx.fillRect(x + .06, y + .06, .88, .88); ctx.strokeStyle = '#ffc400'; ctx.lineWidth = .07;
+    ctx.beginPath(); ctx.moveTo(x + .25, y + .25); ctx.lineTo(x + .75, y + .75); ctx.moveTo(x + .75, y + .25); ctx.lineTo(x + .25, y + .75); ctx.stroke();
+  }
+  for (const [x, y] of ED.bonus || []) { // cases bonus
+    ctx.fillStyle = 'rgba(255,215,64,' + (.2 + .1 * Math.sin(t * 3 + x)).toFixed(2) + ')'; ctx.fillRect(x + .05, y + .05, .9, .9);
+    ctx.strokeStyle = '#ffd740'; ctx.lineWidth = .04; ctx.setLineDash([.15, .1]); ctx.strokeRect(x + .08, y + .08, .84, .84); ctx.setLineDash([]); star(ctx, x + .5, y + .5, .17);
+  }
+  if (ED.map && ED.cur < 0 && !edCheck(ED)) for (let ri = 0; ri < ED.map.routes.length; ri++) { // aperçu : des virus parcourent les couloirs
+    const r = ED.map.routes[ri], u = ((t * 3 + ri * 2.3) % (r.length + 6));
+    for (let k = 0; k < 3; k++) { const q = u - k * 2.2; if (q < 0 || q >= r.length - 1) continue; const i0 = Math.floor(q), f = q - i0, a = r[i0], b = r[i0 + 1];
+      const vx = a[0] + (b[0] - a[0]) * f + .5, vy = a[1] + (b[1] - a[1]) * f + .5; ctx.fillStyle = '#76ff03'; ctx.strokeStyle = '#1b1230'; ctx.lineWidth = .04; ctx.beginPath(); ctx.arc(vx, vy, .2, 0, TAU); ctx.fill(); ctx.stroke(); }
+  }
   if (ED.hover) { const [hx, hy] = ED.hover; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = .05; ctx.strokeRect(hx + .03, hy + .03, .94, .94); }
   ctx.restore();
 }
@@ -524,9 +624,13 @@ function buildLevels() {
     const info = document.createElement('div'); info.className = 'lvinfo';
         let mm = null; try { mm = defToMap(d, 1); } catch (e) { }
     const nEx = mm ? new Set(mm.routes.map(r => r[r.length - 1] + '')).size : 1;
-    info.innerHTML = '<b>' + d.name.replace(/</g, '&lt;') + '</b><small>' + WORLDS[d.world].name + ' · ' + d.waves + ' vagues · ' + (mm ? mm.entries.length : 1) + ' entrée(s) · ' + nEx + ' sortie(s)' + (mm && mm.branchAt.length ? ' · ' + mm.branchAt.length + ' division(s)' : '') + ' · ' + d.vir.length + ' virus</small>';
+    const rec = (save.lvBest || {})[hashStr(l.code.split('~').slice(2).join('~'))], esc = t => t.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    info.innerHTML = '<b>' + esc(d.name) + '</b><small>' + WORLDS[d.world].name + ' · ' + d.waves + ' vagues · ' + (mm ? mm.entries.length : 1) + ' entrée(s) · ' + nEx + ' sortie(s)' + (mm && mm.branchAt.length ? ' · ' + mm.branchAt.length + ' division(s)' : '') + ' · ' + d.vir.length + ' virus' +
+      ((d.obst || []).length ? ' · ' + d.obst.length + ' obstacle(s)' : '') + ((d.bonus || []).length ? ' · ' + d.bonus.length + ' bonus' : '') + '</small>' +
+      (d.desc ? '<small class="lvdesc">« ' + esc(d.desc) + ' »</small>' : '') +
+      '<small class="lvrec">' + (rec ? '<span class="st">' + '★'.repeat(rec.st) + '☆'.repeat(3 - rec.st) + '</span> Record ' + rec.s + ' · ' + rec.n + ' partie' + (rec.n > 1 ? 's' : '') : 'Pas encore joué') + '</small>';
     const bts = document.createElement('div'); bts.className = 'lvbtns';
-    for (const [lab, cls, fn] of [['▶ Jouer', 'go', () => playLevel(l.code)], ['✎', '', () => openEditor(i)], ['⇪', '', () => shareLevel(l.code)], ['✕', 'del', () => { if (confirm('Supprimer « ' + d.name + ' » ?')) { save.levels.splice(i, 1); persist(); buildLevels(); } }]]) {
+    for (const [lab, cls, fn] of [['▶ Jouer', 'go', () => playLevel(l.code)], ['✎', '', () => openEditor(i)], ['⧉', '', () => { const c2 = lvlDecode(l.code); c2.name = (c2.name + ' (copie)').slice(0, 30); save.levels.splice(i + 1, 0, { code: lvlEncode(c2) }); persist(); buildLevels(); toast('Niveau dupliqué'); }], ['⇪', '', () => shareLevel(l.code)], ['✕', 'del', () => { if (confirm('Supprimer « ' + d.name + ' » ?')) { save.levels.splice(i, 1); persist(); buildLevels(); } }]]) {
       const b = document.createElement('button'); b.textContent = lab; b.className = cls; b.onclick = fn; bts.appendChild(b);
     }
     info.appendChild(bts); c.appendChild(info); box.appendChild(c);
@@ -538,45 +642,71 @@ $('#lvImport').onclick = () => openImport();
 $('#edName').onclick = () => { const n = prompt('Nom du niveau :', ED.name); if (n && n.trim()) { ED.name = n.trim().slice(0, 30); edUpdate(); } };
 $('#edWPrev').onclick = () => { ED.world = (ED.world + WORLDS.length - 1) % WORLDS.length; edUpdate(); };
 $('#edWNext').onclick = () => { ED.world = (ED.world + 1) % WORLDS.length; edUpdate(); };
-$('#edVMinus').onclick = () => { ED.waves = Math.max(10, ED.waves - 5); edUpdate(); };
-$('#edVPlus').onclick = () => { ED.waves = Math.min(95, ED.waves + 5); edUpdate(); };
+$('#edVMinus').onclick = () => { ED.waves = Math.max(5, ED.waves - 5); edUpdate(); };
+$('#edVPlus').onclick = () => { ED.waves = Math.min(99, ED.waves + 5); edUpdate(); };
 $('#edNewPath').onclick = () => { if (ED.cur >= 0 && ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; edUpdate(); toast('Touche une case du bord pour la nouvelle entrée'); };
-$('#edUndo').onclick = () => {
-  if (ED.cur < 0) { if (!ED.paths.length) return; ED.cur = ED.paths.length - 1; }
-  const p = ED.paths[ED.cur]; p.pop(); if (!p.length) { ED.paths.splice(ED.cur, 1); ED.cur = -1; } edUpdate();
-};
-// réglages du niveau : virus, boss, méga-virus, crédits, vies
+$('#edUndo').onclick = () => { if (!ED.hist || !ED.hist.length) return; ED.redo.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.hist.pop()); };
+$('#edRedo').onclick = () => { if (!ED.redo || !ED.redo.length) return; ED.hist.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.redo.pop()); };
+$('#edGen').onclick = () => { if (ED.paths.length && !confirm('Remplacer la carte par un niveau généré au hasard ?')) return; edGenerate(); };
+document.querySelectorAll('#edTools [data-tool]').forEach(b => b.onclick = () => { ED.tool = b.dataset.tool; if (ED.tool !== 'path' && ED.cur >= 0) { if (ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; } edUpdate(); });
+// réglages du niveau, en onglets : virus, vagues, économie, tourelles, règles, infos
+let edTab = 'vir';
 function buildEdOpts() {
-  const box = $('#edOptsBody'), V = new Set(ED.vir);
+  const box = $('#edOptsBody'), V = new Set(ED.vir), W = WORLDS[ED.world], rule = RULES[W.style];
   const bossName = k => k === 'auto' ? 'Boss du monde' : k === '' ? 'Aucun' : k === 'boss' ? 'Méga-virus' : ETYPES[k].name;
-  box.innerHTML = '<div class="eo-sec"><b>🦠 Virus présents</b> <small>(' + V.size + ' choisis · ils arrivent dans cet ordre)</small><div class="eo-vir"></div><div class="eo-row"><button data-a="all">Tous</button><button data-a="base">Classiques</button><button data-a="world">Du monde</button></div></div>' +
-    '<div class="eo-sec"><b>👑 Boss de la dernière vague</b><div class="eo-row eo-boss">' + ['auto', '', 'boss'].concat(WBOSS).map(k => '<button data-b="' + k + '" class="' + (ED.boss === k ? 'on' : '') + '">' + bossName(k) + '</button>').join('') + '</div></div>' +
-    '<div class="eo-sec eo-nums"><label><span>Méga-virus toutes les 10 vagues</span><button data-a="megas" class="' + (ED.megas ? 'on' : '') + '">' + (ED.megas ? 'OUI' : 'NON') + '</button></label>' +
-    '<label><span>Crédits de départ</span><span class="eo-pm"><button data-n="cash" data-d="-10">−</button><b>' + (ED.cash || 'auto') + '</b><button data-n="cash" data-d="10">+</button></span></label>' +
-    '<label><span>Vies</span><span class="eo-pm"><button data-n="lives" data-d="-1">−</button><b>' + (ED.lives || 'auto') + '</b><button data-n="lives" data-d="1">+</button></span></label></div>';
-  const vb = box.querySelector('.eo-vir');
-  for (const k of ED_VIR) {
+  const pm = (k, lab, unit, cur, hint) => '<label><span>' + lab + (hint ? '<small>' + hint + '</small>' : '') + '</span><span class="eo-pm"><button data-n="' + k + '" data-d="-1">−</button><b>' + cur + unit + '</b><button data-n="' + k + '" data-d="1">+</button></span></label>';
+  const tog = (k, lab, on, hint) => '<label><span>' + lab + (hint ? '<small>' + hint + '</small>' : '') + '</span><button data-t="' + k + '" class="' + (on ? 'on' : '') + '">' + (on ? 'OUI' : 'NON') + '</button></label>';
+  const tabs = [['vir', '🦠 Virus'], ['wav', '🌊 Vagues'], ['eco', '💰 Économie'], ['tow', '🏰 Tourelles'], ['rul', '⚙ Règles'], ['inf', '✎ Infos']];
+  let h = '<div class="eo-tabs">' + tabs.map(([k, l]) => '<button data-tab="' + k + '" class="' + (edTab === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div><div class="eo-page">';
+  if (edTab === 'vir') h += '<div class="eo-sec"><b>Virus présents</b> <small>(' + V.size + ' choisis · ils arrivent dans cet ordre)</small><div class="eo-vir"></div><div class="eo-row"><button data-a="all">Tous</button><button data-a="base">Classiques</button><button data-a="world">Du monde</button></div></div>' +
+    '<div class="eo-sec"><b>Boss de la dernière vague</b><div class="eo-row eo-boss">' + ['auto', '', 'boss'].concat(WBOSS).map(k => '<button data-b="' + k + '" class="' + (ED.boss === k ? 'on' : '') + '">' + bossName(k) + '</button>').join('') + '</div></div>';
+  if (edTab === 'wav') h += '<div class="eo-sec eo-nums">' + pm('waves', 'Nombre de vagues', '', ED.waves) + pm('hp', 'Points de vie des virus', ' %', ED.hp, '100 % = normal') + pm('spd', 'Vitesse des virus', ' %', ED.spd) +
+    tog('megas', 'Méga-virus toutes les 10 vagues', ED.megas) + '</div>';
+  if (edTab === 'eco') h += '<div class="eo-sec eo-nums">' + pm('cash', 'Crédits de départ', '', ED.cash || 'auto') + pm('lives', 'Vies', '', ED.lives || 'auto') + pm('rew', 'Crédits gagnés par virus', ' %', ED.rew) + '</div>';
+  if (edTab === 'tow') h += '<div class="eo-sec"><b>Tourelles autorisées</b> <small>(' + (ED.allowed ? ED.allowed.length : TORDER.length) + ' / ' + TORDER.length + ' · le joueur doit quand même les avoir débloquées)</small><div class="eo-vir eo-tow"></div><div class="eo-row"><button data-a="tall">Toutes</button><button data-a="tcheap">Petit budget</button><button data-a="tnone">Aucune sauf le Pulseur</button></div></div>';
+  if (edTab === 'rul') h += '<div class="eo-sec eo-nums">' + tog('noRule', 'Règle du monde : ' + rule.name, !ED.noRule, rule.desc) + tog('noPower', 'Pouvoirs du joueur', !ED.noPower, 'Frappe orbitale, gel, redémarrage') + '</div>';
+  if (edTab === 'inf') h += '<div class="eo-sec eo-nums"><label><span>Nom</span></label><input id="eoName" class="eo-in noico" maxlength="30"><label><span>Message affiché au début<small>Raconte une histoire ou donne un indice (140 caractères)</small></span></label><textarea id="eoDesc" class="eo-in noico" maxlength="140" rows="3"></textarea>' +
+    '<label><span>Monde</span><span class="eo-pm"><button data-w="-1">❮</button><b>' + W.name + '</b><button data-w="1">❯</button></span></label></div>';
+  box.innerHTML = h + '</div>';
+  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { edTab = b.dataset.tab; buildEdOpts(); });
+  const vb = box.querySelector('.eo-vir:not(.eo-tow)');
+  if (vb) for (const k of ED_VIR) {
     const b = document.createElement('button'); b.className = 'eo-v' + (V.has(k) ? ' on' : ''); b.title = ETYPES[k].name + ' : ' + EDESC[k];
     b.appendChild(enemyIcon(k, 44)); const n = document.createElement('small'); n.textContent = ETYPES[k].name; b.appendChild(n);
     b.onclick = () => { if (V.has(k)) { if (V.size === 1) { toast('Garde au moins un virus'); return; } ED.vir = ED.vir.filter(x => x !== k); } else ED.vir = ED_VIR.filter(x => V.has(x) || x === k); buildEdOpts(); edUpdate(); };
     vb.appendChild(b);
   }
+  const tb = box.querySelector('.eo-tow');
+  if (tb) { const A = new Set(ED.allowed || TORDER); shopWorld = ED.world; for (const k of TORDER) {
+    const b = document.createElement('button'); b.className = 'eo-v' + (A.has(k) ? ' on' : '');
+    const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 64; const g = cv2.getContext('2d'); g.setTransform(64, 0, 0, 64, 32, 32); drawTower(g, k, 1, -Math.PI / 4, 0, 0); b.appendChild(cv2);
+    const n = document.createElement('small'); n.textContent = tName(k, true); b.appendChild(n);
+    b.onclick = () => { if (A.has(k)) { if (A.size === 1) { toast('Garde au moins une tourelle'); return; } A.delete(k); } else A.add(k); ED.allowed = A.size === TORDER.length ? null : TORDER.filter(x => A.has(x)); buildEdOpts(); };
+    tb.appendChild(b);
+  } shopWorld = null; }
   box.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
     if (a === 'all') ED.vir = ED_VIR.slice(); if (a === 'base') ED.vir = ED_DEF.vir.slice();
     if (a === 'world') ED.vir = ['bug', 'runner', WVIRUS[ED.world]].concat(ED.world === 7 ? ['flyer'] : ['armor']);
-    if (a === 'megas') ED.megas = !ED.megas;
+    if (a === 'tall') ED.allowed = null; if (a === 'tcheap') ED.allowed = TORDER.filter(k => TOWERS[k].cost <= 40); if (a === 'tnone') ED.allowed = ['pulse'];
     buildEdOpts(); edUpdate();
   });
   box.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { ED.boss = b.dataset.b; buildEdOpts(); });
+  box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const k = b.dataset.t; ED[k] = !ED[k]; buildEdOpts(); edUpdate(); });
+  box.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { ED.world = (ED.world + WORLDS.length + +b.dataset.w) % WORLDS.length; buildEdOpts(); edUpdate(); });
+  const STEP = { waves: [5, 5, 99], hp: [25, 25, 400], spd: [10, 50, 200], rew: [25, 25, 300], cash: [10, 0, 2000], lives: [1, 0, 99] };
   box.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
-    const k = b.dataset.n, d = +b.dataset.d, lim = k === 'cash' ? [0, 2000] : [0, 99];
-    ED[k] = clamp((ED[k] || (d > 0 ? (k === 'cash' ? 20 : 0) : 0)) + d, lim[0], lim[1]); buildEdOpts();
+    const k = b.dataset.n, d = +b.dataset.d, [st, lo, hi] = STEP[k];
+    let v = ED[k] || 0; if (!v && (k === 'cash' || k === 'lives') && d > 0) v = k === 'cash' ? 20 : 0;
+    ED[k] = clamp(v + d * st, lo, hi); buildEdOpts(); edUpdate();
   });
+  const nm = $('#eoName'), ds = $('#eoDesc');
+  if (nm) { nm.value = ED.name; nm.oninput = () => { ED.name = nm.value.replace(/~/g, '').slice(0, 30) || 'Niveau'; edUpdate(); }; }
+  if (ds) { ds.value = ED.desc || ''; ds.oninput = () => { ED.desc = ds.value.replace(/~/g, '').slice(0, 140); }; }
 }
 $('#edOptsBtn').onclick = () => { buildEdOpts(); $('#edOpts').classList.remove('hidden'); };
 $('#edOptsOk').onclick = () => { $('#edOpts').classList.add('hidden'); edUpdate(); };
-$('#edClear').onclick = () => { if (confirm('Effacer tous les chemins ?')) { ED.paths = []; ED.cur = -1; edUpdate(); } };
+$('#edClear').onclick = () => { if (confirm('Tout effacer (couloirs, obstacles, bonus) ?')) { edSnap(); ED.paths = []; ED.obst = []; ED.bonus = []; ED.cur = -1; edUpdate(); } };
 $('#edSave').onclick = () => { if (edCommit()) { toast('💾 Niveau enregistré'); sfx('up'); } };
 $('#edTest').onclick = () => { const c = edCommit(); if (c) playLevel(c, true); };
 $('#edShare').onclick = () => { const c = edCommit(); if (c) shareLevel(c); };

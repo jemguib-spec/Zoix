@@ -21,6 +21,9 @@ function newGame(mi, demo, opts) {
   if (m.custom && m.livesC) g.lives = m.livesC;
   g.muts = !demo && !opts.daily && !opts.custom ? Object.assign({}, save.muts || {}) : {};
   if (g.muts.fragile) g.lives = Math.ceil(g.lives / 2);
+  if (m.custom && m.noPower) g.muts.nopower = 1;
+  if (m.custom && m.allowedC && !g.allowed) g.allowed = m.allowedC.slice();
+  if (m.bonus) g.bonus = new Set(m.bonus.map(([x, y]) => x + y * COLS));
   if (g.mod === 'rich') g.cash *= 3;
   if (g.mod === 'fragile') g.lives = 5;
   g.typesUsed = new Set(); g.maxCost = 0; g.maxTowers = 0; g.maxLvl = 1; g.pw = { strike: 0, freeze: 0, reboot: 0 }; g.eco = !!save.eco;
@@ -28,7 +31,7 @@ function newGame(mi, demo, opts) {
   const keep = G; G = g;
   g.dist = computeDist();
   { // règles du monde : cases brûlantes (Fournaise) et portails (Flux de données)
-    const th = worldOf(mi).style, Rn = mulberry(mi * 71 + 5);
+    const th = m.noRule ? '' : worldOf(mi).style, Rn = mulberry(mi * 71 + 5);
     if (th === 'forge') {
       const cand = [];
       for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (m.g[y][x] === '#' && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => '.SE'.includes((m.g[y + dy] || '')[x + dx] || '#'))) cand.push(x + y * COLS);
@@ -95,7 +98,7 @@ function startMap(mi, opts) {
   updatePanel(true);
   const rule = RULES[W0.style];
   G.banner = { t: opts.custom ? MAPS[mi].name.toUpperCase() : opts.daily ? 'DÉFI DU JOUR' : opts.endless ? 'MODE INFINI' : W0.name.toUpperCase(), sub: opts.daily ? (DMODS.find(x => x.id === G.mod) || {}).name + ' · ' + MAPS[mi].name : 'Monde ' + (WORLDS.indexOf(W0) + 1) + ' · ' + MAPS[mi].name, life: 2.6, max: 2.6 };
-  toast(G.tuto !== undefined ? 'Bienvenue dans Virus Défense !' : '🌍 Règle du monde · ' + rule.name + ' : ' + rule.desc);
+  toast(G.tuto !== undefined ? 'Bienvenue dans Virus Défense !' : opts.custom && MAPS[mi].desc ? '✎ ' + MAPS[mi].desc : '🌍 Règle du monde · ' + (opts.custom && MAPS[mi].noRule ? 'désactivée' : rule.name + ' : ' + rule.desc));
   updatePowers(); tutoTick();
   const wi = worldIdx(mi);
   if (!opts.endless && !opts.daily && !opts.custom && mi < NCAMP && mi % 3 === 0 && !(save.story || {})[wi]) {
@@ -143,7 +146,7 @@ function canPlace(tx, ty) {
   if (G.m.g[ty][tx] === 'X') return 'Il y a déjà un composant ici';
   if (G.m.g[ty][tx] !== '#') return 'Pose les tourelles sur le circuit, pas dans le couloir !';
   if (G.towerAt[ty][tx]) return 'Case occupée';
-  if (G.th === 'retro' && G.towers.length >= 28) return 'Mémoire pleine : 28 tourelles au maximum dans ce monde';
+  if (G.th === 'retro' && !G.m.noRule && G.towers.length >= 28) return 'Mémoire pleine : 28 tourelles au maximum dans ce monde';
   return null;
 }
 function tryPlace(type, tx, ty) {
@@ -156,6 +159,7 @@ function tryPlace(type, tx, ty) {
   G.cash -= cost;
   const t = { id: uid++, mode: 'first', type, x: tx, y: ty, lvl: 1, cd: 0, born: G.time, upT: -9, recoil: 0, ang: -Math.PI / 2 + rand(-1, 1), invested: cost, kills: 0, dmg: 0, st: tStats(type, 1), boost: 1, rateB: 0 };
   if (G.hot && G.hot.has(tx + ty * COLS)) { t.hot = true; t.heatT = rand(8, 15); }
+  if (G.bonus && G.bonus.has(tx + ty * COLS)) t.bonus = true;
   G.towers.push(t); G.towerAt[ty][tx] = t; recalcBoosts(); G.covDirty = true;
   if (!G.demo) {
     G.typesUsed.add(type); G.maxCost = Math.max(G.maxCost, cost); G.maxTowers = Math.max(G.maxTowers, G.towers.length);
@@ -248,7 +252,10 @@ function spawnEnemy(type, wave, quiet) {
     lives: d.lives || 1, wave, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
   };
   e.hp = e.max = hp * (1 + G.mi * .025);
-  if (G.th === 'ice') e.spd *= 1.2;
+  if (G.th === 'ice' && !G.m.noRule) e.spd *= 1.2;
+  if (G.m.hpC) e.hp = e.max = e.max * G.m.hpC;
+  if (G.m.spdC) e.spd *= G.m.spdC;
+  if (G.m.rewC) e.rew = Math.max(1, Math.round(e.rew * G.m.rewC));
   if (G.mod === 'fast') e.spd *= 1.25;
   if (G.muts && G.muts.swift) e.spd *= 1.2;
   if (G.muts && G.muts.giant) e.hp = e.max = e.max * 1.6;
@@ -433,7 +440,7 @@ function recalcBoosts() {
     let b = 0;
     let rb = 0;
     for (const o of G.towers) if (o.type === 'boost' && o !== t && Math.hypot(o.x - t.x, o.y - t.y) <= o.st.range + .01) { b = Math.max(b, o.st.boost); rb = Math.max(rb, o.st.rateB || 0); }
-    t.boost = (1 + b) * (t.hot ? 1.35 : 1); t.rateB = rb;
+    t.boost = (1 + b) * (t.hot ? 1.35 : 1) * (t.bonus ? 1.3 : 1); t.rateB = rb;
   }
 }
 // combinaisons entre tourelles
@@ -579,7 +586,7 @@ function impact(p) {
         if (e.frozen > 0 && (p.kind === 'shell' || p.kind === 'missile')) { dm *= 2.5; combo(e, 'shatter'); }
         hurt(e, dm, p.pierce);
         if (p.stun) e.stunT = Math.max(e.stunT || 0, p.stun);
-        const ns = ETYPES[e.type].noslow, ik = G.th === 'ice' ? 1.5 : 1;
+        const ns = ETYPES[e.type].noslow, ik = G.th === 'ice' && !G.m.noRule ? 1.5 : 1;
         if (p.freeze && !ns && Math.random() < p.freeze) { e.stunT = Math.max(e.stunT || 0, 1.1 * ik); e.frozen = 1.1 * ik; }
         if (p.slow && !ns) { e.slowF = e.slowT > 0 ? Math.min(e.slowF, p.slow) : p.slow; e.slowT = Math.max(e.slowT, p.slowT * ik); }
       }
@@ -631,7 +638,7 @@ function update(dt) {
     while (G.queue.length && G.queue[0].t <= G.spawnT) { const q = G.queue.shift(); spawnEnemy(q.type, q.wave); }
   }
   // règles du monde
-  if (!G.demo && (G.enemies.length || G.queue.length)) {
+  if (!G.demo && !G.m.noRule && (G.enemies.length || G.queue.length)) {
     if (G.th === 'rack') {
       G.outT -= dt;
       if (G.outT <= 3 && !G.outZ) { const tw = G.towers[Math.floor(Math.random() * G.towers.length)]; G.outZ = { x: tw ? tw.x : rand(3, COLS - 3) | 0, y: tw ? tw.y : rand(3, ROWS - 3) | 0, on: 0 }; toast('⚡ Coupure de courant imminente !'); }

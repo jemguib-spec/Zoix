@@ -17,10 +17,10 @@ function layout() {
   panel.classList.toggle('land', !L.port); panel.classList.toggle('port', L.port);
   const ep = $('#edPanel'); ep.classList.toggle('land', !L.port); ep.classList.toggle('port', L.port); ep.classList.toggle('left', save.side === 'left' && !L.port);
   const left = save.side === 'left'; panel.classList.toggle('left', left && !L.port);
-  const PW = 176;
+  const PW = state === 'edit' ? 196 : 176;
   if (!pan) { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH; }
   else if (!L.port) { L.ax = left ? PW + sL + 4 : sL; L.ay = 0; L.aw = SW - PW - sR - sL - 4; L.ah = SH; }
-  else { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH - sB - (state === 'edit' ? 300 : 226); }
+  else { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH - sB - (state === 'edit' ? 352 : 226); }
   // T = taille d'une case quand toute la carte est visible
   L.T = L.port ? Math.min(L.aw / ROWS, L.ah / COLS) : Math.min(L.aw / COLS, L.ah / ROWS);
   if (!pan) L.T = L.port ? Math.max(L.aw / ROWS, L.ah / COLS) : Math.max(L.aw / COLS, L.ah / ROWS); // menu : la carte remplit l'écran
@@ -585,6 +585,14 @@ function buildMapBG(mi, P) {
   for (const o of (m.obst || [])) {
     const x = o.x * P, y = o.y * P, w = 2 * P;
     shadowOn(.35, .14);
+    if (o.kind === 'block') { // obstacle d'une case posé dans l'éditeur : bloc de métal riveté
+      gr = g.createLinearGradient(x, y, x, y + P); gr.addColorStop(0, '#78838c'); gr.addColorStop(1, '#2e353b');
+      g.fillStyle = gr; rr(g, x + P * .06, y + P * .06, P * .88, P * .88, P * .1); g.fill(); shadowOff();
+      g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = P * .03; rr(g, x + P * .06, y + P * .06, P * .88, P * .88, P * .1); g.stroke();
+      g.strokeStyle = 'rgba(255,196,0,.8)'; g.lineWidth = P * .07; g.beginPath(); g.moveTo(x + P * .25, y + P * .25); g.lineTo(x + P * .75, y + P * .75); g.moveTo(x + P * .75, y + P * .25); g.lineTo(x + P * .25, y + P * .75); g.stroke();
+      g.fillStyle = '#c9d1d6'; for (const [a, b] of [[.18, .18], [.82, .18], [.18, .82], [.82, .82]]) { g.beginPath(); g.arc(x + P * a, y + P * b, P * .045, 0, TAU); g.fill(); }
+      continue;
+    }
     if (o.kind === 'sink') {
       gr = g.createLinearGradient(x, y, x + w, y + w); gr.addColorStop(0, '#eceff1'); gr.addColorStop(1, '#78909c');
       g.fillStyle = gr; rr(g, x + P * .08, y + P * .08, w - P * .16, w - P * .16, P * .08); g.fill(); shadowOff();

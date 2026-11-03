@@ -1472,6 +1472,13 @@ function render() {
   for (const f of G.fx) if (f.kind === 'bad') { ctx.fillStyle = 'rgba(255,40,40,' + (f.life / f.max * .6) + ')'; ctx.fillRect(f.x, f.y, 1, 1); }
   // virus au sol (sous les tourelles qui débordent un peu)
   for (const e of G.enemies) if (!e.fly) drawEnemy(e);
+  // cases bonus (éditeur de niveaux) : +30 % de dégâts pour la tourelle posée dessus
+  if (G.bonus) for (const k of G.bonus) {
+    const x = k % COLS, y = Math.floor(k / COLS), pu = .5 + .5 * Math.sin(G.time * 3 + k);
+    ctx.fillStyle = 'rgba(255,215,64,' + (.12 + .1 * pu).toFixed(2) + ')'; ctx.fillRect(x + .04, y + .04, .92, .92);
+    ctx.strokeStyle = 'rgba(255,215,64,' + (.55 + .35 * pu).toFixed(2) + ')'; ctx.lineWidth = .045; ctx.setLineDash([.16, .1]); ctx.strokeRect(x + .08, y + .08, .84, .84); ctx.setLineDash([]);
+    if (!G.towerAt[y][x]) star(ctx, x + .5, y + .5, .16);
+  }
   // tourelles
   for (const t of G.towers) {
     const age = G.time - t.born; ctx.save(); ctx.translate(t.x + .5, t.y + .5);

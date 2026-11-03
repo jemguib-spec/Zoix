@@ -738,3 +738,43 @@ h2{font-weight:800;letter-spacing:.02em;color:#fff;text-shadow:none;background:l
 .tp-head button .ico{width:.95em;height:.95em}
 h2{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#fff!important;-webkit-text-fill-color:#fff;filter:none!important;text-shadow:0 2px 14px rgba(34,197,94,.45)!important;font-weight:800}
 h2 .ico{color:#4ade80}
+
+/* ---- menu principal : options en petite icône en haut à droite ---- */
+.menu-ico{position:absolute;top:calc(12px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  background:rgba(14,19,30,.7);border:1px solid var(--line);color:#e2e8f0;font-size:22px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:2;margin:0!important}
+.menu-ico:hover{background:rgba(30,40,58,.85)}.menu-ico:active{transform:scale(.92)}
+.menu-ico .ico{transition:transform .5s var(--ease)}.menu-ico:hover .ico{transform:rotate(90deg)}
+@media (orientation:landscape) and (max-height:700px){#menu .menu-ico{position:absolute}}
+
+/* ---- éditeur de niveaux : outils, onglets de réglages ---- */
+#edPanel{background:linear-gradient(180deg,rgba(18,25,38,.95),rgba(9,13,21,.97))!important;box-shadow:0 0 30px rgba(0,0,0,.6)!important;border:1px solid var(--line)}
+#edPanel button{background:rgba(255,255,255,.06)!important;box-shadow:none!important;border:1px solid var(--line);border-radius:10px;color:#e2e8f0}
+#edPanel button.on{background:linear-gradient(135deg,#fbbf24,#d97706)!important;color:#2a1300;border-color:transparent}
+#edPanel .go{background:linear-gradient(135deg,#34d399,#16a34a)!important;color:#fff}
+#edPanel .share{background:linear-gradient(135deg,#818cf8,#4f46e5)!important;color:#fff}
+#edPanel .ed-opts{background:rgba(251,191,36,.14)!important;border-color:rgba(251,191,36,.5)!important;color:#fde68a!important}
+.ed-tools{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+#edStats{font-size:10.5px;line-height:1.35;color:#cbd5e1}
+#edHint{font-size:11px;line-height:1.3;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:5px 7px;margin:0}
+#edPanel.port .ed-tools{grid-column:1/-1;grid-template-columns:repeat(4,1fr)}
+.eo-card{background:rgba(14,19,30,.96)!important;border:1px solid var(--line-2);box-shadow:0 20px 50px rgba(0,0,0,.8)!important;border-radius:20px!important;display:flex;flex-direction:column;gap:10px}
+.eo-card h3{color:#fff!important}
+.eo-tabs{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:4px}
+.eo-tabs button{padding:6px 11px;border-radius:10px;font-weight:700;font-size:12.5px;color:var(--muted);background:transparent}
+.eo-tabs button.on{background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff}
+.eo-page{display:flex;flex-direction:column;gap:12px;min-height:180px}
+.eo-nums label{padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px}
+.eo-nums label small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
+.eo-row button,.eo-nums button{background:rgba(255,255,255,.07)!important;box-shadow:none!important;border:1px solid var(--line);border-radius:10px}
+.eo-row button.on,.eo-nums button.on{background:linear-gradient(135deg,#fbbf24,#d97706)!important;color:#2a1300}
+.eo-v.on{box-shadow:inset 0 0 0 2px #4ade80!important}
+.eo-tow canvas{width:40px;height:40px}
+.eo-in{width:100%;padding:9px 11px;border-radius:12px;border:1px solid var(--line-2);background:rgba(0,0,0,.35);color:#fff;font:inherit;font-size:14px;resize:vertical;user-select:text;-webkit-user-select:text}
+.lvinfo .lvdesc{font-style:italic;color:#cbd5e1}
+.lvinfo .lvrec{color:#fde68a}.lvinfo .lvrec .st{letter-spacing:1px}
+#edPanel.port{height:calc(352px + env(safe-area-inset-bottom))!important}
+#edPanel.land{gap:5px!important;width:calc(196px + env(safe-area-inset-right))!important}
+#edPanel.land button{padding:6px 4px;font-size:11.5px}
+#edPanel.land #edHint{font-size:10.5px}
+#edPanel.land #edStats{font-size:10px}
+@media (max-height:500px){#edPanel.land #edStats{display:none}#edPanel.land #edHint{font-size:10px;padding:4px 6px}#edPanel.land button{padding:5px 3px;font-size:11px}#edPanel.land{gap:4px!important}}

@@ -126,7 +126,9 @@ function processMap(m, seed) {
   for (const r of m.routes) { const [sx, sy] = r[0]; g[sy][sx] = 'S'; }
   // gros composants décoratifs (2x2) posés loin des couloirs : on ne peut pas construire dessus
   const Rn = mulberry(seed * 131 + 7), wk = m.world !== undefined ? m.world : Math.min(WORLDS.length - 1, Math.floor(seed / 3)); m.obst = [];
-  for (let k = 0, tries = 0; k < 3 && tries < 400; tries++) {
+  if (m.obstC) { for (const [x, y] of m.obstC) if (g[y] && g[y][x] === '#') { g[y][x] = 'X'; m.obst.push({ kind: 'block', x, y }); } }
+  if (m.bonusC) m.bonus = m.bonusC.filter(([x, y]) => g[y] && g[y][x] === '#');
+  for (let k = 0, tries = 0; k < (m.obstC ? 0 : 3) && tries < 400; tries++) {
     const x = 1 + Math.floor(Rn() * (COLS - 3)), y = 1 + Math.floor(Rn() * (ROWS - 3));
     let ok = true;
     for (let yy = y - 1; yy <= y + 2 && ok; yy++) for (let xx = x - 1; xx <= x + 2; xx++) if (g[yy] && g[yy][xx] !== undefined && g[yy][xx] !== '#') { ok = false; break; }
