@@ -72,7 +72,7 @@ function showResult(win) {
   const recKey = curDiff + G.mi;
   let html = '<div><small>' + (daily ? 'Défi' : 'Zone') + '</small><b>' + G.m.name + '</b></div><div><small>Difficulté</small><b>' + G.d.name + '</b></div><div><small>Vagues</small><b>' + waves + (endless ? '' : ' / ' + G.total) + '</b></div><div><small>Virus détruits</small><b>' + G.kills + '</b></div><div><small>Score</small><b style="color:#e6ee5a">' + G.score + '</b></div>' +
     '<div><small>Record</small><b>' + (endless ? 'vague ' + ((save.endless || {})[recKey] || 0) : daily ? (save.daily.best || 0) : (save.best[recKey] || 0)) + '</b></div>';
-  if (mvp && tot > 0) html += '<div class="wide"><small>Tourelle MVP</small><b style="color:' + TOWERS[mvp.type].col + '">' + TOWERS[mvp.type].name + ' niv. ' + mvp.lvl + ' · ' + Math.round(100 * mvp.dmg / tot) + ' % des dégâts</b></div>';
+  if (mvp && tot > 0) html += '<div class="wide"><small>Tourelle MVP</small><b style="color:' + TOWERS[mvp.type].col + '">' + tName(mvp.type) + ' niv. ' + mvp.lvl + ' · ' + Math.round(100 * mvp.dmg / tot) + ' % des dégâts</b></div>';
   if (G.chalRes) html += '<div class="wide chal"><small>Défis de la zone</small>' + G.chalRes.map(r => '<b class="' + (r.ok ? 'ok' : 'ko') + '">' + (r.ok ? '🏅 ' : '✘ ') + CHALS[r.c].name + (r.isNew ? ' <i>+12 ⬢</i>' : '') + '</b>').join('') + '</div>';
   if (G.newAch && G.newAch.length) html += '<div class="wide"><small>Succès débloqués</small><b>' + G.newAch.map(a => a.ic + ' ' + a.name).join(' · ') + '</b></div>';
   $('#resBody').innerHTML = html;

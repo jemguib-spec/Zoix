@@ -84,7 +84,7 @@ function buildTowerBar() {
     const c = document.createElement('canvas'); c.width = c.height = 68;
     const g = c.getContext('2d'); g.setTransform(68, 0, 0, 68, 34, 34); drawTower(g, k, 1, -Math.PI / 4, 0);
     b.appendChild(c);
-    const nm = document.createElement('em'); nm.textContent = d.short || d.name; b.appendChild(nm);
+    const nm = document.createElement('em'); nm.textContent = tName(k, true); b.appendChild(nm);
     const s = document.createElement('span'); s.textContent = unlockedT(k) ? tCost(k) + ' cr' : '🔒'; b.appendChild(s);
     if (!unlockedT(k)) b.classList.add('locked');
     b.addEventListener('pointerdown', ev => { initAudio(); ev.preventDefault(); dragT = { k, id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, active: false, was: G.tool === k }; });
@@ -117,14 +117,14 @@ function towerInfo() {
   const d = TOWERS[k], st = tStats(k, 1), bar = (v, m) => '<i style="width:' + Math.round(Math.min(1, v / m) * 100) + '%"></i>';
   const nums = k === 'boost' ? 'Bonus +' + Math.round(st.boost * 100) + ' % · portée ' + st.range.toFixed(1) : k === 'miner' ? '+' + st.gain + ' cr par vague' :
     'Dégâts ' + st.dmg.toFixed(1) + ' · Portée ' + st.range.toFixed(1) + ' · ' + st.rate.toFixed(1) + '/s';
-  el.innerHTML = '<b style="color:' + d.col + '">' + d.name + ' <em>' + tCost(k) + ' cr</em></b><span class="tdesc">' + d.desc + '</span><span class="tnums">' + nums + (d.ground ? ' · sol' : '') + '</span>' +
+  el.innerHTML = '<b style="color:' + d.col + '">' + tName(k) + ' <em>' + tCost(k) + ' cr</em></b><span class="tdesc">' + d.desc + '</span><span class="tnums">' + nums + (d.ground ? ' · sol' : '') + '</span>' +
     '<div class="tbars"><label>Dégâts</label><u>' + bar(st.dmg * st.rate * (st.chain || 1), 60) + '</u><label>Portée</label><u>' + bar(st.range, 4.5) + '</u><label>Cadence</label><u>' + bar(st.rate, 4) + '</u></div>';
 }
 function selectTool(k, quiet) {
   G.tool = k; closePopup(); towerInfo();
   document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('sel', b.dataset.t === k));
   if (k && !unlockedT(k)) { toast('🔒 ' + TOWERS[k].name + ' : débloque-la dans la Boutique avec ' + UNLOCK[k] + ' ⬢'); G.tool = null; document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('sel')); towerInfo(); return; }
-  if (k && !quiet) toast(TOWERS[k].name + ' (' + tCost(k) + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
+  if (k && !quiet) toast(tName(k) + ' (' + tCost(k) + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
 }
 const lastP = {};
 function setTxt(id, v) { if (lastP[id] !== v) { lastP[id] = v; $(id).textContent = v; } }
@@ -170,7 +170,7 @@ function closePopup() { if (G) G.sel = null; $('#tpop').classList.add('hidden');
 function fillPopup() {
   const t = G.sel; if (!t) return;
   const d = TOWERS[t.type], s = t.st;
-  $('#tpName').textContent = d.name + ' · niv. ' + t.lvl + '/' + maxLvl(t.type);
+  $('#tpName').textContent = tName(t.type) + ' · niv. ' + t.lvl + '/' + maxLvl(t.type);
   let html = t.type === 'boost' ? 'Bonus de dégâts : <b>+' + Math.round(s.boost * 100) + ' %</b><br>Portée : <b>' + s.range.toFixed(1) + '</b>' :
     t.type === 'miner' ? 'Gain par vague : <b>+' + s.gain + ' cr</b>' :
     'Dégâts : <b>' + s.dmg.toFixed(1) + '</b> · Portée : <b>' + s.range.toFixed(1) + '</b><br>Cadence : <b>' + s.rate.toFixed(1) + '/s</b>';

@@ -574,3 +574,79 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 .mbtns{display:flex;flex-wrap:wrap;gap:8px}.mbtns .big{flex:1;min-width:130px;padding:10px 8px;font-size:15px}
 .mclose{align-self:center}
 @media (max-height:420px){.mcard{gap:6px;padding:10px 12px}.mcard p{font-size:12px}.mbtns .big{padding:7px 6px;font-size:13px}}
+
+/* =====================================================================
+   THÈME MODERNE : surfaces « verre » sombres, dégradés doux, sans biseaux rétro
+   ===================================================================== */
+:root{--card:rgba(17,23,29,.9);--card2:rgba(30,39,47,.92);--line:rgba(255,255,255,.1);--line2:rgba(255,255,255,.18);--txt:#eef4f7;--mut:#9cb0bd;
+  --g1:#34e3a0;--g2:#13a9d6;--o1:#ffcf5a;--o2:#ff8a3d;--r1:#ff6b6b;--r2:#d63a5a;--b1:#7c8cff;--b2:#4f46e5}
+body{font-feature-settings:"tnum"}
+button{transition:transform .12s cubic-bezier(.2,1.4,.4,1),filter .15s,box-shadow .15s,background .15s}
+button:active{transform:scale(.96)}
+
+/* boutons principaux */
+.big{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border-radius:16px;letter-spacing:.01em;text-shadow:0 1px 2px rgba(0,0,0,.25);
+  box-shadow:0 10px 24px -10px rgba(19,169,214,.8),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(0,0,0,.15)}
+.big:hover{filter:brightness(1.07)}
+.big.alt,.back,.vol{background:var(--card2);color:var(--txt);border:1px solid var(--line2);text-shadow:none;
+  box-shadow:0 8px 20px -12px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.big.alt:hover,.back:hover{background:rgba(42,54,64,.95);border-color:rgba(255,255,255,.28)}
+.big.danger{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.45);color:#ffb4b4;box-shadow:none}
+.big.shopbtn,.back.shopmini,.res-btns .shopbtn{background:linear-gradient(135deg,var(--o1),var(--o2));color:#2a1200;text-shadow:none;border:none;box-shadow:0 10px 24px -10px rgba(255,138,61,.8),inset 0 1px 0 rgba(255,255,255,.4)}
+.back{border-radius:12px}
+.diffbtn{border-radius:16px!important;background:var(--card)!important;backdrop-filter:blur(10px)}
+.screen h2{font-weight:900;letter-spacing:.02em;color:#fff;text-shadow:0 2px 12px rgba(52,227,160,.35)}
+.panel,.mcard,.eo-card,.res-card,.story-card{background:var(--card)!important;border:1px solid var(--line2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 20px 50px -20px rgba(0,0,0,.9)!important;border-radius:20px}
+.pg{background:var(--card2);border:1px solid var(--line2);border-radius:50%;width:40px;height:40px;box-shadow:none}
+.tab,#shop .tab,#trophy .tab{background:var(--card2)!important;border:1px solid var(--line)}
+.tab.on,#shop .tab.on,#trophy .tab.on{background:linear-gradient(135deg,var(--b1),var(--b2))!important;border-color:transparent;box-shadow:0 6px 16px -8px rgba(79,70,229,.9)}
+.chipbox{border-radius:999px!important}
+.mapcard{border-radius:18px!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 14px 30px -18px rgba(0,0,0,.9)!important}
+.mapcard:not(.locked):hover{box-shadow:inset 0 0 0 2px var(--c),0 18px 36px -16px color-mix(in srgb,var(--c) 50%,transparent)!important}
+
+/* boutique */
+.scard{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:16px!important;box-shadow:none!important}
+.scard.sel{border-color:var(--o1)!important;box-shadow:0 0 0 1px var(--o1),0 10px 24px -14px rgba(255,207,90,.7)!important}
+.sbuy{background:linear-gradient(135deg,var(--g1),var(--g2))!important;border:none!important;box-shadow:0 6px 14px -8px rgba(19,169,214,.9)!important;border-radius:10px!important;text-shadow:none!important;color:#fff!important}
+.sbuy.off{background:rgba(255,255,255,.08)!important;color:var(--mut)!important;box-shadow:none!important}
+
+/* panneau de jeu : verre sombre teinté à la couleur du monde */
+#panel{background:linear-gradient(180deg,color-mix(in srgb,var(--pa,#c62828) 26%,#0d1318),#0a0f13 70%)!important;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--pa,#c62828) 55%,transparent),-12px 0 30px rgba(0,0,0,.55)!important;border-radius:20px 0 0 20px}
+#panel.port{border-radius:20px 20px 0 0}
+#panel.land.left{border-radius:0 20px 20px 0}
+.stats div{background:rgba(0,0,0,.32)!important;border:1px solid var(--line)!important;border-radius:10px!important;box-shadow:none!important}
+.stats small{color:var(--mut)!important;opacity:1!important;font-weight:700;letter-spacing:.1em}
+.stats b{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important;font-weight:900!important;color:#fff!important;text-shadow:none!important;letter-spacing:0!important;font-variant-numeric:tabular-nums}
+.stats b.cash{color:#ffd95a!important}
+.tbtn{background:rgba(255,255,255,.06)!important;border:1px solid var(--line)!important;border-radius:12px!important;box-shadow:none!important;color:var(--txt)!important;text-shadow:none!important}
+.tbtn em{color:var(--txt)!important}
+.tbtn span{background:rgba(0,0,0,.35)!important;color:#ffd95a!important;border-radius:999px!important;font-weight:800}
+.tbtn.sel{background:color-mix(in srgb,var(--pa,#34e3a0) 30%,rgba(255,255,255,.08))!important;border-color:color-mix(in srgb,var(--pa,#34e3a0) 80%,#fff)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--pa,#34e3a0) 80%,#fff),0 6px 16px -6px color-mix(in srgb,var(--pa,#34e3a0) 70%,transparent)!important}
+.tbtn.poor span{color:#ff8a8a!important}
+.tbtn.locked{opacity:.35}
+#tInfo,#tpop.dock{background:rgba(0,0,0,.3)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-radius:12px!important}
+.tbars u{background:rgba(255,255,255,.1)!important}.tbars u i{background:linear-gradient(90deg,var(--g1),var(--g2))!important}
+.ctrls button{background:rgba(255,255,255,.07)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-radius:12px!important}
+.ctrls .go{background:linear-gradient(135deg,var(--g1),var(--g2))!important;border:none!important;box-shadow:0 8px 18px -10px rgba(19,169,214,.9)!important;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+#tpop{background:var(--card)!important;border:1px solid var(--line2);border-radius:16px!important;box-shadow:0 20px 40px -16px rgba(0,0,0,.9)!important;backdrop-filter:blur(12px)}
+.tp-head b{color:#fff!important}
+.tp-acts .buy{background:linear-gradient(135deg,var(--g1),var(--g2))!important;box-shadow:none!important;border-radius:10px!important}
+.tp-acts .sell{background:linear-gradient(135deg,var(--r1),var(--r2))!important;box-shadow:none!important;border-radius:10px!important}
+.tp-acts .buy.off{background:rgba(255,255,255,.08)!important;color:var(--mut)}
+#tpop .mode{background:rgba(124,140,255,.18)!important;border:1px solid rgba(124,140,255,.45);box-shadow:none!important;border-radius:10px!important}
+.tp-modes .mode.all{background:rgba(255,255,255,.08)!important;border:1px solid var(--line2)!important}
+.tp-paths .pa{background:linear-gradient(135deg,#ffe082,#ffb300)!important;box-shadow:none!important;border-radius:10px}
+.tp-paths .pb{background:linear-gradient(135deg,#80d8ff,#2979ff)!important;box-shadow:none!important;border-radius:10px}
+/* éditeur */
+#edPanel{background:linear-gradient(180deg,#152029,#0a0f13)!important;box-shadow:0 0 0 1px var(--line2),-12px 0 30px rgba(0,0,0,.55)!important}
+#edPanel button{background:rgba(255,255,255,.07)!important;border:1px solid var(--line)!important;box-shadow:none!important;border-radius:10px!important}
+#edPanel .go{background:linear-gradient(135deg,var(--g1),var(--g2))!important;border:none!important}
+#edPanel .share{background:linear-gradient(135deg,var(--b1),var(--b2))!important;border:none!important}
+#edPanel .ed-opts{background:linear-gradient(135deg,var(--o1),var(--o2))!important;border:none!important;color:#2a1200}
+#edHint{background:rgba(0,0,0,.3)!important;border:1px solid var(--line)}
+/* résultats, notifications */
+.res-stats div{background:rgba(0,0,0,.3)!important;border:1px solid var(--line);box-shadow:none!important;border-radius:12px!important}
+#toast{border-radius:999px!important;background:rgba(12,18,23,.92)!important;border:1px solid var(--line2);backdrop-filter:blur(10px)}
+#powers .pw{background:radial-gradient(circle at 35% 30%,rgba(60,74,86,.95),rgba(16,22,28,.95))!important}
+#powers .pw.undo{background:linear-gradient(135deg,#ffcf5a,#ff8a3d)!important}
