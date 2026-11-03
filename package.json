@@ -1,0 +1,12 @@
+{
+  "name": "virus-defense",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tower defense pour téléphone (HTML5, sans dépendance)",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.45.0"
+  }
+}

@@ -3,7 +3,19 @@
 Les virus ont infecté l'ordinateur ! Ils traversent le circuit imprimé jusqu'au processeur :
 place des **tourelles automatiques** sur le circuit, le long des couloirs qu'ils empruntent, et **améliore**-les.
 
-HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode paysage et en mode portrait, avec zoom (pincer) et déplacement (glisser).
+HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`.
+
+## Code
+- `js/data.js` : mondes, cartes, tourelles, virus, sauvegarde, succès, missions
+- `js/audio.js` : bruitages et musique générés
+- `js/background.js` : mise en page, caméra et décors
+- `js/game.js` : logique (construction, vagues, combat)
+- `js/draw.js` : dessin
+- `js/ui.js` : tactile, panneau, pouvoirs, tutoriel, éditeur
+- `js/screens.js` : fin de partie, boutique, menus
+- `js/main.js` : boucle et démarrage
+
+**Tests** : `npm install` puis `npm test` (16 tests qui jouent des parties dans un navigateur sans écran). Marche en mode paysage et en mode portrait, avec zoom (pincer) et déplacement (glisser).
 
 ## Contenu
 - **18 grandes cartes** réparties en **6 mondes de 3 zones**, chacun avec son identité : *Circuit imprimé* (pistes de cuivre, robots), *La Fournaise* (tôle striée, caloducs, transformateurs brûlants, braises, fissures de lave), *Flux de données* (fibres optiques, disques durs qui tournent, bits qui défilent), *Salle des serveurs* (métal brossé, baies, câbles, bandes de sécurité), *Zone cryogénique* (givre, cristaux, réservoirs d'azote, flocons) et *Cyberespace* (néons, hologrammes, balayage et parasites). Les cartes (26 × 15 cases) aux couloirs sinueux, avec ventilateurs animés et dissipateurs. Les cartes avancées ont **plusieurs entrées, plusieurs sorties et des couloirs qui se croisent** ; chaque virus suit son propre chemin. À partir de la vague 9, les vagues mélangent deux sortes de virus : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central, disque dur, carte réseau, carte son, serveur, pare-feu, noyau quantique, clé USB, ventirad, satellite, robot, data center, cœur de l'IA), de 20 à 60 vagues chacune, jusqu'à 4 entrées. Chaque zone débloque la suivante.
@@ -39,8 +51,13 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - **Ciblage** « Soigneurs d'abord » / « Spéciaux d'abord », bouton « ⇉ Toutes » pour régler toutes les tourelles, **double-tap** pour améliorer, **vitesse ×4** sur les zones déjà gagnées.
 - **Prestige** (bonus permanents), **apparences** de tourelles, **histoire** racontée par AVA l'antivirus et une vraie fin.
 
+## Créer et partager ses niveaux
+Menu → **🛠 Créer des niveaux** : touche un bord pour placer une entrée, puis les cases du couloir (les coins sont ajoutés tout seuls). Choisis le monde (décor, règle, boss) et le nombre de vagues, teste, puis **Partager** : le niveau tient dans un petit code (ex. `VD1~Mon%20niveau~3~40~0k…`) ou un lien `#lvl=…`. Ton ami le colle dans **Importer** : aucun serveur nécessaire.
+
 ## Rejouabilité
 - **2 défis par zone** (sans revente, sans pouvoir, 3 types de tourelles…), récompensés en puces.
+- **Mode infini** avec record, et **zone aléatoire** générée à chaque partie
+- **Mutateurs** (virus géants, rapides, tourelles chères…) qui rapportent plus de puces, **missions de la semaine**
 - **Mode infini** avec record par zone et par difficulté (boss de monde toutes les 25 vagues).
 - **Défi du jour** : même carte et même règle pour la journée (arsenal imposé, invasion, blindage…), meilleurs scores du jour.
 - **24 succès**, **encyclopédie des virus** (avec les combinaisons découvertes) et **statistiques**.

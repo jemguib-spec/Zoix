@@ -30,7 +30,7 @@ jobs:
       - name: Copier le jeu dans l'application
         run: |
           mkdir -p android/app/src/main/assets/www
-          cp index.html style.css game.js icon.svg icon-192.png icon-512.png manifest.json android/app/src/main/assets/www/
+          cp -r index.html style.css js icon.svg icon-192.png icon-512.png manifest.json android/app/src/main/assets/www/
 
       - name: Compiler l'APK
         working-directory: android
