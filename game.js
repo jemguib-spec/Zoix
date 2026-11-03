@@ -458,7 +458,7 @@ function layout() {
   cv.style.width = SW + 'px'; cv.style.height = SH + 'px';
   const cs = getComputedStyle($('#safe'));
   const sT = parseFloat(cs.paddingTop) || 0, sR = parseFloat(cs.paddingRight) || 0, sB = parseFloat(cs.paddingBottom) || 0, sL = parseFloat(cs.paddingLeft) || 0;
-  L.port = SH > SW * 1.05;
+  L.port = SH > SW * 1.05; L.sT = sT;
   const panel = $('#panel'), pan = hasPanel();
   panel.classList.toggle('land', !L.port); panel.classList.toggle('port', L.port);
   const left = save.side === 'left'; panel.classList.toggle('left', left && !L.port);
@@ -472,7 +472,7 @@ function layout() {
   setZoom(L.zoom);
   if (G && G.sel) { dockPopup(); placePopup(); }
   const pw = $('#powers');
-  if (pw) { const sb = parseFloat(getComputedStyle($('#safe')).paddingBottom) || 0; pw.style.left = (L.ax + 8 + (L.port ? 0 : (save.side === 'left' ? 0 : (parseFloat(getComputedStyle($('#safe')).paddingLeft) || 0)))) + 'px'; pw.style.top = (L.port ? L.ay + L.ah - 52 : SH - 52 - sb) + 'px'; }
+  if (pw) { pw.style.left = (L.ax + 8) + 'px'; pw.style.top = 'auto'; pw.style.bottom = (L.port ? SH - (L.ay + L.ah) + 8 : 8 + sB) + 'px'; }
 }
 addEventListener('resize', layout);
 function setZoom(z, fx, fy) {
@@ -2480,23 +2480,39 @@ function drawPreview() {
 function drawPreviewIcons() {
   if (!previewOn()) return;
   const wd = nextWaveDef(), types = [[wd.type, wd.n]]; if (wd.type2) types.push([wd.type2, wd.n2]);
-  const seen = new Set();
+  const sz = clamp(L.s * .75, 22, 34), pad = 7, gap = 6;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.font = '900 ' + Math.round(sz * .5) + 'px system-ui';
+  const items = types.map(([tp, n]) => ({ tp, n, tw: ctx.measureText('×' + n).width }));
+  const w = pad * 2 + items.reduce((a, it) => a + sz + 3 + it.tw, 0) + gap * (items.length - 1), h = sz + pad * 2;
+  // zone à éviter : barre des pouvoirs
+  const pw = $('#powers'), pr = pw && !pw.classList.contains('hidden') ? pw.getBoundingClientRect() : null;
+  const boss = !!ETYPES[wd.type].boss, placed = [], seen = new Set();
   for (const r of G.m.routes) {
     const k = r[0].join(','); if (seen.has(k)) continue; seen.add(k);
-    const dx = r[1][0] - r[0][0], dy = r[1][1] - r[0][1];
-    const [sx, sy] = toScreen(r[0][0] + .5 + dx * 1.4, r[0][1] + .5 + dy * 1.4);
-    const sz = Math.max(26, L.s * .8), w = types.length * (sz + 34) + 8;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.fillStyle = 'rgba(0,0,0,.7)'; rr(ctx, sx - w / 2, sy - sz / 2 - 6, w, sz + 12, 10); ctx.fill();
-    ctx.strokeStyle = isBoss({ type: wd.type }) ? '#ff5252' : 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
-    types.forEach(([tp, n], i) => {
-      const cx = sx - w / 2 + 4 + i * (sz + 34) + sz / 2, d = ETYPES[tp], sc = sz / (d.r * 3.2);
-      ctx.setTransform(sc * DPR, 0, 0, sc * DPR, cx * DPR, sy * DPR);
-      drawEnemy({ type: tp, x: 0, y: 0, r: d.r, col: d.col, ang: 0, anim: G.time, age: 1, hp: 1, max: 1, id: 7, fly: false });
+    // direction du couloir à l'écran, puis on pose la bulle juste après l'entrée, dans l'axe du couloir
+    const [ax, ay] = toScreen(r[0][0] + .5, r[0][1] + .5), [bx, by] = toScreen(r[1][0] + .5, r[1][1] + .5);
+    const ux = Math.sign(Math.round(bx - ax)), uy = Math.sign(Math.round(by - ay));
+    let cx = ax + ux * (L.s * .7 + w / 2 + 4), cy = ay + uy * (L.s * .7 + h / 2 + 4);
+    cx = clamp(cx, L.ax + w / 2 + 6, L.ax + L.aw - w / 2 - 6); cy = clamp(cy, L.ay + h / 2 + 6, L.ay + L.ah - h / 2 - 6);
+    if (pr && cx + w / 2 > pr.left - 4 && cx - w / 2 < pr.right + 4 && cy + h / 2 > pr.top - 4) cy = pr.top - h / 2 - 8;
+    for (const q of placed) if (Math.abs(q[0] - cx) < w && Math.abs(q[1] - cy) < h + 4) cy = q[1] - h - 6;
+    placed.push([cx, cy]);
+    const x0 = Math.round(cx - w / 2), y0 = Math.round(cy - h / 2);
+    ctx.fillStyle = 'rgba(0,0,0,.72)'; rr(ctx, x0, y0, w, h, h / 2); ctx.fill();
+    ctx.strokeStyle = boss ? '#ff5252' : 'rgba(255,255,255,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+    let x = x0 + pad;
+    for (const it of items) {
+      const d = ETYPES[it.tp], sc = sz / (d.r * 3.2), ix = x + sz / 2, iy = y0 + h / 2;
+      ctx.setTransform(sc * DPR, 0, 0, sc * DPR, ix * DPR, iy * DPR);
+      drawEnemy({ type: it.tp, x: 0, y: 0, r: d.r, col: d.col, ang: 0, anim: G.time, age: 1, hp: 1, max: 1, id: 7, fly: false });
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      ctx.font = '900 14px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText('×' + n, cx + sz / 2 + 2, sy);
-    });
+      ctx.font = '900 ' + Math.round(sz * .5) + 'px system-ui'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff';
+      ctx.fillText('×' + it.n, x + sz + 3, iy + 1);
+      x += sz + 3 + it.tw + gap;
+    }
   }
+  ctx.textAlign = 'center';
 }
 function render() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -2740,8 +2756,8 @@ function render() {
     ctx.restore();
   }
   if (G.countdown > 0 && !G.over) {
-    const [sx, sy] = toScreen(COLS / 2, .9);
-    ctx.font = 'bold 15px system-ui';
+    const sx = L.ax + L.aw / 2, sy = L.ay + 24 + (L.sT || 0);
+    ctx.font = 'bold 15px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const txt = 'Vague ' + (G.wave + 1) + ' dans ' + Math.ceil(G.countdown) + ' s', w = ctx.measureText(txt).width + 24;
     ctx.fillStyle = 'rgba(0,0,0,.7)'; rr(ctx, sx - w / 2, sy - 14, w, 28, 8); ctx.fill();
     ctx.strokeStyle = 'rgba(230,238,90,.6)'; ctx.lineWidth = 1; ctx.stroke();
@@ -2871,7 +2887,7 @@ function updatePanel(force) {
   if (G.wave >= G.total) label = 'Dernière vague';
   else if (G.wave === 0) label = '▶ Vague 1';
   else if (G.queue.length || G.enemies.length) label = '⏩ Vague ' + (G.wave + 1);
-  else label = '▶ Vague ' + (G.wave + 1) + (G.countdown > 0 ? ' (' + Math.ceil(G.countdown) + ')' : '');
+  else label = '▶ Vague ' + (G.wave + 1);
   setTxt('#bWave', label);
   bw.classList.toggle('off', G.wave >= G.total);
   if (G.wave < G.total) { const w = waveDef(G.wave + 1); setTxt('#nextInfo', 'Suivante : ' + w.n + ' × ' + ETYPES[w.type].name + (w.type2 ? ' + ' + w.n2 + ' × ' + ETYPES[w.type2].name : '')); }
@@ -2892,7 +2908,7 @@ function dockPopup() {
   p.classList.toggle('dock', dock);
   $('#panel').classList.toggle('seltower', dock && !!(G && G.sel));
 }
-function openPopup(t) { G.sel = t; dockPopup(); $('#tpop').classList.remove('hidden'); fillPopup(); placePopup(); }
+function openPopup(t) { if (!t) return; G.sel = t; dockPopup(); $('#tpop').classList.remove('hidden'); fillPopup(); placePopup(); }
 function closePopup() { if (G) G.sel = null; $('#tpop').classList.add('hidden'); $('#panel').classList.remove('seltower'); }
 function fillPopup() {
   const t = G.sel; if (!t) return;
@@ -3283,7 +3299,7 @@ function enemyIcon(type, px) {
 }
 function buildTrophy() {
   document.querySelectorAll('#trophy .tab').forEach(b => b.classList.toggle('on', b.dataset.tt === trophyTab));
-  const L2 = $('#trophyList'); L2.innerHTML = ''; L2.className = trophyTab;
+  const L2 = $('#trophyList'); L2.innerHTML = ''; L2.className = 'tl-' + trophyTab;
   const S = save.stats || {};
   if (trophyTab === 'ach') {
     const n = ACH.filter(a => (save.ach || {})[a.id]).length;
