@@ -23,6 +23,12 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - Animations : électricité dans les pistes, LED, portails, processeur qui pulse, tourelles qui recul/scannent, fumée, étincelles, tremblement d'écran, bannières de vague, partie de démonstration derrière le menu.
 - Revente des tourelles (70 %), bonus si on lance une vague en avance, vitesse ×1/×2/×3, vague suivante automatique, score, record et 1 à 3 étoiles par zone. Sauvegarde automatique.
 
+## Boutique
+- Chaque partie rapporte des **puces ⬢** (victoire : selon les étoiles, la zone et la difficulté, avec un bonus la première fois ; défaite : selon les vagues tenues).
+- Au début, seuls le Pulseur, la Mitrailleuse et le Canon sont disponibles : les 7 autres tourelles se **débloquent** dans la Boutique.
+- Chaque tourelle a **5 niveaux de recherche** : +8 % de dégâts et +3 % de portée par niveau, le niveau 5 en partie (pouvoir spécial) se débloque à la recherche 2, et la recherche 5 réduit son prix de 10 %.
+- **Améliorations permanentes** : budget de départ, vies en plus, prime par virus, bonus de vague, revente.
+
 ## Commandes
 - Touche une tourelle dans le panneau, puis n'importe quelle case du circuit, ou glisse la tourelle du panneau jusqu'à la carte. Le panneau peut se mettre à gauche ou à droite (Options).
 - Pince pour zoomer, glisse pour te déplacer (molette de la souris sur ordinateur).

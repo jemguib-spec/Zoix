@@ -128,7 +128,7 @@ const MODES = ['first', 'last', 'strong', 'close'], MODE_NAMES = { first: 'Premi
 function tStats(type, lvl) {
   const d = TOWERS[type], k = lvl - 1;
   return {
-    dmg: d.dmg * Math.pow(1.55, k), range: d.range + .25 * k, rate: d.rate * Math.pow(1.12, k),
+    dmg: d.dmg * Math.pow(1.55, k) * (1 + .08 * resLvl(type)), range: (d.range + .25 * k) * (1 + .03 * resLvl(type)), rate: d.rate * Math.pow(1.12, k),
     splash: d.splash ? (d.splash + .12 * k) * (lvl >= 5 && type === 'cannon' ? 1.5 : 1) : 0, slow: d.slow ? Math.max(.25, d.slow - .07 * k) : 0, slowT: d.slowT ? d.slowT + .3 * k : 0,
     chain: d.chain ? d.chain + k + (lvl >= 5 ? 3 : 0) : 0, special: lvl >= 5,
     burn: d.burn ? d.burn * Math.pow(1.4, k) * (lvl >= 5 ? 2 : 1) : 0,
@@ -136,6 +136,24 @@ function tStats(type, lvl) {
   };
 }
 const upCost = t => Math.round(TOWERS[t.type].cost * UPMULT[t.lvl - 1]);
+/* ---------------- boutique (puces ⬢ gagnées à chaque partie) ---------------- */
+const UNLOCK = { pulse: 0, gatling: 0, cannon: 0, frost: 60, flame: 90, missile: 130, laser: 170, tesla: 220, boost: 260, miner: 200 };
+const RES_COST = [25, 45, 75, 115, 170];   // prix des 5 niveaux de recherche d'une tourelle
+const GUP = {
+  cash: { name: 'Budget de départ', ic: '💰', desc: '+8 crédits au début de chaque partie', cost: [30, 55, 90, 140, 210] },
+  lives: { name: 'Pare-feu renforcé', ic: '❤', desc: '+2 vies au début de chaque partie', cost: [40, 70, 110, 160, 230] },
+  rew: { name: 'Prime de virus', ic: '◆', desc: '+6 % de crédits par virus détruit', cost: [45, 80, 125, 180, 250] },
+  wave: { name: 'Bonus de vague', ic: '⏩', desc: '+1 crédit à chaque nouvelle vague', cost: [25, 45, 75, 115, 165] },
+  sell: { name: 'Revente', ic: '♻', desc: '+5 % du prix récupéré à la revente', cost: [20, 40, 65, 100, 150] }
+};
+const CHIP_MULT = { easy: .8, normal: 1, hard: 1.4, nightmare: 1.8, legend: 2.5 };
+const isDemo = () => G && G.demo;
+const resLvl = k => isDemo() ? 3 : ((save.research || {})[k] || 0);
+const gup = k => isDemo() ? 0 : ((save.gup || {})[k] || 0);
+const unlockedT = k => isDemo() || UNLOCK[k] === 0 || !!(save.unlockT || {})[k];
+const tCost = k => Math.round(TOWERS[k].cost * (resLvl(k) >= 5 ? .9 : 1));
+const maxLvl = k => resLvl(k) >= 2 ? TMAX : TMAX - 1;
+const sellRate = () => .7 + .05 * gup('sell');
 
 const ETYPES = {
   bug: { name: 'Virus', hp: 10, spd: 1.5, rew: 1, col: '#7ed957', r: .27, int: .8, n: 10 },
@@ -170,7 +188,7 @@ const rewScale = w => 1 + (w - 1) * .04;
 
 /* ---------------- sauvegarde ---------------- */
 const SAVE_KEY = 'virusdef_save_v1';
-const DEFAULT_SAVE = { unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true };
+const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true };
 function loadSave() {
   const d = JSON.parse(JSON.stringify(DEFAULT_SAVE));
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) { Object.assign(d, s); d.unlocked = Object.assign({}, DEFAULT_SAVE.unlocked, s.unlocked); } } catch (e) { }
@@ -650,7 +668,7 @@ function newGame(mi, demo) {
   for (const r of m.routes) starts.push(r[0]);
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (m.g[y][x] === 'E') exits.push([x, y]);
   const g = {
-    mi, m, d, demo: !!demo, total: demo ? 9999 : m.waves, wave: 0, lives: d.lives, cash: demo ? 1e9 : d.cash + (m.routes.length - 1) * 12, score: 0, time: 0,
+    mi, m, d, demo: !!demo, total: demo ? 9999 : m.waves, wave: 0, lives: d.lives + (demo ? 0 : 2 * ((save.gup || {}).lives || 0)), cash: demo ? 1e9 : d.cash + (m.routes.length - 1) * 12 + 8 * ((save.gup || {}).cash || 0), score: 0, time: 0,
     starts, exits, towers: [], towerAt: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
     enemies: [], projs: [], fx: [], parts: [], texts: [], queue: [], spawnT: 0, nextStart: 0,
     tool: null, sel: null, hover: null, speed: 1, countdown: -1, over: false, kills: 0, shake: 0, banner: null, aiT: 0
@@ -679,7 +697,7 @@ function newGame(mi, demo) {
   return g;
 }
 function startMap(mi) {
-  G = newGame(mi, false);
+  G = newGame(mi, false); G.maxLives = G.lives;
   L.zoom = 1; L.vx = COLS / 2; L.vy = ROWS / 2;
   buildTowerBar(); closePopup(); selectTool('pulse', true);
   setState('play');
@@ -693,7 +711,7 @@ function demoAI(dt) {
   if (G.wave === 0 || (!G.queue.length && !G.enemies.length)) startWave();
   if (G.aiT > 0) return;
   G.aiT = G.towers.length < 8 ? .4 : 2.5;
-  if (G.towers.length > 40) { const t = G.towers[Math.floor(Math.random() * G.towers.length)]; if (t.lvl < TMAX) upgradeTower(t); return; }
+  if (G.towers.length > 40) { const t = G.towers[Math.floor(Math.random() * G.towers.length)]; if (t.lvl < maxLvl(t.type)) upgradeTower(t); return; }
   let best = null, bv = 0;
   for (let k = 0; k < 40; k++) {
     const x = Math.floor(Math.random() * COLS), y = Math.floor(Math.random() * ROWS);
@@ -729,7 +747,8 @@ function canPlace(tx, ty) {
   return null;
 }
 function tryPlace(type, tx, ty) {
-  const cost = TOWERS[type].cost;
+  if (!unlockedT(type)) { toast('Débloque cette tourelle dans la Boutique 🛒'); sfx('err'); return; }
+  const cost = tCost(type);
   const why = canPlace(tx, ty);
   if (why === 'out') return;
   if (why) { toast(why); sfx('err'); vibe(30); flashTile(tx, ty); return; }
@@ -743,7 +762,7 @@ function tryPlace(type, tx, ty) {
   sfx('build'); vibe(10); updatePanel();
 }
 function upgradeTower(t) {
-  if (t.lvl >= TMAX) return;
+  if (t.lvl >= maxLvl(t.type)) { if (t.lvl < TMAX) { toast('Niveau 5 verrouillé : fais la recherche niv. 2 de cette tourelle dans la Boutique 🛒'); sfx('err'); } return; }
   const c = upCost(t);
   if (G.cash < c) { toast('Pas assez de crédits'); sfx('err'); return; }
   G.cash -= c; t.invested += c; t.lvl++; t.st = tStats(t.type, t.lvl); t.upT = G.time; recalcBoosts();
@@ -752,7 +771,7 @@ function upgradeTower(t) {
   sfx('up'); vibe(15); updatePanel(); fillPopup();
 }
 function sellTower(t) {
-  const r = Math.floor(t.invested * .7);
+  const r = Math.floor(t.invested * sellRate());
   G.cash += r; G.towers.splice(G.towers.indexOf(t), 1); G.towerAt[t.y][t.x] = null; recalcBoosts();
   smoke(t.x + .5, t.y + .5, 5, .25);
   G.fx.push({ kind: 'sold', x: t.x + .5, y: t.y + .5, type: t.type, lvl: t.lvl, ang: t.ang, life: .45, max: .45 });
@@ -775,7 +794,7 @@ function startWave() {
   if (wd.type === 'boss') for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: i * .6 + .5, wave: G.wave });
   G.queue.sort((a, b) => a.t - b.t);
   G.spawnT = 0;
-  const bonus = 2 + Math.floor(G.wave / 3) + (early ? 3 : 0);
+  const bonus = 2 + Math.floor(G.wave / 3) + (early ? 3 : 0) + gup('wave');
   G.cash += bonus; G.score += bonus * 10;
   for (const t of G.towers) if (t.type === 'miner') { G.cash += t.st.gain; G.texts.push({ x: t.x + .5, y: t.y + .2, t: '+' + t.st.gain, col: '#ffd740', life: 1.2, big: true }); coinFly(t.x + .5, t.y + .5, 2); }
   G.countdown = -1;
@@ -789,7 +808,7 @@ function spawnEnemy(type, wave) {
   const hp = d.hp * hpScale(wave) * G.d.hp;
   const e = {
     id: uid++, type, x: s[0] + .5, y: s[1] + .5, tx: s[0], ty: s[1], hp, max: hp, spd: d.spd, r: d.r, col: d.col,
-    rew: Math.max(1, Math.round(d.rew * rewScale(wave))), armor: (d.armor || 0) * (1 + wave * .03), fly: !!d.fly, regen: d.regen || 0,
+    rew: Math.max(1, Math.round(d.rew * rewScale(wave) * (1 + .06 * gup('rew')))), armor: (d.armor || 0) * (1 + wave * .03), fly: !!d.fly, regen: d.regen || 0,
     lives: d.lives || 1, wave, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
   };
   e.hp = e.max = hp * (1 + G.mi * .025);
@@ -1619,7 +1638,7 @@ function drawLive() {
   }
   // processeur à protéger : il pulse, rougit quand on perd des vies
   for (const [x, y] of G.exits) {
-    const hurtK = 1 - G.lives / G.d.lives, beat = .5 + .5 * Math.sin(t * (3 + hurtK * 6));
+    const hurtK = clamp(1 - G.lives / (G.maxLives || G.d.lives), 0, 1), beat = .5 + .5 * Math.sin(t * (3 + hurtK * 6));
     const col = 'rgba(' + Math.round(64 + 191 * Math.round(hurtK * 5) / 5) + ',' + Math.round(196 - 150 * Math.round(hurtK * 5) / 5) + ',255,' + (Math.round((.35 + beat * .3) * 10) / 10) + ')';
     glowDot(x + .5, y + .5, 1.1 + beat * .2, col, 'rgba(255,255,255,.35)');
   }
@@ -1647,7 +1666,7 @@ function render() {
   if (G.tool && G.hover) {
     const [hx, hy] = G.hover;
     if (hx >= 0 && hy >= 0 && hx < COLS && hy < ROWS) {
-      const ok = canPlace(hx, hy) === null && G.cash >= TOWERS[G.tool].cost;
+      const ok = canPlace(hx, hy) === null && G.cash >= tCost(G.tool);
       ctx.fillStyle = ok ? 'rgba(100,255,120,.25)' : 'rgba(255,60,60,.3)'; ctx.fillRect(hx, hy, 1, 1);
       if (ok) {
         ctx.globalAlpha = .5; ctx.save(); ctx.translate(hx + .5, hy + .5); drawTower(ctx, G.tool, 1, -Math.PI / 2, G.time, 0); ctx.restore(); ctx.globalAlpha = 1;
@@ -1911,7 +1930,8 @@ function buildTowerBar() {
     const g = c.getContext('2d'); g.setTransform(68, 0, 0, 68, 34, 34); drawTower(g, k, 1, -Math.PI / 4, 0);
     b.appendChild(c);
     const nm = document.createElement('em'); nm.textContent = d.short || d.name; b.appendChild(nm);
-    const s = document.createElement('span'); s.textContent = d.cost + ' cr'; b.appendChild(s);
+    const s = document.createElement('span'); s.textContent = unlockedT(k) ? tCost(k) + ' cr' : '🔒'; b.appendChild(s);
+    if (!unlockedT(k)) b.classList.add('locked');
     b.addEventListener('pointerdown', ev => { initAudio(); ev.preventDefault(); dragT = { k, id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, active: false, was: G.tool === k }; });
     bar.appendChild(b);
   }
@@ -1946,7 +1966,8 @@ function towerInfo() {
 function selectTool(k, quiet) {
   G.tool = k; closePopup(); towerInfo();
   document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('sel', b.dataset.t === k));
-  if (k && !quiet) toast(TOWERS[k].name + ' (' + TOWERS[k].cost + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
+  if (k && !unlockedT(k)) { toast('🔒 ' + TOWERS[k].name + ' : débloque-la dans la Boutique avec ' + UNLOCK[k] + ' ⬢'); G.tool = null; document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('sel')); towerInfo(); return; }
+  if (k && !quiet) toast(TOWERS[k].name + ' (' + tCost(k) + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
 }
 const lastP = {};
 function setTxt(id, v) { if (lastP[id] !== v) { lastP[id] = v; $(id).textContent = v; } }
@@ -1967,8 +1988,8 @@ function updatePanel(force) {
   bw.classList.toggle('off', G.wave >= G.total);
   if (G.wave < G.total) { const w = waveDef(G.wave + 1); setTxt('#nextInfo', 'Suivante : ' + w.n + ' × ' + ETYPES[w.type].name + (w.type2 ? ' + ' + w.n2 + ' × ' + ETYPES[w.type2].name : '')); }
   else setTxt('#nextInfo', 'Élimine les derniers virus !');
-  const key = TORDER.map(k => G.cash >= TOWERS[k].cost ? 1 : 0).join('');
-  if (lastP.poor !== key) { lastP.poor = key; document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('poor', G.cash < TOWERS[b.dataset.t].cost)); }
+  const key = TORDER.map(k => G.cash >= tCost(k) ? 1 : 0).join('');
+  if (lastP.poor !== key) { lastP.poor = key; document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('poor', G.cash < tCost(b.dataset.t))); }
   if (G.sel) { const k2 = G.cash + ':' + G.sel.lvl; if (lastP.pop !== k2) { lastP.pop = k2; fillPopup(); } }
 }
 $('#bWave').onclick = () => { initAudio(); startWave(); };
@@ -1981,7 +2002,7 @@ function closePopup() { if (G) G.sel = null; $('#tpop').classList.add('hidden');
 function fillPopup() {
   const t = G.sel; if (!t) return;
   const d = TOWERS[t.type], s = t.st;
-  $('#tpName').textContent = d.name + ' · niv. ' + t.lvl + '/' + TMAX;
+  $('#tpName').textContent = d.name + ' · niv. ' + t.lvl + '/' + maxLvl(t.type);
   let html = t.type === 'boost' ? 'Bonus de dégâts : <b>+' + Math.round(s.boost * 100) + ' %</b><br>Portée : <b>' + s.range.toFixed(1) + '</b>' :
     t.type === 'miner' ? 'Gain par vague : <b>+' + s.gain + ' cr</b>' :
     'Dégâts : <b>' + s.dmg.toFixed(1) + '</b> · Portée : <b>' + s.range.toFixed(1) + '</b><br>Cadence : <b>' + s.rate.toFixed(1) + '/s</b>';
@@ -1993,15 +2014,16 @@ function fillPopup() {
   if (d.ground) html += '<br><small>Ne touche pas les volants</small>';
   if (s.special) html += '<br><b style="color:#ffd740">★ ' + SPECIAL[t.type] + '</b>';
   if (t.lvl < TMAX && t.type !== 'boost' && t.type !== 'miner') { const n = tStats(t.type, t.lvl + 1); html += '<br><small style="color:#a5d6a7">Niv. suivant : dégâts ' + n.dmg.toFixed(1) + ', portée ' + n.range.toFixed(1) + '</small>'; }
-  if (t.lvl === TMAX - 1) html += '<br><small style="color:#ffd740">Niv. 5 : ' + SPECIAL[t.type] + '</small>';
+  if (t.lvl === TMAX - 1) html += '<br><small style="color:#ffd740">Niv. 5 : ' + SPECIAL[t.type] + (maxLvl(t.type) < TMAX ? ' (🔒 recherche 2 en Boutique)' : '') + '</small>';
   html += '<br><small>Virus éliminés : ' + (t.kills || 0) + '</small>';
   $('#tpMode').textContent = '🎯 Cible : ' + MODE_NAMES[t.mode || 'first'];
   $('#tpMode').classList.toggle('hidden', t.type === 'boost' || t.type === 'miner');
   $('#tpStats').innerHTML = html;
   const up = $('#tpUp');
-  if (t.lvl < TMAX) { const c = upCost(t); up.textContent = '⬆ ' + c + ' cr'; up.className = 'buy' + (G.cash >= c ? '' : ' off'); }
+  if (t.lvl < maxLvl(t.type)) { const c = upCost(t); up.textContent = '⬆ ' + c + ' cr'; up.className = 'buy' + (G.cash >= c ? '' : ' off'); }
+  else if (t.lvl < TMAX) { up.textContent = '🔒 Niv. 5'; up.className = 'buy off'; }
   else { up.textContent = 'MAX'; up.className = 'buy off'; }
-  $('#tpSell').textContent = 'Vendre +' + Math.floor(t.invested * .7);
+  $('#tpSell').textContent = 'Vendre +' + Math.floor(t.invested * sellRate());
 }
 function placePopup() {
   const t = G.sel; if (!t) return;
@@ -2025,14 +2047,18 @@ function endGame(win) {
   G.banner = { t: win ? 'ZONE NETTOYÉE !' : 'SYSTÈME INFECTÉ !', sub: win ? G.m.name + ' sauvée' : 'Les virus ont atteint le processeur', life: 3.2, max: 3.2, boss: !win, big: true };
   if (!win) { for (const [x, y] of G.exits) { for (let i = 0; i < 30; i++) G.parts.push(part(x + .5, y + .5, i % 2 ? '#ff5252' : '#ffd740', 5)); smoke(x + .5, y + .5, 12, .5); } G.shake = 16; }
   if (win) {
-    const k = G.lives / G.d.lives, st = k >= 1 ? 3 : k >= .5 ? 2 : 1, key = curDiff + G.mi;
+    const k = G.lives / (G.maxLives || G.d.lives), st = k >= 1 ? 3 : k >= .5 ? 2 : 1, key = curDiff + G.mi;
     G.score += G.lives * 100;
     save.stars[key] = Math.max(save.stars[key] || 0, st);
     save.best[key] = Math.max(save.best[key] || 0, G.score);
+    const first = !(save.stars[key + 'won']); save.stars[key + 'won'] = 1;
     if (G.mi + 2 > save.unlocked[curDiff]) save.unlocked[curDiff] = Math.min(MAPS.length, G.mi + 2);
+    G.chipsWon = Math.round((20 + 8 * st + 3 * G.mi) * CHIP_MULT[curDiff]) + (first ? 15 : 0);
+    save.chips = (save.chips || 0) + G.chipsWon;
     persist(); sfx('win'); G.stars = st;
   } else {
-    const key = curDiff + G.mi; save.best[key] = Math.max(save.best[key] || 0, G.score); persist();
+    const key = curDiff + G.mi; save.best[key] = Math.max(save.best[key] || 0, G.score);
+    G.chipsWon = Math.floor(Math.max(0, G.wave - 1) * .8 * CHIP_MULT[curDiff]); save.chips = (save.chips || 0) + G.chipsWon; persist();
     sfx('lose'); vibe(300);
   }
 }
@@ -2042,19 +2068,68 @@ function showResult(win) {
   $('#resTitle').textContent = win ? (last ? '🏆 Ordinateur sauvé !' : 'Zone nettoyée !') : 'L\'ordinateur est infecté…';
   $('#resTitle').style.color = win ? '#a5d6a7' : '#ff8a80';
   $('#resStars').innerHTML = win ? [0, 1, 2].map(i => '<span class="st' + (i < G.stars ? ' on' : '') + '" style="animation-delay:' + (.25 + i * .25) + 's">★</span>').join('') : '<span class="skull">☠</span>';
+  $('#resChips').innerHTML = '+' + (G.chipsWon || 0) + ' ⬢ <small>puces</small>';
   $('#resBody').innerHTML = '<div><small>Zone</small><b>' + G.m.name + '</b></div><div><small>Difficulté</small><b>' + G.d.name + '</b></div><div><small>Vagues</small><b>' + (win ? G.total : Math.max(0, G.wave - 1)) + ' / ' + G.total + '</b></div><div><small>Virus détruits</small><b>' + G.kills + '</b></div><div><small>Score</small><b style="color:#e6ee5a">' + G.score + '</b></div><div><small>Record</small><b>' + (save.best[curDiff + G.mi] || 0) + '</b></div>';
   const nb = $('#resNext');
   if (win && !last) { nb.classList.remove('hidden'); nb.textContent = '▶ Zone suivante'; nb.onclick = () => startMap(G.mi + 1); }
   else nb.classList.add('hidden');
 }
 
+/* ---------------- écran Boutique ---------------- */
+let shopTab = 'towers', shopFrom = 'menu', shopSel = null;
+function buyChips(cost, fn) {
+  if ((save.chips || 0) < cost) { toast('Pas assez de puces ⬢ : termine des zones pour en gagner !'); sfx('err'); return; }
+  save.chips -= cost; fn(); persist(); sfx('up'); vibe(20); buildShop();
+}
+function buildShop() {
+  $('#chips').textContent = save.chips || 0;
+  document.querySelectorAll('#shop .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === shopTab));
+  const list = $('#shopList'); list.innerHTML = ''; list.className = shopTab;
+  const pips = (l, m) => '<div class="pips">' + Array.from({ length: m }, (_, i) => '<i class="' + (i < l ? 'on' : '') + '"></i>').join('') + '</div>';
+  if (shopTab === 'towers') {
+    for (const k of TORDER) {
+      const d = TOWERS[k], un = unlockedT(k), r = resLvl(k), c = document.createElement('div');
+      c.className = 'scard' + (un ? '' : ' locked') + (shopSel === k ? ' sel' : '');
+      const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 72; const g = cv2.getContext('2d'); g.setTransform(72, 0, 0, 72, 36, 36); drawTower(g, k, un ? Math.min(TMAX, 1 + r) : 1, -Math.PI / 4, 0, 0);
+      c.appendChild(cv2);
+      const info = document.createElement('div'); info.className = 'sinfo';
+      info.innerHTML = '<b style="color:' + d.col + '">' + (d.short || d.name) + '</b>' + (un ? pips(r, 5) : '<small>🔒 verrouillée</small>');
+      c.appendChild(info);
+      const bt = document.createElement('button'); bt.className = 'sbuy';
+      if (!un) { bt.textContent = UNLOCK[k] + ' ⬢'; bt.classList.toggle('off', save.chips < UNLOCK[k]); bt.onclick = ev => { ev.stopPropagation(); buyChips(UNLOCK[k], () => { save.unlockT = save.unlockT || {}; save.unlockT[k] = 1; shopSel = k; toast('🔓 ' + d.name + ' débloquée !'); }); }; }
+      else if (r < 5) { bt.textContent = '⬆ ' + RES_COST[r] + ' ⬢'; bt.classList.toggle('off', save.chips < RES_COST[r]); bt.onclick = ev => { ev.stopPropagation(); buyChips(RES_COST[r], () => { save.research = save.research || {}; save.research[k] = r + 1; shopSel = k; }); }; }
+      else { bt.textContent = 'MAX'; bt.className = 'sbuy off'; }
+      c.appendChild(bt);
+      c.onclick = () => { shopSel = k; buildShop(); };
+      list.appendChild(c);
+    }
+    const k = shopSel || 'pulse', d = TOWERS[k], r = resLvl(k);
+    $('#shopInfo').innerHTML = '<b style="color:' + d.col + '">' + d.name + '</b> — ' + d.desc + '<br><small>Recherche ' + r + '/5 : +' + (8 * r) + ' % dégâts, +' + (3 * r) + ' % portée' + (r >= 2 ? ' · niveau 5 débloqué (' + SPECIAL[k] + ')' : ' · le niveau 5 (' + SPECIAL[k] + ') se débloque à la recherche 2') + (r >= 5 ? ' · −10 % sur le prix' : ' · recherche 5 : −10 % sur le prix') + '</small>';
+  } else {
+    for (const k in GUP) {
+      const u = GUP[k], l = (save.gup || {})[k] || 0, c = document.createElement('div'); c.className = 'scard';
+      c.innerHTML = '<div class="sic">' + u.ic + '</div><div class="sinfo"><b>' + u.name + '</b>' + pips(l, 5) + '<small>' + u.desc + '</small></div>';
+      const bt = document.createElement('button'); bt.className = 'sbuy';
+      if (l < 5) { const cost = u.cost[l]; bt.textContent = '⬆ ' + cost + ' ⬢'; bt.classList.toggle('off', save.chips < cost); bt.onclick = () => buyChips(cost, () => { save.gup = save.gup || {}; save.gup[k] = l + 1; }); }
+      else { bt.textContent = 'MAX'; bt.className = 'sbuy off'; }
+      c.appendChild(bt); list.appendChild(c);
+    }
+    $('#shopInfo').innerHTML = '<small>Les améliorations sont permanentes et s\'appliquent à toutes les zones et toutes les difficultés.</small>';
+  }
+}
+function openShop(from) { shopFrom = from; setState('shop'); }
+document.querySelectorAll('#shop .tab').forEach(b => b.addEventListener('click', () => { shopTab = b.dataset.tab; buildShop(); }));
+$('#shopBack').onclick = () => setState(shopFrom === 'result' ? 'maps' : shopFrom);
+
 /* ---------------- écrans ---------------- */
-const screens = ['menu', 'diff', 'maps', 'help', 'options', 'pause', 'result'];
+const screens = ['menu', 'diff', 'maps', 'help', 'options', 'pause', 'result', 'shop'];
 function show(id) {
   for (const s of screens) $('#' + s).classList.toggle('hidden', s !== id);
   if (id === 'diff') buildDiff();
   if (id === 'maps') buildMaps();
   if (id === 'options') buildOptions();
+  if (id === 'shop') buildShop();
+  if (id === 'menu') $('#menuChips').textContent = save.chips || 0;
 }
 function setState(s) {
   state = s;
@@ -2112,7 +2187,7 @@ $('#optSound').onclick = () => { save.sound = !save.sound; persist(); buildOptio
 $('#optMusic').onclick = () => { initAudio(); save.music = !save.music; persist(); buildOptions(); };
 $('#optSide').onclick = () => { save.side = save.side === 'left' ? 'right' : 'left'; persist(); buildOptions(); };
 $('#optVibe').onclick = () => { save.vibe = !save.vibe; persist(); buildOptions(); };
-$('#optReset').onclick = () => { if (confirm('Effacer toute la progression ?')) { const keep = { music: save.music, sound: save.sound, vibe: save.vibe, autoWave: save.autoWave }; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), keep); persist(); buildOptions(); } };
+$('#optReset').onclick = () => { if (confirm('Effacer toute la progression ?')) { const keep = { side: save.side, music: save.music, sound: save.sound, vibe: save.vibe, autoWave: save.autoWave }; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), keep); persist(); buildOptions(); } };
 
 function pauseGame() { if (state === 'play' && G && !G.over) setState('pause'); }
 function resumeGame() { if (state === 'pause') setState('play'); }
@@ -2121,6 +2196,9 @@ $('#btnRestart').onclick = () => startMap(G.mi);
 $('#btnQuit').onclick = () => setState('maps');
 $('#resRetry').onclick = () => startMap(G.mi);
 $('#resMaps').onclick = () => setState('maps');
+$('#resShop').onclick = () => openShop('result');
+$('#mapsShop').onclick = () => openShop('maps');
+$('#menuShop').onclick = () => { initAudio(); openShop('menu'); };
 // bouton retour d'Android (appli) : pause, reprise, retour au menu ; sinon l'appli se ferme
 window.onAndroidBack = () => {
   if (state === 'play') { if (G && G.sel) { closePopup(); return true; } pauseGame(); return true; }
