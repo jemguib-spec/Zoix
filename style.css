@@ -68,3 +68,27 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #toast{position:fixed;z-index:7;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);background:rgba(0,0,0,.8);padding:8px 14px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;text-align:center;max-width:80vw}
 #toast.on{opacity:1}
 .screen>:first-child{margin-top:auto}.screen>:last-child{margin-bottom:auto}
+
+/* ---- style réaliste du panneau ---- */
+#panel{background:
+  radial-gradient(circle at 9px 9px,#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
+  radial-gradient(circle at calc(100% - 9px) 9px,#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
+  radial-gradient(circle at 9px calc(100% - 9px),#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
+  radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
+  repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.03) 1px 2px,transparent 2px 4px),
+  linear-gradient(180deg,#c62828 0%,#9a1313 45%,#6d0a0a 100%);
+  box-shadow:0 0 0 2px #2a0303,0 0 0 4px #8d9499,0 0 0 6px #2b2f33,0 8px 24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -2px 6px rgba(0,0,0,.4)}
+.stats div{background:linear-gradient(180deg,#0c120c,#162016);border-radius:5px;box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.2);border:1px solid #000}
+.stats small{color:#ffcdd2;opacity:.75}
+.stats b{color:#ff6e40;text-shadow:0 0 6px rgba(255,110,64,.8);font-family:"Courier New",ui-monospace,monospace;font-weight:900;letter-spacing:.05em}
+.stats b.cash{color:#d4ff3a;text-shadow:0 0 6px rgba(212,255,58,.8)}
+.tbtn{background:linear-gradient(180deg,#fafbfc 0%,#cfd6db 50%,#9aa5ad 100%);border:1px solid #3c454c;box-shadow:0 3px 0 #2e363c,0 4px 6px rgba(0,0,0,.5),inset 0 1px 0 #fff;color:#1d2328;text-shadow:0 1px 0 rgba(255,255,255,.7);transition:transform .05s}
+.tbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #2e363c,inset 0 1px 0 #fff}
+.tbtn.sel{background:linear-gradient(180deg,#fff9c4,#ffd54f 55%,#f9a825);box-shadow:0 3px 0 #8d6e00,0 0 0 2px #fff,0 0 14px #ffeb3b}
+.ctrls button{background:linear-gradient(180deg,#3a3f44,#1d2125);border:1px solid #000;box-shadow:0 2px 0 #000,inset 0 1px 0 rgba(255,255,255,.2)}
+.ctrls .go{background:linear-gradient(180deg,#8bd450,#3d8b2a 55%,#25601a);border:1px solid #143d0d;box-shadow:0 3px 0 #143d0d,inset 0 1px 0 rgba(255,255,255,.45);text-shadow:0 1px 1px rgba(0,0,0,.5)}
+#tpop{background:linear-gradient(180deg,rgba(40,44,48,.97),rgba(18,20,22,.97));box-shadow:0 0 0 1px #000,0 0 0 3px #8d9499,0 10px 24px rgba(0,0,0,.7)}
+.tp-acts .buy{background:linear-gradient(180deg,#66bb6a,#2e7d32);box-shadow:0 2px 0 #1b5e20}
+.tp-acts .sell{background:linear-gradient(180deg,#ef5350,#b71c1c);box-shadow:0 2px 0 #7f0000}
+.tp-acts .buy.off{background:#555;box-shadow:none}
+.big{border:1px solid rgba(0,0,0,.5);text-shadow:0 1px 2px rgba(0,0,0,.5)}
