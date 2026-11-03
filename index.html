@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05060f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Vortrix</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="safe"></div>
+
+<div id="hudBtns" class="hidden">
+  <button id="btnSwap" class="round" aria-label="Changer d'arme">⇄</button>
+  <button id="btnPause" class="round" aria-label="Pause">II</button>
+</div>
+
+<section id="menu" class="screen">
+  <h1 class="logo">VORTRIX</h1>
+  <p class="sub">Arène néon · Survis aux vagues</p>
+  <div class="col">
+    <button class="big" data-go="diff">▶ Jouer</button>
+    <button class="big alt" data-go="shop">🛒 Boutique</button>
+    <button class="big alt" data-go="options">⚙ Options</button>
+  </div>
+  <p class="credits-line">Crédits : <b class="credits">0</b> ¢</p>
+  <p class="hint">Joystick gauche : se déplacer · Joystick droit : viser/tirer</p>
+</section>
+
+<section id="diff" class="screen hidden">
+  <h2>Difficulté</h2>
+  <div id="diffList" class="col"></div>
+  <button class="back" data-go="menu">← Retour</button>
+</section>
+
+<section id="levels" class="screen hidden">
+  <h2 id="levelsTitle">Niveaux</h2>
+  <div id="levelGrid"></div>
+  <div class="row">
+    <button class="back" data-go="diff">← Retour</button>
+    <button class="back" data-go="shop">🛒 Boutique</button>
+  </div>
+</section>
+
+<section id="shop" class="screen hidden">
+  <h2>Boutique</h2>
+  <p class="credits-line">Crédits : <b class="credits">0</b> ¢</p>
+  <div class="tabs">
+    <button class="tab on" data-tab="weapons">Armes</button>
+    <button class="tab" data-tab="ups">Améliorations</button>
+  </div>
+  <div id="shopList" class="list"></div>
+  <button class="back" id="shopBack">← Retour</button>
+</section>
+
+<section id="options" class="screen hidden">
+  <h2>Options</h2>
+  <div class="col">
+    <button class="big alt" id="optAuto"></button>
+    <button class="big alt" id="optSound"></button>
+    <button class="big alt" id="optVibe"></button>
+    <button class="big danger" id="optReset">Réinitialiser la progression</button>
+  </div>
+  <button class="back" data-go="menu">← Retour</button>
+</section>
+
+<section id="pause" class="screen hidden dim">
+  <h2>Pause</h2>
+  <div class="col">
+    <button class="big" id="btnResume">▶ Reprendre</button>
+    <button class="big alt" id="btnRestart">↻ Recommencer</button>
+    <button class="big danger" id="btnQuit">✕ Abandonner</button>
+  </div>
+</section>
+
+<section id="result" class="screen hidden dim">
+  <h2 id="resTitle"></h2>
+  <div id="resStars" class="stars"></div>
+  <div id="resBody" class="panel"></div>
+  <div class="col">
+    <button class="big" id="resNext"></button>
+    <button class="big alt" id="resShop">🛒 Boutique</button>
+    <button class="big alt" id="resLevels">☰ Niveaux</button>
+  </div>
+</section>
+
+<script src="game.js"></script>
+</body>
+</html>
