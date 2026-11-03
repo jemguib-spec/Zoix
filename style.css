@@ -701,3 +701,31 @@ h2{font-weight:800;letter-spacing:.02em;color:#fff;text-shadow:none;background:l
   #shop .tabs:not(.worlds) .tab{padding:6px 12px;font-size:14px}
   #shopWorlds{border-radius:18px;max-width:94vw}
 }
+
+/* ---- menu principal en paysage : logo à gauche, boutons en grille à droite, sans ascenseur ---- */
+@media (orientation:landscape) and (max-height:700px){
+  #menu.screen{display:grid;grid-template-columns:auto minmax(0,min(520px,58vw));grid-template-rows:auto auto;grid-template-areas:"logo col" "sub col";
+    align-content:center;justify-content:center;align-items:center;column-gap:clamp(18px,5vw,56px);row-gap:10px;overflow:hidden}
+  #menu>*{margin:0!important}
+  #menu .logo{grid-area:logo;align-self:end;font-size:clamp(34px,min(8vw,16vh),76px)}
+  #menu .sub{grid-area:sub;align-self:start;display:block;max-width:260px;font-size:clamp(11px,2.6vh,14px)}
+  #menu .col{grid-area:col;display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,1.6vh,10px);width:100%}
+  #menu .row2.modes{display:contents}
+  #menu #menuPlay,#menu #menuShop{grid-column:1/-1}
+  #menu .big,#menu .row2.modes .big{padding:clamp(7px,2vh,12px) 12px;font-size:clamp(13px,3.6vh,17px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media (orientation:landscape) and (max-height:340px){#menu .sub{display:none}#menu.screen{grid-template-areas:"logo col" "logo col"}#menu .logo{align-self:center}}
+/* écrans compacts en paysage (le style moderne ne doit pas agrandir les boutons) */
+@media (orientation:landscape) and (max-height:500px){
+  .screen:not(#menu) .big{padding:8px 14px;font-size:15px}
+  .back{padding:6px 16px}
+  #options.screen{gap:6px}
+  #options .col{grid-template-columns:repeat(3,minmax(0,1fr))!important;width:min(860px,96vw)!important;gap:6px}
+  #options .col .big{padding:7px 10px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #options .col>.codebox{grid-column:span 2}
+  #options #optReset{grid-column:span 1}
+  #options .vol{font-size:12px}
+}
+@media (orientation:landscape) and (max-height:400px){
+  #maps.screen{gap:4px;padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+}
