@@ -163,8 +163,8 @@ const TOWERS = {
   vortex: { name: 'Vortex', cost: 140, range: 2.2, rate: .3, dmg: 8, col: '#7c4dff', proj: 'vortex', desc: 'Impulsion gravitationnelle qui renvoie les virus en arrière.' }
 };
 // ---- chaque monde donne son style aux tourelles : [famille de dessin, variante] ----
-// moderne = tourelles high-tech, retro = bois/pierre/fer (catapultes…), neo = néon futuriste
-const WTSTYLE = { pcb: ['modern', 'classic'], forge: ['retro', 'forge'], data: ['neo', 'data'], rack: ['modern', 'carbon'], ice: ['modern', 'ice'], neon: ['neo', 'neon'], retro: ['retro', 'wood'], cloud: ['neo', 'cloud'] };
+// moderne = tourelles high-tech, retro = bois/pierre/fer (catapultes…), neo = néon futuriste, ice = glace, mil = militaire
+const WTSTYLE = { pcb: ['modern', 'classic'], forge: ['retro', 'forge'], data: ['neo', 'data'], rack: ['mil', 'mil'], ice: ['ice', 'ice'], neon: ['neo', 'neon'], retro: ['retro', 'wood'], cloud: ['neo', 'cloud'] };
 let shopWorld = null; // monde choisi dans la boutique pour l'aperçu
 const curWorld = () => shopWorld !== null ? shopWorld : (G ? worldIdx(G.mi) : 0);
 const curTS = () => WTSTYLE[WORLDS[curWorld()].style] || WTSTYLE.pcb;
@@ -178,6 +178,16 @@ const TNAMES = {
     laser: ['Tour du mage', 'Mage', 'Rayon magique : longue portée, dégâts énormes.'], tesla: ['Pilier runique', 'Runes', 'Foudre magique qui rebondit sur plusieurs virus.'],
     mine: ['Poudrière', 0, 'Sème des tonneaux de poudre qui explosent au passage des virus.'], vortex: ['Moulin à vent', 'Moulin', 'Ses ailes soufflent les virus en arrière.'],
     boost: ['Tambour de guerre', 'Tambour', 'Encourage les tourelles voisines : plus de dégâts.'], miner: ['Coffre au trésor', 'Trésor', 'Rapporte des pièces d\'or à chaque vague.']
+  },
+  ice: {
+    pulse: ['Lance-glaçons', 'Glaçons'], gatling: ['Mitraille de grêle', 'Grêle'], cannon: ['Canon à neige', 'Neige', 'Boules de neige explosives. Ne touche pas les volants.'],
+    frost: ['Blizzard', 0], flame: ['Chalumeau', 0], missile: ['Avalanche', 0, 'Blocs de glace guidés, très longue portée.'], laser: ['Rayon aurore', 'Aurore'],
+    tesla: ['Cristal d\'orage', 'Cristal'], mine: ['Mines de glace', 'Mines'], vortex: ['Tourbillon de neige', 'Tourbillon'], boost: ['Totem polaire', 'Totem'], miner: ['Pêche sur glace', 'Pêche']
+  },
+  mil: {
+    pulse: ['Fusil d\'assaut', 'Fusil'], gatling: ['Minigun', 0], cannon: ['Mortier', 0], frost: ['Canon à azote', 'Azote'], flame: ['Lance-feu', 0],
+    missile: ['Lance-roquettes', 'Roquettes'], laser: ['Sniper', 0, 'Tir de précision : très longue portée, dégâts énormes.'], tesla: ['Brouilleur EMP', 'EMP'],
+    mine: ['Champ de mines', 'Mines'], vortex: ['Canon sonique', 'Sonique'], boost: ['Radar de commandement', 'Radar'], miner: ['Caisse de ravitaillement', 'Ravitaill.']
   },
   neo: {
     pulse: ['Blaster ionique', 'Blaster'], gatling: ['Plasma-rafale', 'Rafale'], cannon: ['Canon gravitique', 'Gravité'], frost: ['Champ de stase', 'Stase'],
