@@ -650,3 +650,26 @@ button:active{transform:scale(.96)}
 #toast{border-radius:999px!important;background:rgba(12,18,23,.92)!important;border:1px solid var(--line2);backdrop-filter:blur(10px)}
 #powers .pw{background:radial-gradient(circle at 35% 30%,rgba(60,74,86,.95),rgba(16,22,28,.95))!important}
 #powers .pw.undo{background:linear-gradient(135deg,#ffcf5a,#ff8a3d)!important}
+
+/* ---- menu principal en paysage : logo à gauche, boutons en grille à droite, sans ascenseur ---- */
+@media (orientation:landscape) and (max-height:600px){
+  #menu.screen{flex-direction:row;justify-content:center;align-items:center;gap:clamp(16px,6vw,64px);overflow:hidden}
+  #menu.screen>*{margin:0!important}
+  #menu .sub{display:none}
+  #menu .logo{font-size:clamp(34px,min(9vw,18vh),72px)}
+  #menu .col{width:min(460px,54vw);display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,1.8vh,10px)}
+  #menu .col>.row2{display:contents}
+  #menu .col>#menuPlay,#menu .col>#menuShop{grid-column:1/-1}
+  #menu .col .big{padding:clamp(6px,2.4vh,12px) 10px;font-size:clamp(13px,3.8vh,17px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+}
+/* pas de barre de défilement visible (les longues listes défilent toujours au doigt) */
+.screen,.eo-card,.mcard,#edPanel{scrollbar-width:none}
+.screen::-webkit-scrollbar,.eo-card::-webkit-scrollbar,.mcard::-webkit-scrollbar,#edPanel::-webkit-scrollbar{display:none}
+@media (orientation:landscape) and (max-height:600px){
+  #options .col{grid-template-columns:repeat(3,minmax(0,1fr))!important;width:min(860px,96vw)!important;gap:6px!important}
+  #options .col .big,#options .vol{padding:clamp(5px,1.8vh,10px) 8px;font-size:clamp(11.5px,3.3vh,15px)}
+  #options .col>.codebox{grid-column:span 2}#options .codebox input{padding:6px 10px;font-size:14px}
+  #options .col>.row2{grid-column:span 1}
+  #options #optReset{grid-column:span 1}
+  #options.screen,#maps.screen,#daily.screen{gap:6px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}
+}
