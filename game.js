@@ -24,21 +24,21 @@ const MAPS = [
   { name: 'Mémoire vive', base: '#13807c', acc: '#7df9ff', waves: 30,
     paths: [[[0, 1], [24, 1], [24, 13], [2, 13], [2, 4], [21, 4], [21, 10], [6, 10], [6, 7], [16, 7]]] },
   { name: 'Alimentation', base: '#9c1f1f', acc: '#ff8a80', waves: 30,
-    paths: [[[0, 3], [8, 3], [8, 8], [16, 8], [16, 2], [23, 2], [23, 12], [25, 12]], [[0, 12], [8, 12], [8, 8]]] },
+    paths: [[[0, 2], [17, 2], [17, 6], [6, 6], [6, 10], [25, 10]], [[0, 13], [3, 13], [3, 8], [13, 8], [13, 6]]] },
   { name: 'Carte graphique', base: '#62309a', acc: '#e0aaff', waves: 35,
-    paths: [[[2, 0], [2, 12], [6, 12], [6, 2], [10, 2], [10, 12], [14, 12], [14, 2], [18, 2], [18, 12], [22, 12], [22, 7], [25, 7]]] },
+    paths: [[[2, 0], [2, 12], [6, 12], [6, 2], [10, 2], [10, 12], [14, 12], [14, 2], [25, 2]], [[18, 14], [18, 4], [23, 4], [23, 8], [20, 8], [20, 12], [25, 12]]] },
   { name: 'Processeur central', base: '#1e5296', acc: '#90e0ef', waves: 40,
     paths: [[[4, 0], [4, 3], [22, 3], [22, 7], [13, 7]], [[21, 14], [21, 11], [3, 11], [3, 7], [13, 7]]] },
   { name: 'Disque dur', base: '#3a3f47', acc: '#ff9100', waves: 35,
-    paths: [[[0, 7], [5, 7], [5, 2], [20, 2], [20, 12], [9, 12], [9, 5], [16, 5], [16, 9], [12, 9]]] },
+    paths: [[[0, 7], [5, 7], [5, 2], [20, 2], [20, 12], [9, 12], [9, 5], [16, 5], [16, 9], [12, 9]], [[25, 13], [23, 13], [23, 7], [14, 7], [14, 9]]] },
   { name: 'Carte réseau', base: '#0e5c73', acc: '#4dd0e1', waves: 35,
     paths: [[[0, 1], [12, 1], [12, 5], [4, 5], [4, 9], [16, 9], [16, 13], [25, 13]], [[25, 7], [23, 7], [23, 1], [15, 1], [15, 7], [18, 7], [18, 9], [16, 9]]] },
   { name: 'Carte son', base: '#7a5a12', acc: '#ffe082', waves: 40,
-    paths: [[[0, 13], [4, 13], [4, 10], [8, 10], [8, 7], [12, 7], [12, 4], [16, 4], [16, 1], [22, 1], [22, 13], [25, 13]]] },
+    paths: [[[0, 13], [4, 13], [4, 10], [8, 10], [8, 7], [12, 7], [12, 4], [16, 4], [16, 1], [22, 1], [22, 13], [25, 13]], [[0, 1], [10, 1], [10, 10], [19, 10], [19, 4], [25, 4]]] },
   { name: 'Serveur', base: '#14532d', acc: '#69f0ae', waves: 40,
-    paths: [[[0, 1], [10, 1], [10, 5], [3, 5], [3, 9], [12, 9], [12, 14]], [[25, 1], [15, 1], [15, 5], [22, 5], [22, 9], [12, 9]]] },
+    paths: [[[0, 1], [10, 1], [10, 5], [3, 5], [3, 9], [12, 9], [12, 14]], [[25, 1], [15, 1], [15, 5], [22, 5], [22, 9], [12, 9]], [[13, 0], [13, 7], [19, 7], [19, 11], [16, 11], [16, 13], [25, 13]]] },
   { name: 'Pare-feu', base: '#a33a0c', acc: '#ffab40', waves: 45,
-    paths: [[[12, 0], [12, 3], [2, 3], [2, 12], [23, 12], [23, 3], [16, 3], [16, 9], [7, 9], [7, 6], [12, 6]]] },
+    paths: [[[12, 0], [12, 3], [2, 3], [2, 12], [23, 12], [23, 3], [16, 3], [16, 9], [7, 9], [7, 6], [12, 6]], [[20, 0], [20, 14]], [[5, 14], [5, 0]]] },
   { name: 'Noyau quantique', base: '#24123f', acc: '#ea80fc', waves: 50,
     paths: [[[0, 1], [10, 1], [10, 3], [2, 3], [2, 5], [11, 5], [11, 7], [13, 7]], [[25, 1], [15, 1], [15, 3], [23, 3], [23, 5], [15, 5], [15, 7], [13, 7]], [[6, 14], [6, 12], [22, 12], [22, 9], [13, 9], [13, 7]]] }
 ];
@@ -49,8 +49,22 @@ for (const m of MAPS) {
     let [x, y] = p[i]; const [x2, y2] = p[i + 1];
     while (true) { g[y][x] = '.'; if (x === x2 && y === y2) break; x += Math.sign(x2 - x); y += Math.sign(y2 - y); }
   }
+  // liste des cases de chaque chemin
+  const tilesOf = p => { const out = []; for (let i = 0; i < p.length - 1; i++) { let [x, y] = p[i]; const [x2, y2] = p[i + 1]; while (true) { if (!out.length || out[out.length - 1][0] !== x || out[out.length - 1][1] !== y) out.push([x, y]); if (x === x2 && y === y2) break; x += Math.sign(x2 - x); y += Math.sign(y2 - y); } } return out; };
+  const T = m.paths.map(tilesOf);
+  // un chemin qui finit sur un autre chemin le rejoint et continue avec lui ; sinon il a sa propre sortie
+  const build = (i, depth) => {
+    const r = T[i], last = r[r.length - 1];
+    for (let j = 0; j < T.length && depth < 4; j++) {
+      if (j === i) continue;
+      const k = T[j].findIndex(([x, y]) => x === last[0] && y === last[1]);
+      if (k >= 0 && k < T[j].length - 1) return r.concat(build(j, depth + 1).slice(k + 1));
+    }
+    return r.slice();
+  };
+  m.routes = T.map((_, i) => build(i, 0));
+  for (const r of m.routes) { const e = r[r.length - 1]; g[e[1]][e[0]] = 'E'; }
   for (const p of m.paths) { const [sx, sy] = p[0]; g[sy][sx] = 'S'; }
-  const e = m.paths[0][m.paths[0].length - 1]; g[e[1]][e[0]] = 'E';
   // gros composants décoratifs (2x2) posés loin des couloirs : on ne peut pas construire dessus
   const Rn = mulberry(MAPS.indexOf(m) * 131 + 7); m.obst = [];
   for (let k = 0, tries = 0; k < 3 && tries < 400; tries++) {
@@ -114,7 +128,12 @@ function waveDef(w) {
   const intro = { 1: 'bug', 3: 'runner', 5: 'swarm', 6: 'armor', 8: 'flyer', 12: 'regen' };
   const avail = ['bug']; if (w >= 3) avail.push('runner'); if (w >= 5) avail.push('swarm'); if (w >= 6) avail.push('armor'); if (w >= 8) avail.push('flyer'); if (w >= 12) avail.push('regen');
   const type = intro[w] || avail[(w * 7 + 3) % avail.length];
-  return { type, n: Math.round(ETYPES[type].n * (1 + w * .025)) };
+  const res = { type, n: Math.round(ETYPES[type].n * (1 + w * .025)) };
+  if (w >= 9 && !intro[w]) { // à partir de la vague 9 : deux sortes de virus mélangées
+    const t2 = avail[(w * 5 + 1) % avail.length];
+    if (t2 !== type) { res.type2 = t2; res.n2 = Math.round(ETYPES[t2].n * (.45 + w * .012)); }
+  }
+  return res;
 }
 const hpScale = w => (1 + .13 * (w - 1) + .011 * (w - 1) * (w - 1));
 const rewScale = w => 1 + (w - 1) * .04;
@@ -486,9 +505,10 @@ let G = null, state = 'menu', curDiff = 'normal', uid = 1;
 function newGame(mi, demo) {
   const m = MAPS[mi], d = DIFFS[demo ? 'normal' : curDiff];
   const starts = [], exits = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const ch = m.g[y][x]; if (ch === 'S') starts.push([x, y]); if (ch === 'E') exits.push([x, y]); }
+  for (const r of m.routes) starts.push(r[0]);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (m.g[y][x] === 'E') exits.push([x, y]);
   const g = {
-    mi, m, d, demo: !!demo, total: demo ? 9999 : m.waves, wave: 0, lives: d.lives, cash: demo ? 1e9 : d.cash, score: 0, time: 0,
+    mi, m, d, demo: !!demo, total: demo ? 9999 : m.waves, wave: 0, lives: d.lives, cash: demo ? 1e9 : d.cash + (m.routes.length - 1) * 12, score: 0, time: 0,
     starts, exits, towers: [], towerAt: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
     enemies: [], projs: [], fx: [], parts: [], texts: [], queue: [], spawnT: 0, nextStart: 0,
     tool: null, sel: null, hover: null, speed: 1, countdown: -1, over: false, kills: 0, shake: 0, banner: null, aiT: 0
@@ -499,12 +519,11 @@ function newGame(mi, demo) {
   for (const tr of m.traces) { tr.pts = tr; tr.lens = []; tr.len = 0; for (let i = 0; i < tr.length - 1; i++) { const l = Math.hypot(tr[i + 1][0] - tr[i][0], tr[i + 1][1] - tr[i][1]) || .01; tr.lens.push(l); tr.len += l; } }
   g.pulses = [];
   for (let i = 0; i < 34; i++) g.pulses.push({ tr: Math.floor(Math.random() * m.traces.length), d: Math.random() * 6, spd: rand(1.5, 4), col: Math.random() < .7 ? m.acc : '#ffffff' });
-  g.flow = [];
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    if (!'.S'.includes(m.g[y][x])) continue;
-    let best = null, bd = g.dist[y][x];
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS && g.dist[ny][nx] < bd) { bd = g.dist[ny][nx]; best = [dx, dy]; } }
-    if (best) g.flow.push({ x, y, a: Math.atan2(best[1], best[0]), d: g.dist[y][x] });
+  g.flow = []; const seen = new Set();
+  for (const r of m.routes) for (let i = 0; i < r.length - 1; i++) {
+    const [x, y] = r[i], [nx, ny] = r[i + 1], key = x + ',' + y + ',' + (nx - x) + ',' + (ny - y);
+    if (seen.has(key)) continue; seen.add(key);
+    g.flow.push({ x, y, a: Math.atan2(ny - y, nx - x), d: r.length - 1 - i });
   }
   G = keep;
   return g;
@@ -596,26 +615,28 @@ function startWave() {
   G.wave++;
   const wd = waveDef(G.wave), et = ETYPES[wd.type];
   let t = G.queue.length ? G.queue[G.queue.length - 1].t + 1 : 0;
+  const t0 = t;
   for (let i = 0; i < wd.n; i++) { G.queue.push({ type: wd.type, t, wave: G.wave }); t += et.int; }
+  if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < wd.n2; i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave }); t2 += ETYPES[wd.type2].int * 1.3; } }
   if (wd.type === 'boss') for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: i * .6 + .5, wave: G.wave });
   G.queue.sort((a, b) => a.t - b.t);
   G.spawnT = 0;
   const bonus = 2 + Math.floor(G.wave / 3) + (early ? 3 : 0);
   G.cash += bonus; G.score += bonus * 10;
   G.countdown = -1;
-  G.banner = { t: (wd.type === 'boss' ? '⚠ MÉGA-VIRUS ⚠' : 'VAGUE ' + G.wave), sub: wd.n + ' × ' + et.name, life: 2.2, boss: wd.type === 'boss' };
+  G.banner = { t: (wd.type === 'boss' ? '⚠ MÉGA-VIRUS ⚠' : 'VAGUE ' + G.wave), sub: wd.n + ' × ' + et.name + (wd.type2 ? ' + ' + wd.n2 + ' × ' + ETYPES[wd.type2].name : ''), life: 2.2, boss: wd.type === 'boss' };
   toast((wd.type === 'boss' ? '⚠ ' : '') + 'Vague ' + G.wave + ' : ' + wd.n + ' × ' + et.name + (early ? ' · bonus anticipé +' + bonus : ' · +' + bonus + ' crédits'));
   sfx('wave'); updatePanel();
 }
 function spawnEnemy(type, wave) {
-  const d = ETYPES[type], s = G.starts[G.nextStart++ % G.starts.length];
+  const d = ETYPES[type], ri = G.nextStart++ % G.m.routes.length, route = G.m.routes[ri], s = route[0];
   const hp = d.hp * hpScale(wave) * G.d.hp;
   const e = {
     id: uid++, type, x: s[0] + .5, y: s[1] + .5, tx: s[0], ty: s[1], hp, max: hp, spd: d.spd, r: d.r, col: d.col,
     rew: Math.max(1, Math.round(d.rew * rewScale(wave))), armor: (d.armor || 0) * (1 + wave * .03), fly: !!d.fly, regen: d.regen || 0,
-    lives: d.lives || 1, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false
+    lives: d.lives || 1, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
   };
-  nextTile(e);
+  e.hp = e.max = hp * (1 + G.mi * .025);
   G.enemies.push(e);
 }
 function nextTile(e) {
@@ -654,7 +675,7 @@ function hurt(e, dmg, pierce) {
   }
 }
 function enemyProgress(e) {
-  return G.dist[e.ty][e.tx] + Math.hypot(e.tx + .5 - e.x, e.ty + .5 - e.y);
+  return (e.route.length - 1 - e.ri) - 1 + Math.hypot(e.tx + .5 - e.x, e.ty + .5 - e.y);
 }
 function findTarget(t) {
   const cx = t.x + .5, cy = t.y + .5, r2 = t.st.range * t.st.range, ground = TOWERS[t.type].ground;
@@ -747,13 +768,13 @@ function update(dt) {
     if (e.stunT > 0) { e.stunT -= dt; mv = 0; }
     {
       let guard = 0;
-      while (mv > 0 && guard++ < 5) {
-        const cx = e.tx + .5, cy = e.ty + .5, dx = cx - e.x, dy = cy - e.y, d = Math.hypot(dx, dy);
+      while (mv > 0 && guard++ < 6) {
+        const nxt = e.route[e.ri + 1];
+        if (!nxt) { leak(e); break; }
+        const cx = nxt[0] + .5, cy = nxt[1] + .5, dx = cx - e.x, dy = cy - e.y, d = Math.hypot(dx, dy);
+        e.tx = nxt[0]; e.ty = nxt[1];
         if (d <= mv) {
-          e.x = cx; e.y = cy; mv -= d;
-          if (G.m.g[e.ty][e.tx] === 'E') { leak(e); break; }
-          const ox = e.tx, oy = e.ty; nextTile(e);
-          if (e.tx === ox && e.ty === oy) break;
+          e.x = cx; e.y = cy; mv -= d; e.ri++;
         } else {
           e.x += dx / d * mv; e.y += dy / d * mv; mv = 0;
           const ta = Math.atan2(dy, dx); e.ang += Math.atan2(Math.sin(ta - e.ang), Math.cos(ta - e.ang)) * Math.min(1, dt * 14);
@@ -1460,7 +1481,7 @@ function updatePanel(force) {
   else label = '▶ Vague ' + (G.wave + 1) + (G.countdown > 0 ? ' (' + Math.ceil(G.countdown) + ')' : '');
   setTxt('#bWave', label);
   bw.classList.toggle('off', G.wave >= G.total);
-  if (G.wave < G.total) { const w = waveDef(G.wave + 1); setTxt('#nextInfo', 'Suivante : ' + w.n + ' × ' + ETYPES[w.type].name + (ETYPES[w.type].fly ? ' (vol)' : '')); }
+  if (G.wave < G.total) { const w = waveDef(G.wave + 1); setTxt('#nextInfo', 'Suivante : ' + w.n + ' × ' + ETYPES[w.type].name + (w.type2 ? ' + ' + w.n2 + ' × ' + ETYPES[w.type2].name : '')); }
   else setTxt('#nextInfo', 'Élimine les derniers virus !');
   const key = TORDER.map(k => G.cash >= TOWERS[k].cost ? 1 : 0).join('');
   if (lastP.poor !== key) { lastP.poor = key; document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('poor', G.cash < TOWERS[b.dataset.t].cost)); }

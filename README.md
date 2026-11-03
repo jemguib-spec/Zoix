@@ -6,7 +6,7 @@ place des **tourelles automatiques** sur le circuit, le long des couloirs qu'ils
 HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode paysage et en mode portrait, avec zoom (pincer) et déplacement (glisser).
 
 ## Contenu
-- **12 grandes cartes** (26 × 15 cases) aux couloirs sinueux, avec ventilateurs animés et dissipateurs : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central, disque dur, carte réseau, carte son, serveur, pare-feu, noyau quantique), de 20 à 50 vagues chacune. Chaque zone débloque la suivante.
+- **12 grandes cartes** (26 × 15 cases) aux couloirs sinueux, avec ventilateurs animés et dissipateurs. Les cartes avancées ont **plusieurs entrées, plusieurs sorties et des couloirs qui se croisent** ; chaque virus suit son propre chemin. À partir de la vague 9, les vagues mélangent deux sortes de virus : (carte mère, bus d'adresse, mémoire vive, alimentation, carte graphique, processeur central, disque dur, carte réseau, carte son, serveur, pare-feu, noyau quantique), de 20 à 50 vagues chacune. Chaque zone débloque la suivante.
 - **4 difficultés** : Facile, Normal, Difficile, Cauchemar (vies, crédits de départ et résistance des virus).
 - **6 tourelles**, chacune améliorable jusqu'au **niveau 5**, qui débloque un pouvoir spécial (double tir, balles perforantes, méga-obus, gel total, rayon perforant, surcharge). Mode de visée réglable : premier, dernier, plus fort, plus proche.
   | Tourelle | Prix | Rôle |
