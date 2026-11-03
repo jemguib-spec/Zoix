@@ -470,3 +470,7 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #options .col>.codebox{grid-column:1/-1}
 #toast{z-index:30}
 #options #optReset{grid-column:1/-1}
+/* pouvoirs : bien espacés, pastilles qui ne touchent pas le bouton voisin */
+#powers{gap:14px!important;padding:6px 6px 0}
+#powers .pw em{top:-6px;right:-8px}
+@media (max-height:500px){#powers{gap:13px!important}}

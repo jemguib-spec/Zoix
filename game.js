@@ -473,7 +473,7 @@ function layout() {
   setZoom(L.zoom);
   if (G && G.sel) { dockPopup(); placePopup(); }
   const pw = $('#powers');
-  if (pw) { pw.style.left = (L.ax + 8) + 'px'; pw.style.top = 'auto'; pw.style.bottom = (L.port ? SH - (L.ay + L.ah) + 8 : 8 + sB) + 'px'; }
+  if (pw) { pw.style.left = (L.ax + 12) + 'px'; pw.style.top = 'auto'; pw.style.bottom = (L.port ? SH - (L.ay + L.ah) + 8 : 12 + sB) + 'px'; }
 }
 addEventListener('resize', layout);
 function setZoom(z, fx, fy) {
@@ -1632,7 +1632,11 @@ function update(dt) {
     e.noHit = (e.noHit || 0) + dt; e.shHit = Math.max(0, (e.shHit || 0) - dt);
     if (e.shMax && e.noHit > 2.5) e.sh = Math.min(e.shMax, e.sh + e.shMax * .35 * dt);
     if (e.phaseT !== undefined) { e.phaseT -= dt; if (e.phaseT <= 0) { e.phased = !e.phased; e.phaseT = e.phased ? 1.3 : rand(2.2, 3.2); } }
-    if (ETYPES[e.type].heal) { e.healT = (e.healT || 0) - dt; if (e.healT <= 0) { e.healT = 1; for (const o of G.enemies) if (!o.dead && o !== e && o.hp < o.max && Math.hypot(o.x - e.x, o.y - e.y) < 1.6) { o.hp = Math.min(o.max, o.hp + o.max * .1); G.texts.push({ x: o.x, y: o.y - .3, t: '+', col: '#76ff03', life: .6 }); } G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: 1.6, col: 'rgba(120,255,140,.5)', life: .4, max: .4 }); } }
+    if (ETYPES[e.type].heal) { e.healT = (e.healT || 0) - dt; if (e.healT <= 0) { e.healT = 1; for (const o of G.enemies) if (!o.dead && o !== e && o.hp < o.max && !(o.healedT > G.time) && Math.hypot(o.x - e.x, o.y - e.y) < 1.6) {
+          // soin plafonné : au plus 10 % des PV du soigneur (un boss n'est plus soigné de 10 % de ses PV), une seule fois par seconde
+          o.healedT = G.time + .95; o.hp = Math.min(o.max, o.hp + Math.min(o.max * .1, e.max * .1));
+          if (G.texts.length < 60) G.texts.push({ x: o.x, y: o.y - .3, t: '+', col: '#76ff03', life: .6 });
+        } G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: 1.6, col: 'rgba(120,255,140,.5)', life: .4, max: .4 }); } }
     if (e.type === 'giant' && Math.random() < dt * 4) G.parts.push({ smoke: true, x: e.x + rand(-.2, .2), y: e.y + rand(-.2, .2), vx: 0, vy: 0, life: .6, max: .6, size: .12 });
     if (e.jumpT !== undefined && !(e.stunT > 0)) { e.jumpT -= dt; if (e.jumpT <= 0) { e.jumpT = rand(2.5, 3.5); const to = Math.min(e.route.length - 2, e.ri + 4); if (to > e.ri) { G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); e.ri = to; const p2 = e.route[to]; e.x = p2[0] + .5; e.y = p2[1] + .5; G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); } } }
     if (e.frozen > 0) e.frozen -= dt;
@@ -2897,7 +2901,7 @@ function updatePanel(force) {
   setTxt('#sScore', String(G.score).padStart(6, '0'));
   const bw = $('#bWave');
   let label;
-  if (G.wave >= G.total) label = 'Dernière vague';
+  if (G.wave >= G.total) label = '🏁 Finale';
   else if (G.wave === 0) label = '▶ Vague 1';
   else if (G.queue.length || G.enemies.length) label = '⏩ Vague ' + (G.wave + 1) + ' · +' + earlyBonus();
   else label = '▶ Vague ' + (G.wave + 1);
