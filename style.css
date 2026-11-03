@@ -297,3 +297,88 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #tpop.dock .mode{padding:5px;font-size:11px;margin-top:4px}
 #panel.land.seltower #towerBar{display:none}
 #tpop.dock .tp-head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- pouvoirs actifs ---- */
+#powers{position:fixed;z-index:4;display:flex;gap:6px;pointer-events:none}
+#powers .pw{pointer-events:auto;position:relative;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(circle at 35% 30%,#4a5560,#1b2026);box-shadow:0 0 0 2px #000,0 0 0 3px rgba(255,255,255,.25),0 4px 8px rgba(0,0,0,.6)}
+#powers .pw i{font-style:normal;font-size:21px;position:relative;z-index:1}
+#powers .pw::after{content:"";position:absolute;inset:0;background:conic-gradient(rgba(0,0,0,.72) var(--cd,0%),transparent 0)}
+#powers .pw span{position:absolute;z-index:2;font-size:12px;font-weight:900;bottom:3px;right:0;left:0;text-align:center;text-shadow:0 1px 2px #000}
+#powers .pw.ready{box-shadow:0 0 0 2px #000,0 0 0 3px #ffd740,0 0 14px rgba(255,215,64,.7);animation:pwReady 1.6s ease-in-out infinite}
+#powers .pw.aim{box-shadow:0 0 0 2px #000,0 0 0 4px #ff9100,0 0 20px #ff6d00;animation:none}
+#powers .pw.tool{width:36px;height:36px;align-self:flex-end;background:radial-gradient(circle at 35% 30%,#3b4650,#151a1f)}
+#powers .pw.tool i{font-size:16px}
+#powers .pw.tool.on{box-shadow:0 0 0 2px #000,0 0 0 3px #69f0ae}
+#powers .pw.undo{width:auto;padding:0 10px;border-radius:18px;gap:4px;background:linear-gradient(180deg,#ffb74d,#e65100)}
+#powers .pw.undo span{position:static;font-size:11px}
+@keyframes pwReady{50%{transform:scale(1.07)}}
+
+/* ---- tutoriel ---- */
+#tuto{position:fixed;inset:0;z-index:8;pointer-events:none}
+#tutoRing{position:fixed;border-radius:12px;border:3px solid #ffd740;box-shadow:0 0 0 4000px rgba(0,0,0,.18),0 0 18px #ffd740;animation:tutoPulse 1s ease-in-out infinite}
+@keyframes tutoPulse{50%{transform:scale(1.08);border-color:#fff}}
+#tutoBox{position:fixed;transform:translate(-50%,-100%);width:min(440px,86vw);background:rgba(15,20,30,.94);border-radius:14px;padding:10px 14px 8px;box-shadow:0 0 0 2px #ffd740,0 8px 20px rgba(0,0,0,.7);font-size:14px;line-height:1.35;pointer-events:auto;text-align:center}
+#tutoBox b{color:#ffd740}
+#tutoSkip{margin-top:6px;font-size:11px;opacity:.7;background:none;text-decoration:underline}
+
+/* ---- voies du niveau 5 ---- */
+.tp-paths{display:flex;gap:6px;margin-top:6px}
+.tp-paths button{flex:1;padding:6px 4px;border-radius:8px;font-weight:800;font-size:11.5px;line-height:1.15;display:flex;flex-direction:column;align-items:center}
+.tp-paths button small{font-weight:600;font-size:10px;opacity:.9}
+.tp-paths .pa{background:linear-gradient(180deg,#ffd740,#c79100);color:#2a1d00;box-shadow:0 2px 0 #7a5800}
+.tp-paths .pb{background:linear-gradient(180deg,#40c4ff,#0277bd);box-shadow:0 2px 0 #01416e}
+.tp-paths button.off{filter:grayscale(.8) brightness(.7)}
+#tpop.dock .tp-paths{gap:4px;margin-top:4px}
+#tpop.dock .tp-paths button{font-size:10.5px;padding:5px 2px}
+
+/* ---- menu : modes ---- */
+.row2.modes .big{flex:1;padding:12px 8px;font-size:16px}
+@media (max-height:500px){.row2.modes .big{padding:8px 6px;font-size:14px}#menu .col{gap:7px}#menu .big{padding:9px 14px;font-size:16px}}
+
+/* ---- défi du jour ---- */
+.panel.daily{display:flex;gap:14px;align-items:flex-start;text-align:left;max-width:min(720px,94vw);line-height:1.4}
+.panel.daily .dthumb canvas{position:static;width:min(240px,40vw);border-radius:10px;box-shadow:0 0 0 2px rgba(255,255,255,.2)}
+.panel.daily .dinfo{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.panel.daily .dinfo b{font-size:18px}
+.panel.daily .top{padding-left:22px;font-size:13px;color:#e6ee5a}
+@media (orientation:portrait){.panel.daily{flex-direction:column;align-items:center}}
+
+/* ---- trophées ---- */
+#trophyList{width:min(760px,96vw);display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+#trophyList .tsum{grid-column:1/-1;text-align:center;opacity:.8}
+.ach{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);opacity:.55}
+.ach.on{opacity:1;box-shadow:inset 0 0 0 1px #ffd740,0 0 10px rgba(255,215,64,.25)}
+.ach i{font-style:normal;font-size:26px;width:34px;text-align:center}
+.ach div{flex:1;display:flex;flex-direction:column}.ach small{font-size:11.5px;opacity:.8}
+.ach em{font-style:normal;font-size:11px;color:#d4ff3a}
+.vcard{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.35);border-radius:12px;padding:6px 10px 6px 4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.vcard canvas{position:static;width:64px;height:64px;flex:none}
+.vcard div{display:flex;flex-direction:column;gap:1px}.vcard small{font-size:11px;opacity:.85}
+.vcard .tag{font-size:10px;color:#90caf9;opacity:1}.vcard .vst{opacity:.6}
+.vcard.unseen canvas{filter:brightness(0) opacity(.6)}
+.vcard.wb{box-shadow:inset 0 0 0 1px #ff5252}
+.combos{grid-column:1/-1;display:flex;flex-direction:column;gap:3px;background:rgba(0,0,0,.35);border-radius:12px;padding:8px 12px}
+.combos small{font-size:12px}
+#trophyList.stats{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.srow{display:flex;justify-content:space-between;gap:8px;background:rgba(0,0,0,.35);border-radius:10px;padding:8px 12px}
+.srow b{color:#e6ee5a}
+
+/* ---- pause ---- */
+.panel.pinfo{display:flex;flex-direction:column;gap:3px;text-align:left;max-width:min(520px,92vw);font-size:13px;line-height:1.35}
+.panel.pinfo small{font-size:12.5px;opacity:.9}.panel.pinfo .ok{color:#a5d6a7}.panel.pinfo .ko{color:#ff8a80}
+
+/* ---- résultats ---- */
+.res-stats .wide{grid-column:1/-1}
+.res-stats .chal{gap:2px}.res-stats .chal b{font-size:12.5px;white-space:normal}.res-stats .chal .ok{color:#a5d6a7}.res-stats .chal .ko{color:#ff8a80;opacity:.8}
+.res-stats .chal i{font-style:normal;color:#d4ff3a}
+.bigwave{font-size:54px;font-weight:900;color:#e6ee5a;text-shadow:0 0 16px rgba(230,238,90,.6)}
+.reschips .rec{display:block;font-style:normal;font-size:13px;color:#ff4081;font-weight:900;animation:pwReady 1s infinite}
+
+/* ---- cartes des zones : défis ---- */
+.mapcard .chl{font-size:10px!important;color:#ffd740;opacity:.9!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#worldDesc b{color:#ffd740}
+#trophy .tabs{display:flex;gap:6px}
+#trophy .tab{padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.08);font-weight:800}
+#trophy .tab.on{background:linear-gradient(180deg,#5c6bc0,#283593)}
+#trophy.screen,#daily.screen{background:rgba(5,10,7,.86);backdrop-filter:blur(3px)}

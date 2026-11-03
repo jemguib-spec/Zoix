@@ -24,6 +24,23 @@ HTML5 pur, sans dépendance : il suffit d'ouvrir `index.html`. Marche en mode pa
 - Animations : électricité dans les pistes, LED, portails, processeur qui pulse, tourelles qui recul/scannent, fumée, étincelles, tremblement d'écran, bannières de vague, partie de démonstration derrière le menu.
 - Revente des tourelles (70 %), bonus si on lance une vague en avance, vitesse ×1/×2/×3, vague suivante automatique, score, record et 1 à 3 étoiles par zone. Sauvegarde automatique.
 
+## Profondeur de jeu
+- **Deux voies au niveau 5** pour chaque tourelle : A (pouvoir spécial) ou B (Pulseur lourd, balles incendiaires, mortier, blizzard, plasma bleu, ogive lourde, laser à surchauffe, tempête électrique, accélérateur, banque).
+- **Combinaisons** : choc thermique (feu sur virus gelé), surtension (Tesla sur virus gelé), fusion (laser sur virus en feu), éclatement (explosions sur virus congelé).
+- **Pouvoirs actifs** avec recharge : frappe orbitale (à viser), gel système, redémarrage. Bouton 👁 pour voir les couloirs mal couverts, ↶ pour annuler la dernière pose (remboursée).
+- **Règle par monde** : apprentissage, cases brûlantes, portails, coupures de courant, verglas, piratage (touche la tourelle pour la réparer).
+- **Virus exclusifs** (ver, braise, paquet, zombie, cryovirus, glitch) et **6 boss de monde** à la dernière vague de chaque zone (Ver Kernel, Titan de magma, Cheval de Troie, Botnet DDoS, Glacier, IA corrompue).
+- **Aperçu de la vague suivante** à chaque entrée, avec le trajet des virus.
+- **Séries d'éliminations** (bonus de crédits, sons de plus en plus aigus), micro-pauses et zoom sur les gros impacts, musique propre à chaque monde.
+
+## Rejouabilité
+- **2 défis par zone** (sans revente, sans pouvoir, 3 types de tourelles…), récompensés en puces.
+- **Mode infini** avec record par zone et par difficulté (boss de monde toutes les 25 vagues).
+- **Défi du jour** : même carte et même règle pour la journée (arsenal imposé, invasion, blindage…), meilleurs scores du jour.
+- **24 succès**, **encyclopédie des virus** (avec les combinaisons découvertes) et **statistiques**.
+- **Tutoriel guidé** sur la première zone (rejouable dans les options).
+- Options : **économie de batterie**, **export / import de la sauvegarde** par code.
+
 ## Boutique
 - Chaque partie rapporte des **puces ⬢** (victoire : selon les étoiles, la zone et la difficulté, avec un bonus la première fois ; défaite : selon les vagues tenues).
 - Au début, seuls le Pulseur, la Mitrailleuse et le Canon sont disponibles : les 7 autres tourelles se **débloquent** dans la Boutique.
