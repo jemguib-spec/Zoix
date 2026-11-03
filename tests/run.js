@@ -102,6 +102,17 @@ async function test(name, page, fn) {
     return waveDef(20).type === 'tempest' || 'boss : ' + waveDef(20).type;
   });
   await test('éditeur : les anciens codes VD1 restent valides', page, () => !!lvlDecode('VD1~Test%20ami~6~30~03k3k8484bcb.pdgdgb'));
+  await test('partage : un message reçu (code VD2) s\'importe', page, () => {
+    const c = lvlEncode({ name: 'Partagé', world: 1, waves: 25, paths: [[[0, 4], [20, 4], [20, 10]]], vir: ['bug', 'ember'], boss: 'magma', megas: true, cash: 0, lives: 0 });
+    const n0 = (save.levels || []).length, msg = 'Essaie mon niveau « Partagé » sur Virus Défense ! Ouvre Créer des niveaux → Importer, et colle ce code :\n' + c + '\nhttps://exemple.fr/#lvl=' + c;
+    if (!importLevel(msg)) return 'refusé';
+    if (save.levels.length !== n0 + 1 || save.levels[save.levels.length - 1].code !== c) return 'non ajouté';
+    importLevel(msg); return save.levels.length === n0 + 1 || 'ajouté deux fois';
+  });
+  await test('partage : la fenêtre de partage affiche le code', page, () => {
+    const c = save.levels[save.levels.length - 1].code; shareLevel(c);
+    const ok = !$('#shareBox').classList.contains('hidden') && $('#shareCode').value === c; $('#shareBox').classList.add('hidden'); return ok || 'fenêtre incorrecte';
+  });
   await test('éditeur : un code invalide est refusé', page, () => lvlDecode('VD1~x~99~5~zz') === null && lvlDecode('n\'importe quoi') === null);
   await test('zones aléatoires toujours valides', page, () => { for (let s = 1; s <= 200; s++) { const d = randomDef(s * 7919), e = edCheck(d); if (e) return 'graine ' + s + ' : ' + e; if (!defToMap(d, s).routes.length) return 'graine ' + s; } return true; });
   await test('un niveau créé se joue', page, () => {

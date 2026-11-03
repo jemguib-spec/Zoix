@@ -428,20 +428,45 @@ function playLevel(code, fromEditor) {
   MAPS[NCAMP] = defToMap(d, hashStr(code)); delete thumbs[NCAMP]; initAudio();
   startMap(NCAMP, { custom: true, fromEditor: !!fromEditor });
 }
+// partage : fenêtre avec le code, copie et partage natif (navigateur ou appli Android)
+const APP = window.AndroidApp || null; // pont fourni par l'appli Android
+const LVL_RE = /VD[12]~[^\s#&]+/;
+const shareLink = code => location.protocol.startsWith('http') ? location.href.split('#')[0].split('?')[0] + '#lvl=' + code : '';
+function copyText(t, okMsg) {
+  const ok = () => { toast(okMsg); sfx('coin'); };
+  if (APP && APP.copy) { APP.copy(t); ok(); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(ok, () => fallback()); return; }
+  fallback();
+  function fallback() { const ta = $('#shareCode'); ta.focus(); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) { toast('Sélectionne le code et copie-le'); } }
+}
 function shareLevel(code) {
-  const d = lvlDecode(code), link = location.protocol.startsWith('http') ? location.href.split('#')[0] + '#lvl=' + code : '';
-  const text = 'Essaie mon niveau « ' + d.name + ' » sur Virus Défense ! Code : ' + code + (link ? '\n' + link : '');
-  if (navigator.share) { navigator.share({ title: 'Virus Défense · ' + d.name, text }).catch(() => { }); return; }
-  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('📋 Code du niveau copié : envoie-le à tes amis !'), () => prompt('Copie ce code :', code));
-  else prompt('Copie ce code :', code);
+  const d = lvlDecode(code); if (!d) return;
+  const link = shareLink(code), msg = 'Essaie mon niveau « ' + d.name + ' » sur Virus Défense ! Ouvre Créer des niveaux → Importer, et colle ce code :\n' + code + (link ? '\n' + link : '');
+  $('#shareName').textContent = d.name; $('#shareCode').value = code;
+  $('#shareLink').classList.toggle('hidden', !link);
+  $('#shareNative').classList.toggle('hidden', !(APP && APP.share) && !navigator.share);
+  $('#shareNative').onclick = () => { if (APP && APP.share) APP.share(msg); else navigator.share({ title: 'Virus Défense · ' + d.name, text: msg }).catch(() => { }); };
+  $('#shareCopy').onclick = () => copyText(msg, '📋 Code copié : colle-le dans un message à tes amis !');
+  $('#shareLink').onclick = () => copyText(link, '🔗 Lien copié');
+  $('#shareBox').classList.remove('hidden');
 }
 function importLevel(txt) {
-  const m = (txt || '').match(/VD1~[^\s#&]+/), d = m && lvlDecode(m[0]);
+  const m = (txt || '').match(LVL_RE), d = m && lvlDecode(m[0]);
   if (!d) { toast('Code de niveau invalide'); sfx('err'); return false; }
   save.levels = save.levels || [];
   if (!save.levels.some(l => l.code === m[0])) save.levels.push({ code: m[0] });
   persist(); toast('📥 Niveau « ' + d.name + ' » ajouté à tes niveaux'); sfx('up'); return true;
 }
+function openImport() { $('#importTxt').value = ''; $('#importBox').classList.remove('hidden'); }
+$('#importPaste').onclick = async () => {
+  let t = '';
+  try { if (APP && APP.paste) t = APP.paste(); else if (navigator.clipboard && navigator.clipboard.readText) t = await navigator.clipboard.readText(); } catch (e) { }
+  if (t) $('#importTxt').value = t; else { toast('Appuie longuement dans la case pour coller'); $('#importTxt').focus(); }
+};
+$('#importGo').onclick = () => { if (importLevel($('#importTxt').value)) { $('#importBox').classList.add('hidden'); if (state === 'levels') buildLevels(); else setState('levels'); } };
+document.querySelectorAll('.mclose').forEach(b => b.onclick = () => b.closest('.modal').classList.add('hidden'));
+// niveau reçu depuis une autre appli (partage Android vers Virus Défense)
+window.onSharedLevel = txt => { if (importLevel(txt)) setState('levels'); };
 // croquis rapide d'un niveau (éditeur et miniatures)
 function drawSketch(c, m, d, ed) {
   const b = MAPS[d.world * 3], g = c.createLinearGradient(0, 0, COLS, ROWS);
@@ -509,7 +534,7 @@ function buildLevels() {
 }
 $('#menuLevels').onclick = () => { initAudio(); setState('levels'); };
 $('#lvNew').onclick = () => openEditor(-1);
-$('#lvImport').onclick = () => { const t = prompt('Colle le code (ou le lien) du niveau :'); if (t && importLevel(t)) buildLevels(); };
+$('#lvImport').onclick = () => openImport();
 $('#edName').onclick = () => { const n = prompt('Nom du niveau :', ED.name); if (n && n.trim()) { ED.name = n.trim().slice(0, 30); edUpdate(); } };
 $('#edWPrev').onclick = () => { ED.world = (ED.world + WORLDS.length - 1) % WORLDS.length; edUpdate(); };
 $('#edWNext').onclick = () => { ED.world = (ED.world + 1) % WORLDS.length; edUpdate(); };

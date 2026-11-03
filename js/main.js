@@ -50,7 +50,7 @@ function frame(now) {
 layout();
 setState('menu');
 { // niveau partagé par lien (#lvl=…)
-  const hm = location.hash.match(/lvl=(VD1~[^&#\s]+)/);
+  const hm = location.hash.match(/lvl=(VD[12]~[^&#\s]+)/);
   if (hm) { history.replaceState(null, '', location.pathname + location.search); if (importLevel(hm[1])) setState('levels'); }
 }
 requestAnimationFrame(frame);

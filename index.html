@@ -179,6 +179,21 @@
 
 <div id="edOpts" class="hidden"><div class="eo-card"><h3>⚙ Réglages du niveau</h3><div id="edOptsBody"></div><button id="edOptsOk" class="big">✔ Valider</button></div></div>
 
+<div id="shareBox" class="modal hidden"><div class="mcard">
+  <h3>⇪ Partager « <span id="shareName"></span> »</h3>
+  <p>Envoie ce code à tes amis. Ils ouvrent <b>Créer des niveaux → Importer</b> et le collent. Aucun compte ni serveur nécessaire.</p>
+  <textarea id="shareCode" readonly rows="3"></textarea>
+  <div class="mbtns"><button class="big" id="shareNative">📤 Partager…</button><button class="big alt" id="shareCopy">📋 Copier le code</button><button class="big alt" id="shareLink">🔗 Copier le lien</button></div>
+  <button class="back mclose">Fermer</button>
+</div></div>
+<div id="importBox" class="modal hidden"><div class="mcard">
+  <h3>📥 Importer un niveau</h3>
+  <p>Colle le message, le code ou le lien reçu (il commence par <b>VD2~</b> ou <b>VD1~</b>).</p>
+  <textarea id="importTxt" rows="3" placeholder="VD2~…"></textarea>
+  <div class="mbtns"><button class="big alt" id="importPaste">📋 Coller</button><button class="big" id="importGo">✔ Importer</button></div>
+  <button class="back mclose">Annuler</button>
+</div></div>
+
 <section id="pause" class="screen hidden dim">
   <h2>Pause</h2>
   <div id="pauseInfo" class="panel pinfo"></div>
