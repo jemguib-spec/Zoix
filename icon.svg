@@ -1,1 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#1e6a2c"/><path d="M60 140h140v80h120M60 380h100l60-60h200" stroke="#e6ee5a" stroke-width="14" fill="none" opacity=".6"/><g stroke="#3b0000" stroke-width="16" stroke-linecap="round"><path d="M180 200l-50-40M180 256h-70M180 312l-50 40M332 200l50-40M332 256h70M332 312l50 40"/></g><circle cx="256" cy="256" r="110" fill="#ff5252" stroke="#3b0000" stroke-width="14"/><circle cx="215" cy="230" r="30" fill="#fff"/><circle cx="297" cy="230" r="30" fill="#fff"/><circle cx="222" cy="236" r="13" fill="#111"/><circle cx="290" cy="236" r="13" fill="#111"/><path d="M215 300q41 26 82 0" stroke="#3b0000" stroke-width="12" fill="none" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><defs><clipPath id="rc"><rect width="108" height="108" rx="24"/></clipPath></defs><g clip-path="url(#rc)">
+  <defs>
+    <radialGradient id="bgg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#2f9e44"/><stop offset=".55" stop-color="#1b6b2a"/><stop offset="1" stop-color="#0a2e12"/></radialGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e6ee5a" stop-opacity=".35"/><stop offset="1" stop-color="#e6ee5a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bgg)"/>
+  <!-- pistes de cuivre -->
+  <g fill="none" stroke="#5fd17a" stroke-opacity=".45" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 18 H24 L32 26 H48"/><path d="M0 23 H22 L30 31 H40"/>
+    <path d="M108 30 H86 L78 22 H62"/><path d="M108 35 H84 L76 27 H66"/>
+    <path d="M0 84 H20 L28 76 H38"/><path d="M0 89 H24 L32 81 H44"/>
+    <path d="M108 80 H90 L82 88 H64"/><path d="M108 75 H88 L80 83 H70"/>
+    <path d="M14 0 V12 L20 18"/><path d="M94 108 V96 L88 90"/>
+  </g>
+  <g fill="#e8c35a" stroke="#7a5a17" stroke-width=".8">
+    <circle cx="48" cy="26" r="2.2"/><circle cx="40" cy="31" r="2.2"/><circle cx="62" cy="22" r="2.2"/><circle cx="66" cy="27" r="2.2"/>
+    <circle cx="38" cy="76" r="2.2"/><circle cx="44" cy="81" r="2.2"/><circle cx="64" cy="88" r="2.2"/><circle cx="70" cy="83" r="2.2"/>
+  </g>
+  <circle cx="54" cy="54" r="40" fill="url(#halo)"/>
+  <!-- viseur rouge -->
+  <g fill="none" stroke="#ff3b3b" stroke-width="2.6" stroke-linecap="round" opacity=".95">
+    <circle cx="54" cy="54" r="36" stroke-dasharray="14 7"/>
+    <line x1="54" y1="12" x2="54" y2="20"/><line x1="54" y1="88" x2="54" y2="96"/><line x1="12" y1="54" x2="20" y2="54"/><line x1="88" y1="54" x2="96" y2="54"/>
+  </g>
+
+  <defs>
+    <radialGradient id="body" cx="40%" cy="36%" r="70%"><stop offset="0" stop-color="#e6ffb0"/><stop offset=".45" stop-color="#7ed957"/><stop offset="1" stop-color="#2b7a1c"/></radialGradient>
+    <radialGradient id="ball" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#f4ffd6"/><stop offset=".5" stop-color="#9be15d"/><stop offset="1" stop-color="#3d8f22"/></radialGradient>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="2.2" stdDeviation="1.8" flood-color="#000" flood-opacity=".55"/></filter>
+  </defs>
+  <g filter="url(#sh)" stroke="#1b1230" stroke-linecap="round" stroke-linejoin="round">
+    <!-- pics -->
+    <g stroke-width="3.4">
+      <line x1="54" y1="33" x2="54" y2="23"/><line x1="54" y1="75" x2="54" y2="85"/>
+      <line x1="33" y1="54" x2="23" y2="54"/><line x1="75" y1="54" x2="85" y2="54"/>
+      <line x1="39" y1="39" x2="32" y2="32"/><line x1="69" y1="39" x2="76" y2="32"/>
+      <line x1="39" y1="69" x2="32" y2="76"/><line x1="69" y1="69" x2="76" y2="76"/>
+    </g>
+    <g fill="url(#ball)" stroke-width="2">
+      <circle cx="54" cy="21" r="4.6"/><circle cx="54" cy="87" r="4.6"/><circle cx="21" cy="54" r="4.6"/><circle cx="87" cy="54" r="4.6"/>
+      <circle cx="30.5" cy="30.5" r="4.6"/><circle cx="77.5" cy="30.5" r="4.6"/><circle cx="30.5" cy="77.5" r="4.6"/><circle cx="77.5" cy="77.5" r="4.6"/>
+    </g>
+    <!-- corps -->
+    <circle cx="54" cy="54" r="23" fill="url(#body)" stroke-width="3.6"/>
+  </g>
+  <!-- taches + reflet -->
+  <g fill="#1d5c12" opacity=".28"><circle cx="40" cy="62" r="3.4"/><circle cx="66" cy="68" r="2.6"/><circle cx="68" cy="42" r="2.2"/></g>
+  <ellipse cx="44" cy="40" rx="9" ry="4.2" fill="#fff" opacity=".75" transform="rotate(-35 44 40)"/>
+  <!-- yeux -->
+  <g stroke="#1b1230" stroke-width="2.4">
+    <ellipse cx="45.5" cy="52" rx="6.2" ry="6.8" fill="#fff"/><ellipse cx="62.5" cy="52" rx="6.2" ry="6.8" fill="#fff"/>
+  </g>
+  <circle cx="47" cy="53.5" r="3.3" fill="#d50000"/><circle cx="61" cy="53.5" r="3.3" fill="#d50000"/>
+  <circle cx="47.3" cy="53.8" r="1.7" fill="#111"/><circle cx="60.7" cy="53.8" r="1.7" fill="#111"/>
+  <circle cx="45.4" cy="50.6" r="1.2" fill="#fff"/><circle cx="59.2" cy="50.6" r="1.2" fill="#fff"/>
+  <g stroke="#1b1230" stroke-width="3.2" stroke-linecap="round"><line x1="38.5" y1="43" x2="50.5" y2="47.5"/><line x1="69.5" y1="43" x2="57.5" y2="47.5"/></g>
+  <!-- bouche -->
+  <path d="M45 64 Q54 71.5 63 64 Q54 67 45 64 Z" fill="#3b0a0a" stroke="#1b1230" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M48.3 65.4 L49.6 68 L51 65.9 Z M57 65.9 L58.4 68 L59.7 65.4 Z" fill="#fff"/>
+</g></svg>
