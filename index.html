@@ -3,35 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#05060f">
+<meta name="theme-color" content="#0b1410">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>Vortrix</title>
+<title>Virus Défense</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <canvas id="c"></canvas>
 <div id="safe"></div>
 
-<div id="hudBtns" class="hidden">
-  <button id="btnSwap" class="round" aria-label="Changer d'arme">⇄</button>
-  <button id="btnPause" class="round" aria-label="Pause">II</button>
+<!-- panneau de jeu -->
+<div id="panel" class="hidden">
+  <div class="stats">
+    <div><small>VIES</small><b id="sLives">0</b></div>
+    <div><small>CRÉDITS</small><b id="sCash" class="cash">0</b></div>
+    <div><small>VAGUE</small><b id="sWave">0</b></div>
+    <div><small>SCORE</small><b id="sScore">0</b></div>
+  </div>
+  <div id="towerBar"></div>
+  <div class="ctrls">
+    <button id="bWave" class="go">▶ Vague 1</button>
+    <button id="bSpeed">×1</button>
+    <button id="bPause">II</button>
+  </div>
+  <div id="nextInfo"></div>
 </div>
 
+<!-- fenêtre d'une tourelle -->
+<div id="tpop" class="hidden">
+  <div class="tp-head"><b id="tpName"></b><button id="tpClose">✕</button></div>
+  <div id="tpStats"></div>
+  <div class="tp-acts">
+    <button id="tpUp" class="buy"></button>
+    <button id="tpSell" class="sell"></button>
+  </div>
+</div>
+<div id="toast"></div>
+
 <section id="menu" class="screen">
-  <h1 class="logo">VORTRIX</h1>
-  <p class="sub">Arène néon · Survis aux vagues</p>
+  <div class="logo"><span>VIRUS</span><span>DÉFENSE</span></div>
+  <p class="sub">Les virus ont infecté l'ordinateur !<br>Place des tourelles automatiques pour les arrêter.</p>
   <div class="col">
     <button class="big" data-go="diff">▶ Jouer</button>
-    <button class="big alt" data-go="shop">🛒 Boutique</button>
+    <button class="big alt" data-go="help">❓ Comment jouer</button>
     <button class="big alt" data-go="options">⚙ Options</button>
   </div>
-  <p class="credits-line">Crédits : <b class="credits">0</b> ¢</p>
-  <p class="hint">Joystick gauche : se déplacer · Joystick droit : viser/tirer</p>
 </section>
 
 <section id="diff" class="screen hidden">
@@ -40,24 +61,23 @@
   <button class="back" data-go="menu">← Retour</button>
 </section>
 
-<section id="levels" class="screen hidden">
-  <h2 id="levelsTitle">Niveaux</h2>
-  <div id="levelGrid"></div>
-  <div class="row">
-    <button class="back" data-go="diff">← Retour</button>
-    <button class="back" data-go="shop">🛒 Boutique</button>
-  </div>
+<section id="maps" class="screen hidden">
+  <h2 id="mapsTitle">Choisis ta zone de combat</h2>
+  <div id="mapGrid"></div>
+  <button class="back" data-go="diff">← Retour</button>
 </section>
 
-<section id="shop" class="screen hidden">
-  <h2>Boutique</h2>
-  <p class="credits-line">Crédits : <b class="credits">0</b> ¢</p>
-  <div class="tabs">
-    <button class="tab on" data-tab="weapons">Armes</button>
-    <button class="tab" data-tab="ups">Améliorations</button>
+<section id="help" class="screen hidden">
+  <h2>Comment jouer</h2>
+  <div class="panel help">
+    <p>🦠 Les virus entrent par les flèches et foncent vers la <b>sortie</b> (le processeur). Chaque virus qui passe te coûte une vie (5 pour un boss).</p>
+    <p>🔧 Touche une tourelle en bas, puis touche une case sombre pour la poser. Tu peux en poser plusieurs à la suite.</p>
+    <p>🧱 Les virus contournent tes tourelles : <b>construis un labyrinthe</b> pour allonger leur chemin ! Tu ne peux pas bloquer complètement le passage.</p>
+    <p>⬆ Touche une tourelle posée pour l'<b>améliorer</b> (4 niveaux) ou la <b>revendre</b>.</p>
+    <p>🪰 Les virus volants passent au-dessus des tourelles. Le canon ne peut pas les toucher.</p>
+    <p>⏩ Lance la vague suivante plus tôt pour gagner un bonus, et accélère le jeu avec ×2 / ×3.</p>
   </div>
-  <div id="shopList" class="list"></div>
-  <button class="back" id="shopBack">← Retour</button>
+  <button class="back" data-go="menu">← Retour</button>
 </section>
 
 <section id="options" class="screen hidden">
@@ -76,7 +96,7 @@
   <div class="col">
     <button class="big" id="btnResume">▶ Reprendre</button>
     <button class="big alt" id="btnRestart">↻ Recommencer</button>
-    <button class="big danger" id="btnQuit">✕ Abandonner</button>
+    <button class="big danger" id="btnQuit">✕ Quitter</button>
   </div>
 </section>
 
@@ -86,8 +106,8 @@
   <div id="resBody" class="panel"></div>
   <div class="col">
     <button class="big" id="resNext"></button>
-    <button class="big alt" id="resShop">🛒 Boutique</button>
-    <button class="big alt" id="resLevels">☰ Niveaux</button>
+    <button class="big alt" id="resRetry">↻ Rejouer</button>
+    <button class="big alt" id="resMaps">☰ Zones de combat</button>
   </div>
 </section>
 

@@ -1,10 +1,10 @@
 {
-  "name": "Vortrix",
-  "short_name": "Vortrix",
+  "name": "Virus Défense",
+  "short_name": "Virus Défense",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "any",
-  "background_color": "#05060f",
-  "theme_color": "#05060f",
+  "background_color": "#0b1410",
+  "theme_color": "#0b1410",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }
