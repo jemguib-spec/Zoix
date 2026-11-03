@@ -77,7 +77,7 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
   radial-gradient(circle at 9px calc(100% - 9px),#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
   radial-gradient(circle at calc(100% - 9px) calc(100% - 9px),#d9dde0 0 2px,#5a6168 2.5px 4px,transparent 4.5px),
   repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.03) 1px 2px,transparent 2px 4px),
-  linear-gradient(180deg,#c62828 0%,#9a1313 45%,#6d0a0a 100%);
+  linear-gradient(180deg,var(--pa,#c62828) 0%,var(--pb,#9a1313) 45%,var(--pc,#6d0a0a) 100%);
   box-shadow:0 0 0 2px #2a0303,0 0 0 4px #8d9499,0 0 0 6px #2b2f33,0 8px 24px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -2px 6px rgba(0,0,0,.4)}
 .stats div{background:linear-gradient(180deg,#0c120c,#162016);border-radius:5px;box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.2);border:1px solid #000}
 .stats small{color:#ffcdd2;opacity:.75}
@@ -268,3 +268,32 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 @media (orientation:portrait){.sinfo b{white-space:normal}.scard{gap:8px}}
 .shop-head{flex-wrap:wrap;justify-content:center}
 @media (max-height:500px){#shop.screen{padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:8px}.shop-head{gap:10px}#shop .tab{padding:4px 12px;font-size:13px}.scard{padding:3px 4px;gap:1px}.scard canvas{width:26px;height:26px}.sic{height:26px;font-size:18px}.sbuy{padding:4px 2px;font-size:11px}.sinfo b{font-size:11px}#shopInfo{min-height:0;font-size:10.5px;line-height:1.25}#shop .back{padding:5px 14px}}
+
+/* ---- mondes ---- */
+#worldDesc{margin:-4px 0 0;font-size:13px;opacity:.85;text-align:center;max-width:90vw;padding:4px 12px;border-radius:10px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--wa,#444) 35%,transparent),transparent)}
+#maps.screen{background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--wc,#000) 55%,transparent),transparent 70%)}
+@media (max-height:500px){#worldDesc{font-size:11px;margin:-6px 0 0}}
+
+/* ---- fiche de la tourelle choisie (panneau) ---- */
+#tInfo b em{font-style:normal;font-size:10px;color:#d4ff3a;float:right}
+#tInfo .tnums{display:block;font-size:9.5px;color:#ffe082;margin-bottom:3px}
+#panel.land #tInfo{overflow-y:auto}
+@media (max-height:500px){#tInfo .tdesc{display:block}#panel.land #tInfo .tbars{display:grid}#panel.land #tInfo{font-size:9.5px}}
+
+/* ---- fenêtre tourelle : jamais hors écran ---- */
+#tpop{display:flex;flex-direction:column;max-height:calc(100vh - 16px)}
+#tpop.hidden{display:none}
+#tpStats{overflow-y:auto;min-height:0;flex:1 1 auto}
+#tpop .tp-acts,#tpop .mode,#tpop .tp-head{flex:none}
+/* paysage : la fiche se range dans le panneau de droite, à la place de l'aide */
+#panel #tpop.dock{position:static;width:auto;flex:1 1 0;min-height:0;max-height:none;padding:5px 7px;font-size:10.5px;line-height:1.3;border-radius:8px;animation:none;
+  background:linear-gradient(180deg,#0c120c,#162016);box-shadow:inset 0 2px 5px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.15)}
+#panel #tpop.dock:not(.hidden)~#tInfo{display:none}
+#tpop.dock .tp-head{margin-bottom:2px}
+#tpop.dock .tp-head b{font-size:12px}
+#tpop.dock .tp-head button{font-size:14px}
+#tpop.dock .tp-acts{gap:4px;margin-top:4px}
+#tpop.dock .tp-acts button{padding:6px 2px;font-size:11px}
+#tpop.dock .mode{padding:5px;font-size:11px;margin-top:4px}
+#panel.land.seltower #towerBar{display:none}
+#tpop.dock .tp-head b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
