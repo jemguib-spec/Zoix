@@ -4,3 +4,4 @@ android/app/build/
 android/app/src/main/assets/www/
 android/local.properties
 VirusDefense.apk
+.claude-kb/
