@@ -276,6 +276,15 @@ function nextTile(e) {
 
 /* ---------------- effets ---------------- */
 function part(x, y, col, spd) { const a = Math.random() * TAU, s = rand(.3, 1) * spd; return { x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(.25, .55), max: .55, col, size: rand(.03, .06) }; }
+// débris de destruction, différents selon le monde
+const DEBRIS = { retro: 'px', forge: 'ember', ice: 'shard', rack: 'spark', neon: 'glitch', cloud: 'feather', data: 'bit', pcb: 'chip' };
+function debris(x, y, n, col, big) {
+  const kind = DEBRIS[G.th] || 'chip', fl = kind === 'feather' ? 1.8 : 1;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, s = rand(1, 3.2) * (big ? 1.7 : 1) * (kind === 'feather' ? .6 : 1), life = rand(.45, .85) * fl;
+    G.parts.push({ deb: kind, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life, max: life, size: rand(.045, .09) * (big ? 1.6 : 1), col: i % 3 ? col : '#ffffff', rot: Math.random() * TAU, vr: rand(-10, 10), ch: Math.random() < .5 ? '0' : '1' });
+  }
+}
 function smoke(x, y, n, sz) { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = rand(.1, .5); G.parts.push({ smoke: true, x: x + rand(-.1, .1), y: y + rand(-.1, .1), vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(.6, 1.2), max: 1.2, size: (sz || .15) * rand(.7, 1.3) }); } }
 function rgbaA(hex) { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',A)'; }
 // pièce qui s'envole jusqu'au compteur de crédits
@@ -338,6 +347,8 @@ function hurt(e, dmg, pierce) {
     G.fx.push({ kind: 'splat', x: e.x, y: e.y, r: e.r * 1.7, life: 10, max: 10, col: rgbaA(e.col), seed: Math.random() * .97 + .013 });
     if (!e.fly) crater(e.x, e.y, e.r * (isBoss(e) ? .9 : 1.15), e.col);
     G.fx.push({ kind: 'pop', x: e.x, y: e.y, r: e.r, col: e.col, life: .28, max: .28 });
+    debris(e.x, e.y, isBoss(e) ? 26 : (G.eco ? 3 : 7), e.col, isBoss(e));
+    G.fx.push({ kind: 'shock', x: e.x, y: e.y, r: e.r * (isBoss(e) ? 7 : 2.6), life: isBoss(e) ? .6 : .3, max: isBoss(e) ? .6 : .3 });
     for (let i = 0; i < 6; i++) { const q = part(e.x, e.y, e.col, 3.2); q.size = e.r * rand(.25, .45); q.goo = true; q.life = q.max = rand(.35, .55); G.parts.push(q); }
     coinFly(e.x, e.y, Math.min(4, e.rew));
     smoke(e.x, e.y, isBoss(e) ? 14 : 3, e.r * .7);
@@ -579,6 +590,7 @@ function impact(p) {
     if (p.incend && !p.tgt.dead && !ETYPES[p.tgt.type].fireproof) { p.tgt.burnT = 1.5; p.tgt.burnDps = Math.max(p.tgt.burnDps || 0, p.dmg * 2); p.tgt.burnSrc = p.src; }
   }
   for (let i = 0; i < 4; i++) G.parts.push(part(p.x, p.y, p.col, 2.5));
+  if (p.kind === 'shell' || p.kind === 'missile') { G.fx.push({ kind: 'shock', x: p.x, y: p.y, r: (p.splash || .6) * 1.5, life: .26, max: .26 }); debris(p.x, p.y, G.eco ? 2 : 4, p.col); }
   if (p.kind === 'shell') { smoke(p.x, p.y, 4, .2); G.shake = Math.max(G.shake, 1.5); }
 }
 
@@ -730,7 +742,7 @@ function update(dt) {
   G.enemies = G.enemies.filter(e => !e.dead);
   // effets
   for (let i = G.fx.length - 1; i >= 0; i--) { G.fx[i].life -= dt; if (G.fx[i].life <= 0) G.fx.splice(i, 1); }
-  for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.smoke) { q.vx *= .96; q.vy *= .96; } else { q.vx *= .9; q.vy *= .9; } if (q.life <= 0) G.parts.splice(i, 1); }
+  for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.deb) { q.rot += q.vr * dt; if (q.deb === 'ember') q.vy -= 2.5 * dt; else if (q.deb === 'feather') { q.vy += .4 * dt; q.vx += Math.sin(q.life * 9) * .04; } } if (q.smoke) { q.vx *= .96; q.vy *= .96; } else { q.vx *= .9; q.vy *= .9; } if (q.life <= 0) G.parts.splice(i, 1); }
   for (let i = G.texts.length - 1; i >= 0; i--) { const t = G.texts[i]; t.life -= dt; t.y -= .6 * dt; if (t.life <= 0) G.texts.splice(i, 1); }
   const pmax = G.eco ? 160 : 500; if (G.parts.length > pmax) G.parts.splice(0, G.parts.length - pmax);
   // fin de vague / victoire

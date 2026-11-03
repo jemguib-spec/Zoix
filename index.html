@@ -57,7 +57,7 @@
   <button class="pw tool undo hidden" id="bUndo" title="Annuler la dernière pose"><i>↶</i><span></span></button>
 </div>
 <!-- histoire -->
-<div id="story" class="hidden"><div class="story-card"><div class="story-av">🛡</div><div class="story-body"><b id="storyTitle"></b><p id="storyTxt"></p><button id="storyOk" class="big">Compris !</button></div></div></div>
+<div id="story" class="hidden"><div class="story-card"><div class="story-av">🛡</div><div class="story-body"><b id="storyTitle"></b><p id="storyTxt" class="noico"></p><button id="storyOk" class="big">Compris !</button></div></div></div>
 <!-- tutoriel -->
 <div id="tuto" class="hidden"><div id="tutoRing"></div><div id="tutoBox"><p id="tutoTxt"></p><button id="tutoSkip">Passer le tutoriel</button></div></div>
 <div id="toast"></div>
@@ -84,7 +84,7 @@
 
 <section id="maps" class="screen hidden">
   <h2 id="mapsTitle">Choisis ta zone de combat</h2>
-  <div class="pager"><button id="mapPrev" class="pg">◀</button><b id="mapPage"></b><button id="mapNext" class="pg">▶</button></div>
+  <div class="pager"><button id="mapPrev" class="pg">❮</button><b id="mapPage"></b><button id="mapNext" class="pg">❯</button></div>
   <p id="worldDesc"></p>
   <div id="mutBox"></div>
   <button class="big alt hidden" id="mapRandom">🎲 Zone aléatoire</button>
@@ -171,7 +171,7 @@
 <!-- éditeur de niveaux -->
 <div id="edPanel" class="hidden">
   <button id="edName" class="ed-name"></button>
-  <div class="ed-sel"><button id="edWPrev">◀</button><b id="edWorld"></b><button id="edWNext">▶</button></div>
+  <div class="ed-sel"><button id="edWPrev">❮</button><b id="edWorld"></b><button id="edWNext">❯</button></div>
   <div class="ed-sel"><button id="edVMinus">−</button><b id="edWaves"></b><button id="edVPlus">+</button></div>
   <button id="edOptsBtn" class="ed-opts">⚙ Virus, boss, crédits…</button>
   <small id="edStats"></small>
@@ -235,5 +235,6 @@
 <script src="js/ui.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/main.js"></script>
+<script src="js/icons.js"></script>
 </body>
 </html>

@@ -164,7 +164,7 @@ const TOWERS = {
 };
 // ---- chaque monde donne son style aux tourelles : [famille de dessin, variante] ----
 // moderne = tourelles high-tech, retro = bois/pierre/fer (catapultes…), neo = néon futuriste, ice = glace, mil = militaire
-const WTSTYLE = { pcb: ['modern', 'classic'], forge: ['retro', 'forge'], data: ['neo', 'data'], rack: ['mil', 'mil'], ice: ['ice', 'ice'], neon: ['neo', 'neon'], retro: ['retro', 'wood'], cloud: ['neo', 'cloud'] };
+const WTSTYLE = { pcb: ['modern', 'classic'], forge: ['retro', 'forge'], data: ['glass', 'data'], rack: ['mil', 'mil'], ice: ['ice', 'ice'], neon: ['neo', 'neon'], retro: ['retro', 'wood'], cloud: ['sky', 'cloud'] };
 let shopWorld = null; // monde choisi dans la boutique pour l'aperçu
 const curWorld = () => shopWorld !== null ? shopWorld : (G ? worldIdx(G.mi) : 0);
 const curTS = () => WTSTYLE[WORLDS[curWorld()].style] || WTSTYLE.pcb;
@@ -188,6 +188,16 @@ const TNAMES = {
     pulse: ['Fusil d\'assaut', 'Fusil'], gatling: ['Minigun', 0], cannon: ['Mortier', 0], frost: ['Canon à azote', 'Azote'], flame: ['Lance-feu', 0],
     missile: ['Lance-roquettes', 'Roquettes'], laser: ['Sniper', 0, 'Tir de précision : très longue portée, dégâts énormes.'], tesla: ['Brouilleur EMP', 'EMP'],
     mine: ['Champ de mines', 'Mines'], vortex: ['Canon sonique', 'Sonique'], boost: ['Radar de commandement', 'Radar'], miner: ['Caisse de ravitaillement', 'Ravitaill.']
+  },
+  glass: {
+    pulse: ['Paquet laser', 'Paquet'], gatling: ['Flux rafale', 'Flux'], cannon: ['Compresseur', 'Compress.', 'Écrase les virus sous des archives compressées. Ne touche pas les volants.'],
+    frost: ['Pare-feu glacé', 'Pare-feu'], flame: ['Surchauffe', 0], missile: ['Requêtes guidées', 'Requêtes'], laser: ['Fibre optique', 'Fibre'], tesla: ['Routeur éclair', 'Routeur'],
+    mine: ['Paquets piégés', 'Pièges'], vortex: ['Boucle infinie', 'Boucle'], boost: ['Serveur proxy', 'Proxy'], miner: ['Data-mineur', 'Data-min.']
+  },
+  sky: {
+    pulse: ['Grêlon', 0], gatling: ['Averse', 0], cannon: ['Coup de tonnerre', 'Tonnerre'], frost: ['Nuage de givre', 'Givre'], flame: ['Soleil ardent', 'Soleil'],
+    missile: ['Comètes', 0, 'Comètes guidées, très longue portée.'], laser: ['Rayon de soleil', 'Rayon'], tesla: ['Orage', 0], mine: ['Nuages piégés', 'Pièges'],
+    vortex: ['Tornade', 0], boost: ['Arc-en-ciel', 0, 'Ses couleurs encouragent les tourelles voisines : plus de dégâts.'], miner: ['Pluie d\'or', 0]
   },
   neo: {
     pulse: ['Blaster ionique', 'Blaster'], gatling: ['Plasma-rafale', 'Rafale'], cannon: ['Canon gravitique', 'Gravité'], frost: ['Champ de stase', 'Stase'],

@@ -66,7 +66,8 @@ function vibe(ms) { if (G && G.demo) return; if (save.vibe && navigator.vibrate)
 
 // --- bruitages des tourelles selon le style du monde (médiéval, néon, glace, militaire) ---
 function themedSfx(n, t) {
-  const fam = typeof curStyle === 'function' ? curStyle() : 'modern';
+  let fam = typeof curStyle === 'function' ? curStyle() : 'modern';
+  if (fam === 'glass') fam = 'neo'; else if (fam === 'sky') fam = 'ice';
   if (fam === 'retro') switch (n) {
     case 'pulse': case 'gatling': tone(n === 'pulse' ? 196 : 247, .1, 'triangle', .07, 130); noise(.09, .05, 4000, t + .01, 0, 'highpass', 1500); return true; // corde d'arc + sifflement
     case 'cannon': tone(95, .12, 'sawtooth', .03, 70); tone(70, .3, 'sine', .25, 35, t + .05); noise(.25, .1, 500, t + .05); return true;  // grincement + choc
