@@ -83,6 +83,25 @@ async function test(name, page, fn) {
     const c = lvlEncode(d), d2 = lvlDecode(c);
     return !!d2 && JSON.stringify(d2.paths) === JSON.stringify(d.paths) && d2.name === 'Essai' && d2.world === 3 || 'décodage différent';
   });
+  await test('éditeur : divisions et sorties multiples', page, () => {
+    // une entrée, une division au milieu : 2 trajets et 2 sorties
+    const d = Object.assign({ name: 'Div', world: 0, waves: 20, paths: [[[0, 3], [12, 3], [12, 12]], [[12, 6], [22, 6]]] }, ED_DEF);
+    if (edCheck(d)) return edCheck(d);
+    const m = defToMap(d, 1), exits = new Set(m.routes.map(r => r[r.length - 1] + ''));
+    if (m.entries.length !== 1 || m.routes.length !== 2 || exits.size !== 2) return 'entrées ' + m.entries.length + ', trajets ' + m.routes.length + ', sorties ' + exits.size;
+    // les virus se répartissent sur les deux branches
+    const c = lvlEncode(d); playLevel(c); for (let i = 0; i < 6; i++) spawnEnemy('bug', 1);
+    return new Set(G.enemies.map(e => G.m.routes.indexOf(e.route))).size === 2 || 'tous les virus prennent la même branche';
+  });
+  await test('éditeur : virus, boss et réglages choisis sont respectés', page, () => {
+    const d = { name: 'Choix', world: 2, waves: 20, paths: [[[0, 3], [22, 3], [22, 11]]], vir: ['ghost', 'drone'], boss: 'tempest', megas: false, cash: 250, lives: 7 };
+    const d2 = lvlDecode(lvlEncode(d)); if (!d2) return 'décodage';
+    if (d2.vir.join() !== 'ghost,drone' || d2.boss !== 'tempest' || d2.megas || d2.cash !== 250 || d2.lives !== 7) return JSON.stringify(d2);
+    playLevel(lvlEncode(d)); if (G.cash !== 250 || G.lives !== 7) return 'crédits ' + G.cash + ' vies ' + G.lives;
+    for (let w = 1; w < 20; w++) { const wd = waveDef(w); if (!['ghost', 'drone'].includes(wd.type) || (wd.type2 && !['ghost', 'drone'].includes(wd.type2))) return 'vague ' + w + ' : ' + wd.type; }
+    return waveDef(20).type === 'tempest' || 'boss : ' + waveDef(20).type;
+  });
+  await test('éditeur : les anciens codes VD1 restent valides', page, () => !!lvlDecode('VD1~Test%20ami~6~30~03k3k8484bcb.pdgdgb'));
   await test('éditeur : un code invalide est refusé', page, () => lvlDecode('VD1~x~99~5~zz') === null && lvlDecode('n\'importe quoi') === null);
   await test('zones aléatoires toujours valides', page, () => { for (let s = 1; s <= 200; s++) { const d = randomDef(s * 7919), e = edCheck(d); if (e) return 'graine ' + s + ' : ' + e; if (!defToMap(d, s).routes.length) return 'graine ' + s; } return true; });
   await test('un niveau créé se joue', page, () => {

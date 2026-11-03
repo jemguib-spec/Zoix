@@ -105,7 +105,7 @@
     <p>👑 Chaque monde a sa <b>règle</b> (cases brûlantes, portails, coupures de courant, verglas, piratage), son <b>virus exclusif</b> et un <b>boss</b> à la dernière vague de chaque zone.</p>
     <p>🏅 Chaque zone a 2 <b>défis</b> bonus. ♾ Le <b>mode infini</b> et 📅 le <b>défi du jour</b> ont leurs records.</p>
     <p>💰 <b>Glisse une tourelle</b> posée hors de la carte pour la revendre. 🧩 Choisis des <b>mutateurs</b> avant une zone pour gagner plus de puces, et accomplis les <b>missions de la semaine</b> (onglet Trophées).</p>
-    <p>🛠 <b>Crée tes niveaux</b> et partage-les avec un simple code ou lien : aucun serveur nécessaire.</p>
+    <p>🛠 <b>Crée tes niveaux</b> : plusieurs entrées, <b>divisions</b> de couloirs (les virus choisissent leur voie), plusieurs <b>sorties</b>, choix des <b>virus</b> et du <b>boss</b>, crédits et vies. Partage-les avec un simple code ou lien : aucun serveur nécessaire.</p>
     <p>🔍 Pince l'écran avec deux doigts pour zoomer, et glisse un doigt pour te déplacer sur la carte.</p>
     <p>👆 <b>Double-tap</b> sur une tourelle pour l'améliorer directement. 🎯 Ciblage « Soigneurs d'abord » / « Spéciaux d'abord », et « ⇉ Toutes » pour régler toutes les tourelles d'un coup. Les pastilles au-dessus des virus montrent les dangereux (✚ soigneur, ◈ bouclier…).</p>
     <p>⬆ Touche une tourelle posée pour l'<b>améliorer</b> (4 niveaux) ou la <b>revendre</b>.</p>
@@ -169,11 +169,15 @@
   <button id="edName" class="ed-name"></button>
   <div class="ed-sel"><button id="edWPrev">◀</button><b id="edWorld"></b><button id="edWNext">▶</button></div>
   <div class="ed-sel"><button id="edVMinus">−</button><b id="edWaves"></b><button id="edVPlus">+</button></div>
+  <button id="edOptsBtn" class="ed-opts">⚙ Virus, boss, crédits…</button>
+  <small id="edStats"></small>
   <p id="edHint"></p>
   <div class="ed-grid"><button id="edNewPath">＋ Entrée</button><button id="edUndo">↶ Annuler</button><button id="edClear">🗑 Effacer</button><button id="edSave">💾 Garder</button></div>
   <div class="ed-grid"><button id="edTest" class="go">▶ Tester</button><button id="edShare" class="share">⇪ Partager</button></div>
   <button id="edBack" class="ed-back">← Mes niveaux</button>
 </div>
+
+<div id="edOpts" class="hidden"><div class="eo-card"><h3>⚙ Réglages du niveau</h3><div id="edOptsBody"></div><button id="edOptsOk" class="big">✔ Valider</button></div></div>
 
 <section id="pause" class="screen hidden dim">
   <h2>Pause</h2>

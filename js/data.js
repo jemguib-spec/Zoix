@@ -96,19 +96,34 @@ function processMap(m, seed) {
   // liste des cases de chaque chemin
   const tilesOf = p => { const out = []; for (let i = 0; i < p.length - 1; i++) { let [x, y] = p[i]; const [x2, y2] = p[i + 1]; while (true) { if (!out.length || out[out.length - 1][0] !== x || out[out.length - 1][1] !== y) out.push([x, y]); if (x === x2 && y === y2) break; x += Math.sign(x2 - x); y += Math.sign(y2 - y); } } return out; };
   const T = m.paths.map(tilesOf);
-  // un chemin qui finit sur un autre chemin le rejoint et continue avec lui ; sinon il a sa propre sortie
-  const build = (i, depth) => {
-    const r = T[i], last = r[r.length - 1];
-    for (let j = 0; j < T.length && depth < 4; j++) {
-      if (j === i) continue;
-      const k = T[j].findIndex(([x, y]) => x === last[0] && y === last[1]);
-      if (k >= 0 && k < T[j].length - 1) return r.concat(build(j, depth + 1).slice(k + 1));
+  // un chemin qui part du bord est une entrée ; un chemin qui part du milieu d'un autre couloir est une division (embranchement)
+  const same = (a, b) => a[0] === b[0] && a[1] === b[1];
+  const isBranch = T.map((t, i) => t.length && !(t[0][0] === 0 || t[0][1] === 0 || t[0][0] === COLS - 1 || t[0][1] === ROWS - 1) && T.some((o, j) => j !== i && o.some(q => same(q, t[0]))));
+  // tous les trajets possibles depuis la case s du chemin i (division = plusieurs trajets)
+  const routesFrom = (i, s, depth) => {
+    const Ti = T[i], out = [], endT = Ti[Ti.length - 1];
+    if (depth > 6) return [Ti.slice(s)];
+    let splitAtEnd = false;
+    for (let t = s; t < Ti.length; t++) for (let j = 0; j < T.length; j++) if (j !== i && isBranch[j] && same(T[j][0], Ti[t])) {
+      if (t === Ti.length - 1) splitAtEnd = true;
+      for (const r of routesFrom(j, 0, depth + 1)) out.push(Ti.slice(s, t).concat(r));
     }
-    return r.slice();
+    if (!splitAtEnd) {
+      let merged = false;
+      for (let j = 0; j < T.length && !merged; j++) {
+        if (j === i) continue;
+        const k = T[j].findIndex(q => same(q, endT));
+        if (k >= 0 && k < T[j].length - 1 && !(k === 0 && isBranch[j])) { for (const r of routesFrom(j, k, depth + 1)) out.push(Ti.slice(s, Ti.length - 1).concat(r)); merged = true; }
+      }
+      if (!merged) out.push(Ti.slice(s));
+    }
+    return out.slice(0, 16);
   };
-  m.routes = T.map((_, i) => build(i, 0));
+  m.routes = []; m.entries = [];
+  T.forEach((t, i) => { if (isBranch[i] || !t.length) return; const rs = routesFrom(i, 0, 0), idx = []; for (const r of rs) { idx.push(m.routes.length); m.routes.push(r); } m.entries.push(idx); });
   for (const r of m.routes) { const e = r[r.length - 1]; g[e[1]][e[0]] = 'E'; }
-  for (const p of m.paths) { const [sx, sy] = p[0]; g[sy][sx] = 'S'; }
+  m.branchAt = T.filter((t, i) => isBranch[i]).map(t => t[0]);
+  for (const r of m.routes) { const [sx, sy] = r[0]; g[sy][sx] = 'S'; }
   // gros composants décoratifs (2x2) posés loin des couloirs : on ne peut pas construire dessus
   const Rn = mulberry(seed * 131 + 7), wk = m.world !== undefined ? m.world : Math.min(WORLDS.length - 1, Math.floor(seed / 3)); m.obst = [];
   for (let k = 0, tries = 0; k < 3 && tries < 400; tries++) {
@@ -287,6 +302,16 @@ const RULES = {
 };
 function waveDef(w) {
   const g = G && !G.demo ? G : null, wi = g ? worldIdx(g.mi) : 0;
+  if (g && g.m.vir) { // niveau créé : seulement les virus choisis, introduits un par un
+    const V = g.m.vir, bk = g.m.bossK;
+    if (w === g.total && bk !== '') return bk === 'auto' ? { type: WBOSS[Math.min(WBOSS.length - 1, wi)], n: 1, wboss: true } : { type: bk, n: bk === 'boss' ? 2 : 1, wboss: bk !== 'boss' };
+    if (g.m.megas && w % 10 === 0) return { type: 'boss', n: Math.ceil(w / 20) };
+    const avail = V.slice(0, Math.min(V.length, 1 + Math.floor((w - 1) / 2)));
+    const type = (w - 1) % 2 === 0 && (w - 1) / 2 < V.length ? V[(w - 1) / 2] : avail[(w * 7 + 3) % avail.length];
+    const res = { type, n: Math.round(ETYPES[type].n * (1 + w * .035)) };
+    if (w >= 6 && avail.length > 1) { const t2 = avail[(w * 5 + 1) % avail.length]; if (t2 !== type) { res.type2 = t2; res.n2 = Math.round(ETYPES[t2].n * (.45 + w * .012)); } }
+    return res;
+  }
   if (g && !g.endless && w === g.total && !g.daily) return { type: WBOSS[Math.min(WBOSS.length - 1, wi)], n: 1, wboss: true };
   if (g && g.endless && w % 25 === 0) return { type: WBOSS[(w / 25 - 1 + wi) % WBOSS.length], n: 1 + Math.floor(w / 75), wboss: true };
   if (w % (g && g.mod === 'bosses' ? 5 : 10) === 0) return { type: 'boss', n: Math.ceil(w / 20) };

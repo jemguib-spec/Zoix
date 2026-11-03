@@ -539,3 +539,28 @@ h2{font-size:26px;letter-spacing:.05em;color:#e6ee5a;text-shadow:0 0 12px rgba(2
 #dragGhost canvas{width:52px;height:52px;opacity:.85;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6))}
 #dragGhost b{font-size:12px;white-space:nowrap;padding:4px 10px;border-radius:12px;background:rgba(0,0,0,.8)}
 #dragGhost.out b{background:#c62828}#dragGhost.out canvas{filter:drop-shadow(0 0 8px #ff5252)}
+
+/* ---- éditeur : réglages ---- */
+#edPanel .ed-opts{background:linear-gradient(180deg,#ffb300,#e65100)!important;color:#2a1300}
+#edStats{font-size:10.5px;opacity:.85;text-align:center}
+#edPanel.port #edStats,#edPanel.port .ed-opts{grid-column:span 1}
+#edOpts{position:fixed;inset:0;z-index:24;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:10px}
+.eo-card{width:min(720px,96vw);max-height:94vh;overflow-y:auto;background:linear-gradient(180deg,#1c2429,#0d1215);border-radius:16px;padding:12px 14px;box-shadow:0 0 0 2px #607d8b,0 12px 30px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:10px;touch-action:pan-y}
+.eo-card h3{color:#ffd740;text-align:center}
+.eo-sec{display:flex;flex-direction:column;gap:6px}.eo-sec small{opacity:.75;font-weight:400}
+.eo-vir{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:5px}
+.eo-v{display:flex;flex-direction:column;align-items:center;padding:3px 2px;border-radius:10px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);opacity:.45;filter:grayscale(.8)}
+.eo-v.on{opacity:1;filter:none;box-shadow:inset 0 0 0 2px #69f0ae;background:rgba(105,240,174,.1)}
+.eo-v canvas{position:static;width:40px;height:40px}.eo-v small{font-size:9.5px;opacity:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.eo-row{display:flex;flex-wrap:wrap;gap:5px}
+.eo-row button,.eo-nums button{padding:6px 10px;border-radius:8px;font-weight:800;font-size:12px;background:#2b343a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.eo-row button.on,.eo-nums button.on{background:linear-gradient(180deg,#ffd740,#c79100);color:#2a1d00}
+.eo-nums label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.eo-pm{display:flex;align-items:center;gap:6px}.eo-pm b{min-width:46px;text-align:center}
+#edOptsOk{align-self:center;padding:10px 26px}
+#edPanel.port{height:calc(300px + env(safe-area-inset-bottom));grid-template-columns:repeat(4,1fr);gap:5px}
+#edPanel.port .ed-name,#edPanel.port .ed-sel,#edPanel.port .ed-opts,#edPanel.port .ed-back{grid-column:span 2}
+#edPanel.port #edStats,#edPanel.port #edHint{grid-column:1/-1}
+#edPanel.port .ed-grid{grid-column:span 2}
+#edPanel.port .ed-back{margin-top:0}
+#edOpts{z-index:31}

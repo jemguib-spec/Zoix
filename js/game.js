@@ -7,16 +7,18 @@ function newGame(mi, demo, opts) {
   opts = opts || {};
   const m = MAPS[mi], d = DIFFS[demo || opts.daily ? 'normal' : curDiff];
   const starts = [], exits = [];
-  for (const r of m.routes) starts.push(r[0]);
+  for (const r of m.routes) if (!starts.some(q => q[0] === r[0][0] && q[1] === r[0][1])) starts.push(r[0]);
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (m.g[y][x] === 'E') exits.push([x, y]);
   const g = {
-    mi, m, d, demo: !!demo, total: demo ? 9999 : opts.endless ? Infinity : opts.daily ? 30 : m.waves, wave: 0, lives: d.lives + (demo ? 0 : 2 * ((save.gup || {}).lives || 0)), cash: demo ? 1e9 : d.cash + (m.routes.length - 1) * 12 + 8 * ((save.gup || {}).cash || 0), score: 0, time: 0,
+    mi, m, d, demo: !!demo, total: demo ? 9999 : opts.endless ? Infinity : opts.daily ? 30 : m.waves, wave: 0, lives: d.lives + (demo ? 0 : 2 * ((save.gup || {}).lives || 0)), cash: demo ? 1e9 : d.cash + (m.entries.length - 1) * 12 + 8 * ((save.gup || {}).cash || 0), score: 0, time: 0,
     starts, exits, towers: [], towerAt: Array.from({ length: ROWS }, () => Array(COLS).fill(null)),
     enemies: [], projs: [], fx: [], parts: [], texts: [], queue: [], mines: [], spawnT: 0, nextStart: 0,
     tool: null, sel: null, hover: null, speed: 1, countdown: -1, over: false, kills: 0, shake: 0, banner: null, aiT: 0
   };
   g.endless = !!opts.endless; g.daily = !!opts.daily; g.mod = opts.mod || null; g.allowed = opts.allowed || null;
   if (!demo) g.cash += 5 * (save.prestige || 0);
+  if (m.custom && m.cashC) g.cash = m.cashC;
+  if (m.custom && m.livesC) g.lives = m.livesC;
   g.muts = !demo && !opts.daily && !opts.custom ? Object.assign({}, save.muts || {}) : {};
   if (g.muts.fragile) g.lives = Math.ceil(g.lives / 2);
   if (g.mod === 'rich') g.cash *= 3;
@@ -238,7 +240,7 @@ function earlyBonus() {
   return G.countdown > 0 ? Math.ceil(G.countdown * .6) : 0;
 }
 function spawnEnemy(type, wave, quiet) {
-  const d = ETYPES[type], ri = quiet ? 0 : G.nextStart++ % G.m.routes.length, route = G.m.routes[ri], s = route[0];
+  const d = ETYPES[type], ei = quiet ? 0 : G.nextStart++ % G.m.entries.length, ent = G.m.entries[ei], fc = G.forkC = G.forkC || {}, ri = ent[(fc[ei] = (fc[ei] || 0) + 1) % ent.length], route = G.m.routes[ri], s = route[0];
   const hp = d.hp * hpScale(wave) * G.d.hp;
   const e = {
     id: uid++, type, x: s[0] + .5, y: s[1] + .5, tx: s[0], ty: s[1], hp, max: hp, spd: d.spd, r: d.r, col: d.col,

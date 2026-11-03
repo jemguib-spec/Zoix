@@ -20,7 +20,7 @@ function layout() {
   const PW = 176;
   if (!pan) { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH; }
   else if (!L.port) { L.ax = left ? PW + sL + 4 : sL; L.ay = 0; L.aw = SW - PW - sR - sL - 4; L.ah = SH; }
-  else { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH - sB - 226; }
+  else { L.ax = 0; L.ay = 0; L.aw = SW; L.ah = SH - sB - (state === 'edit' ? 300 : 226); }
   // T = taille d'une case quand toute la carte est visible
   L.T = L.port ? Math.min(L.aw / ROWS, L.ah / COLS) : Math.min(L.aw / COLS, L.ah / ROWS);
   if (!pan) L.T = L.port ? Math.max(L.aw / ROWS, L.ah / COLS) : Math.max(L.aw / COLS, L.ah / ROWS); // menu : la carte remplit l'écran
