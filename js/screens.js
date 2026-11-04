@@ -210,38 +210,7 @@ function buildDiff() {
   }
 }
 const thumbs = {}; let mapPage = null;
-$('#mapPrev').onclick = () => { if (mapPage > 0) { mapPage--; buildMaps(); } };
-$('#mapNext').onclick = () => { if (mapPage < WORLDS.length - 1) { mapPage++; buildMaps(); } };
-function buildMaps() {
-  const d = DIFFS[curDiff];
-  $('#mapsTitle').innerHTML = (curMode === 'endless' ? '♾ Mode infini' : 'Zones de combat') + ' · <span style="color:' + d.col + '">' + d.name + '</span>';
-  const g = $('#mapGrid'); g.innerHTML = '';
-  const pages = WORLDS.length;
-  if (mapPage === null) mapPage = Math.min(pages - 1, Math.floor((save.unlocked[curDiff] - 1) / 3));
-  const WD = WORLDS[mapPage];
-  $('#mapPage').innerHTML = (curMode === 'endless' ? '♾ ' : '') + 'Monde ' + (mapPage + 1) + ' / ' + pages + ' · <span style="color:' + MAPS[mapPage * 3].acc + '">' + WD.name + '</span>';
-  buildMuts();
-  $('#worldDesc').innerHTML = WD.desc + '<br><b>Règle · ' + RULES[WD.style].name + '</b> : ' + RULES[WD.style].desc + ' · <b>Boss :</b> ' + ETYPES[WBOSS[mapPage]].name;
-  $('#maps').style.setProperty('--wa', WD.panel[0]); $('#maps').style.setProperty('--wc', WD.panel[2]);
-  const rb = $('#mapRandom'); rb.classList.toggle('hidden', curMode !== 'endless'); rb.textContent = '🎲 Zone aléatoire · record vague ' + ((save.endless || {})[curDiff + NCAMP] || 0);
-  $('#mapPrev').classList.toggle('off', mapPage === 0); $('#mapNext').classList.toggle('off', mapPage === pages - 1);
-  MAPS.forEach((m, i) => {
-    if (i >= NCAMP || Math.floor(i / 3) !== mapPage) return;
-    const locked = i >= save.unlocked[curDiff], st = save.stars[curDiff + i] || 0, best = save.best[curDiff + i] || 0;
-    const b = document.createElement('button'); b.className = 'mapcard' + (locked ? ' locked' : ''); b.style.setProperty('--c', m.acc);
-    if (!thumbs[i]) thumbs[i] = buildBG(i, 16);
-    const c = document.createElement('canvas'); c.width = COLS * 16; c.height = ROWS * 16; c.style.aspectRatio = COLS + '/' + ROWS; c.getContext('2d').drawImage(thumbs[i], 0, 0);
-    b.appendChild(c);
-    const info = document.createElement('div');
-    const ent = m.routes.length, ex = new Set(m.routes.map(r => r[r.length - 1].join(','))).size;
-    const ch = zoneChals(i), nch = ch.filter(c => (save.chal || {})[i + ':' + c]).length, rec = (save.endless || {})[curDiff + i] || 0;
-    info.innerHTML = '<b>' + (locked ? '🔒 ' : '') + (i + 1) + '. ' + m.name + '</b><small>' + (curMode === 'endless' ? '∞ vagues · record : vague ' + rec : m.waves + ' vagues · ' + ent + ' entrée' + (ent > 1 ? 's' : '') + ' · ' + ex + ' sortie' + (ex > 1 ? 's' : '')) + '</small>' +
-      (curMode === 'endless' ? '' : '<span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + (best ? ' <i>' + best + '</i>' : '') + '</span>' + ch.map(c => '<small class="chl' + ((save.chal || {})[i + ':' + c] ? ' done' : '') + '">' + ((save.chal || {})[i + ':' + c] ? '🏅 ' : '◻ ') + CHALS[c].name + '</small>').join(''));
-    b.appendChild(info);
-    b.onclick = () => { if (locked) { toast('Termine la zone précédente pour débloquer celle-ci'); return; } initAudio(); startMap(i, curMode === 'endless' ? { endless: true } : {}); };
-    g.appendChild(b);
-  });
-}
+// carte des mondes et chemin des zones : voir js/worldmap.js
 function buildOptions() {
   $('#optAuto').textContent = 'Vague suivante automatique : ' + (save.autoWave ? 'OUI' : 'NON');
   $('#optSound').textContent = 'Bruitages : ' + (save.sound ? 'OUI' : 'NON');
@@ -375,6 +344,7 @@ window.onAndroidBack = () => {
   if (state === 'play') { if (G && G.sel) { closePopup(); return true; } pauseGame(); return true; }
   if (state === 'pause') { resumeGame(); return true; }
   if (state === 'menu') return false;
+  if (state === 'maps' && wmBack()) return true;
   setState(state === 'maps' ? 'diff' : 'menu'); return true;
 };
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });

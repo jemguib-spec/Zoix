@@ -141,6 +141,15 @@ async function test(name, page, fn) {
     const t = await readQR(cv, 220, 220); cv.remove();
     return t === c4 || 'QR relu : ' + t;
   });
+  await test('carte des mondes : îles, entrée dans un monde, retour', page, () => {
+    save.unlocked.normal = Math.max(save.unlocked.normal, 7); curDiff = 'normal'; mapPage = null; setState('maps');
+    if (WM.view !== 'worlds' || !$('#wmWorld').textContent.includes('Monde')) return 'vue des mondes absente';
+    for (let i = 0; i < WORLDS.length; i++) { const c = document.createElement('canvas').getContext('2d'); c.translate(100, 100); drawIsland(c, i, 60, 1); }
+    wmOpen(1); if (WM.view !== 'path' || mapPage !== 1 || $('#wmCard').classList.contains('hidden')) return 'chemin du monde 2 absent';
+    if (!wmBack() || WM.view !== 'worlds') return 'retour vers les mondes impossible';
+    wmOpen(7); if (WM.view === 'path' && !wmUnlocked(7)) return 'monde verrouillé ouvert';
+    setState('menu'); return true;
+  });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties
     const d = Object.assign({ name: 'Div', world: 0, waves: 20, paths: [[[0, 3], [12, 3], [12, 12]], [[12, 6], [22, 6]]] }, ED_DEF);

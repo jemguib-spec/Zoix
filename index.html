@@ -81,14 +81,13 @@
   <button class="back" data-go="menu">← Retour</button>
 </section>
 
-<section id="maps" class="screen hidden">
-  <h2 id="mapsTitle">Choisis ta zone de combat</h2>
-  <div class="pager"><button id="mapPrev" class="pg">❮</button><b id="mapPage"></b><button id="mapNext" class="pg">❯</button></div>
-  <p id="worldDesc"></p>
-  <div id="mutBox"></div>
-  <button class="big alt hidden" id="mapRandom">🎲 Zone aléatoire</button>
-  <div id="mapGrid"></div>
-  <div class="row2"><button class="back" data-go="diff">← Retour</button><button class="back shopmini" id="mapsShop">🛒 Boutique</button></div>
+<section id="maps" class="screen hidden wm">
+  <canvas id="wmCv"></canvas>
+  <div class="wm-top"><button class="back" id="wmBack">←</button><h2 id="mapsTitle"></h2><button class="back shopmini" id="mapsShop">🛒</button></div>
+  <button id="mapPrev" class="pg wm-arrow l">❮</button><button id="mapNext" class="pg wm-arrow r">❯</button>
+  <div id="wmWorld" class="wm-info"></div>
+  <div class="wm-pathui"><p id="worldDesc"></p><div id="mutBox"></div><button class="big alt hidden" id="mapRandom">🎲 Zone aléatoire</button></div>
+  <div id="wmCard" class="wm-card hidden"></div>
 </section>
 
 <section id="help" class="screen hidden">
@@ -245,6 +244,7 @@
 <script src="js/draw.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/screens.js"></script>
+<script src="js/worldmap.js"></script>
 <script src="js/main.js"></script>
 <script src="js/vendor/qrcode.js"></script>
 <script src="js/icons.js"></script>

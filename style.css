@@ -843,3 +843,47 @@ body.cb .tbars u i{background:linear-gradient(90deg,#60a5fa,#ffd54f)}
 .scan-frame{position:absolute;inset:14% 22%;border:3px solid #4ade80;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35);animation:scanPulse 1.4s ease-in-out infinite}
 @keyframes scanPulse{50%{border-color:#a7f3d0}}
 #scanMsg{text-align:center}
+
+/* ---- carte des mondes (îles flottantes) et chemin des zones ---- */
+#maps.wm{display:block!important;padding:0!important;overflow:hidden;background:#03050a}
+#maps.wm>*{margin:0!important}
+#wmCv{position:absolute!important;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.wm-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 6px calc(12px + env(safe-area-inset-left));pointer-events:none}
+.wm-top>*{pointer-events:auto}
+.wm-top h2{font-size:clamp(15px,4.4vmin,22px)!important;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 2px 10px rgba(0,0,0,.8)!important}
+.wm-top .back{flex:none;padding:8px 14px;background:rgba(14,19,30,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.wm-arrow{position:absolute;top:44%;width:44px;height:56px!important;border-radius:14px;background:rgba(14,19,30,.6)!important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:2}
+.wm-arrow.l{left:calc(8px + env(safe-area-inset-left))}.wm-arrow.r{right:calc(8px + env(safe-area-inset-right))}
+.wm-arrow.off{opacity:.25}
+.wm-info{position:absolute;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(460px,92vw);display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;
+  background:rgba(10,14,24,.72);border:1px solid var(--line);border-radius:18px;padding:10px 14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.wm-info b{font-size:clamp(16px,4.4vmin,21px);font-weight:800;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.wm-info small{font-size:12.5px;color:#cbd5e1}.wm-info .wm-rule{color:var(--muted);font-size:11.5px}
+.wm-info .big{margin-top:4px;padding:9px 28px;font-size:16px}
+.wm-pathui{position:absolute;left:calc(12px + env(safe-area-inset-left));top:calc(58px + env(safe-area-inset-top));width:min(380px,44vw);display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.wm-pathui>*{pointer-events:auto}
+#worldDesc{font-size:11.5px;line-height:1.35;color:#cbd5e1;background:rgba(10,14,24,.65);border:1px solid var(--line);border-radius:12px;padding:6px 9px;margin:0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.wm-pathui #mutBox{justify-content:flex-start}
+.wm-card{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:min(300px,40vw);display:flex;flex-direction:column;gap:6px;
+  background:rgba(10,14,24,.86);border:1px solid var(--line-2);border-radius:18px;padding:10px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 16px 40px rgba(0,0,0,.6);animation:popIn .2s cubic-bezier(.2,1.6,.4,1)}
+.wm-card canvas{position:static;width:100%;border-radius:10px;aspect-ratio:26/15}
+.wm-ci{display:flex;flex-direction:column;gap:2px}.wm-ci b{font-size:14.5px}.wm-ci small{font-size:11px;color:#cbd5e1}.wm-ci .st{color:#ffd740;letter-spacing:2px;font-size:14px}.wm-ci .st i{font-style:normal;font-size:10.5px;color:#cbd5e1;letter-spacing:0}
+.wm-ci .chl{color:var(--muted)}.wm-ci .chl.done{color:#fde68a}
+.wm-boss{font-size:10px;background:#e11d48;color:#fff;border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:2px}
+.wm-card .big{padding:9px 12px;font-size:16px}.wm-card .big[disabled]{opacity:.5}
+#maps.wm-worlds .wm-pathui,#maps.wm-worlds .wm-card{display:none}
+#maps.wm-path .wm-info{display:none}
+#maps.wm-path .wm-arrow{top:auto;bottom:calc(14px + env(safe-area-inset-bottom));height:44px!important}
+#maps.wm-path .wm-arrow.r{right:auto;left:calc(62px + env(safe-area-inset-left))}
+@media (max-height:500px){.wm-info{bottom:calc(22px + env(safe-area-inset-bottom));padding:6px 12px;gap:1px}.wm-info .big{padding:6px 22px;font-size:14px}.wm-card{width:min(260px,36vw);padding:8px;gap:4px}.wm-card canvas{max-height:70px;object-fit:cover}.wm-ci .chl{display:none}#worldDesc{font-size:10.5px}}
+@media (orientation:portrait){
+  .wm-pathui{width:auto;right:calc(12px + env(safe-area-inset-right))}
+  #worldDesc{display:none}
+  .wm-card{left:calc(12px + env(safe-area-inset-left));width:auto;flex-direction:row;flex-wrap:wrap;align-items:center}
+  .wm-card canvas{width:38%}.wm-ci{flex:1;min-width:0}.wm-card .big{width:100%}
+  #maps.wm-path .wm-arrow{display:none}
+}
+#maps.wm #mapsTitle{display:block!important}
+.wm-top .shopmini{background:linear-gradient(135deg,#fde68a,#f59e0b)!important;color:#3b2300!important;border:none}
+#maps.wm-worlds .wm-top h2{flex:1;text-align:center}
+@media (orientation:portrait){.wm-pathui{top:calc(62px + env(safe-area-inset-top))}}
