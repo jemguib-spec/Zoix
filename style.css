@@ -887,3 +887,23 @@ body.cb .tbars u i{background:linear-gradient(90deg,#60a5fa,#ffd54f)}
 .wm-top .shopmini{background:linear-gradient(135deg,#fde68a,#f59e0b)!important;color:#3b2300!important;border:none}
 #maps.wm-worlds .wm-top h2{flex:1;text-align:center}
 @media (orientation:portrait){.wm-pathui{top:calc(62px + env(safe-area-inset-top))}}
+/* parcours linéaire : infos du monde et mutateurs en bas à gauche, fiche de zone en bas à droite */
+#maps.wm-path .wm-pathui{top:auto;bottom:calc(12px + env(safe-area-inset-bottom))}
+#maps.wm-path .wm-arrow{top:46%!important;bottom:auto!important;height:52px!important}
+#maps.wm-path .wm-arrow.r{left:auto!important;right:calc(8px + env(safe-area-inset-right))}
+#maps.wm-path #worldDesc{display:block}
+@media (orientation:landscape){#maps.wm-path .wm-arrow.r{right:calc(min(300px,40vw) + 22px + env(safe-area-inset-right))}}
+@media (orientation:portrait){#maps.wm-path .wm-pathui{top:calc(62px + env(safe-area-inset-top));bottom:auto}#maps.wm-path #worldDesc{font-size:11px}#maps.wm-path .wm-arrow{display:none}}
+/* flèches de monde dans la barre du haut : elles ne cachent plus le parcours */
+#maps.wm-path .wm-arrow{top:calc(10px + env(safe-area-inset-top))!important;bottom:auto!important;height:40px!important;width:40px;display:flex!important;align-items:center;justify-content:center;padding:0}
+#maps.wm-path .wm-arrow.l{left:calc(70px + env(safe-area-inset-left))!important}
+#maps.wm-path .wm-arrow.r{left:auto!important;right:calc(70px + env(safe-area-inset-right))!important}
+#maps.wm-path .wm-top h2{padding:0 54px}
+@media (orientation:portrait){
+  #maps.wm-path #worldDesc{display:none}
+  #maps.wm-path #mutBox{flex-wrap:nowrap;overflow-x:auto;touch-action:pan-x;padding-bottom:2px}
+  #maps.wm-path #mutBox>*{flex:none}
+  #maps.wm-path .wm-top h2{font-size:15px!important;padding:0 46px}
+  #maps.wm-path .wm-arrow{width:36px;height:36px!important}
+  #maps.wm-path .wm-arrow.l{left:calc(64px + env(safe-area-inset-left))!important}#maps.wm-path .wm-arrow.r{right:calc(64px + env(safe-area-inset-right))!important}
+}

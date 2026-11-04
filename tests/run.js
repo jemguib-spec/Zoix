@@ -141,13 +141,13 @@ async function test(name, page, fn) {
     const t = await readQR(cv, 220, 220); cv.remove();
     return t === c4 || 'QR relu : ' + t;
   });
-  await test('carte des mondes : îles, entrée dans un monde, retour', page, () => {
+  await test('carte des mondes : parcours linéaire des 24 zones', page, () => {
     save.unlocked.normal = Math.max(save.unlocked.normal, 7); curDiff = 'normal'; mapPage = null; setState('maps');
-    if (WM.view !== 'worlds' || !$('#wmWorld').textContent.includes('Monde')) return 'vue des mondes absente';
-    for (let i = 0; i < WORLDS.length; i++) { const c = document.createElement('canvas').getContext('2d'); c.translate(100, 100); drawIsland(c, i, 60, 1); }
-    wmOpen(1); if (WM.view !== 'path' || mapPage !== 1 || $('#wmCard').classList.contains('hidden')) return 'chemin du monde 2 absent';
-    if (!wmBack() || WM.view !== 'worlds') return 'retour vers les mondes impossible';
-    wmOpen(7); if (WM.view === 'path' && !wmUnlocked(7)) return 'monde verrouillé ouvert';
+    const L = wmLayout(900, 410); if (L.nodes.length !== NCAMP || L.nodes.some((o, i) => i && o.a <= L.nodes[i - 1].a)) return 'parcours non linéaire';
+    if (WM.sel !== save.unlocked.normal - 1 || $('#wmCard').classList.contains('hidden')) return 'zone à jouer non sélectionnée';
+    for (let i = 0; i < WORLDS.length; i++) { const c = document.createElement('canvas').getContext('2d'); c.translate(100, 100); drawIsland(c, i, 60, 1, true); }
+    const c2 = document.createElement('canvas'); c2.width = 900; c2.height = 410; wmDraw(c2.getContext('2d'), L);
+    wmOpen(3); if (mapPage !== 3) return 'aller au monde 4 impossible';
     setState('menu'); return true;
   });
   await test('éditeur : divisions et sorties multiples', page, () => {
