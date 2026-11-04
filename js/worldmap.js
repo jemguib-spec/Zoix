@@ -223,18 +223,29 @@ function wmDraw(g, L) {
   // portails entre les mondes
   WM.hit = [];
   for (let w = 0; w < WORLDS.length; w++) {
-    const [gx, gy] = gates[w], s = Math.min(W, H) * .075;
+    const [gx, gy] = gates[w], s = Math.min(W, H) * (L.land ? .1 : .075);
     if (gx < -s * 4 || gx > W + s * 4 || gy < -s * 4 || gy > H + s * 4) continue;
     const open = wmUnlocked(w), c = acc(w);
-    g.save(); g.translate(gx, gy); g.save(); // la piste passe tout droit au milieu de l'arche
-    if (L.land) g.rotate(-Math.PI / 2); g.translate(0, s * .8); // en paysage la piste est horizontale : l'arche est tournée vers elle
+    g.save(); g.translate(gx, gy);
+    if (L.land) { // paysage : la piste est horizontale, un portique symétrique l'enjambe (pylône au-dessus et au-dessous de la piste)
+      const hh = s * 1.05, fw = s * .62; // demi-hauteur et largeur du cadre
+      wmGlow(g, 0, 0, s * 1.9, c, open ? .22 + .08 * Math.sin(WM.t * 2) : .05);
+      if (open) { g.save(); rr(g, -fw / 2, -hh, fw, hh * 2, fw / 2); g.clip(); const gp = g.createLinearGradient(-fw / 2, 0, fw / 2, 0); gp.addColorStop(0, rgbaA(c).replace('A', .08)); gp.addColorStop(.5, rgbaA(c).replace('A', .45)); gp.addColorStop(1, rgbaA(c).replace('A', .08)); g.fillStyle = gp; g.fillRect(-fw, -hh, fw * 2, hh * 2);
+        for (let k = 0; k < 4; k++) { const q = (WM.t * .7 + k / 4) % 1; g.strokeStyle = 'rgba(255,255,255,' + (.4 * (1 - q)) + ')'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, 0, fw * .5 * q, hh * q, 0, 0, TAU); g.stroke(); } g.restore(); }
+      rr(g, -fw / 2, -hh, fw, hh * 2, fw / 2); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = s * .26; g.stroke(); g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .14; g.stroke();
+      for (const sy of [-1, 1]) { const py = sy * (hh + s * .05); wmBox(g, -s * .3, py - s * .2, s * .6, s * .4, shade(c, -.05), shade(c, -.65), s * .1); wmGlow(g, 0, py, s * .45, c, open ? .9 : .2); }
+      if (!open) { g.save(); g.translate(0, s * .08); wmPadlock(g, s * .7); g.restore(); }
+      g.translate(0, s * .9);
+    } else { // portrait : la piste monte tout droit au milieu de l'arche
+    g.save(); g.translate(0, s * .8);
     wmGlow(g, 0, -s * 1.2, s * 2.2, c, open ? .25 + .08 * Math.sin(WM.t * 2) : .05);
     for (const sx of [-1, 1]) { wmBox(g, sx * s * .95 - s * .2, -s * 1.6, s * .4, s * 1.7, shade(c, -.05), shade(c, -.65), s * .08); g.fillStyle = shade(c, -.75); g.fillRect(sx * s * .95 - s * .28, -s * .02, s * .56, s * .16); wmGlow(g, sx * s * .95, -s * 1.65, s * .5, c, open ? .9 : .2); }
     g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = s * .26; g.beginPath(); g.arc(0, -s * 1.5, s * .95, Math.PI, 0); g.stroke();
     g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .16; g.stroke();
     if (open) { g.save(); g.beginPath(); g.arc(0, -s * 1.5, s * .8, Math.PI, 0); g.lineTo(s * .8, 0); g.lineTo(-s * .8, 0); g.closePath(); g.clip(); const gp = g.createLinearGradient(0, -s * 2.4, 0, 0); gp.addColorStop(0, rgbaA(c).replace('A', .45)); gp.addColorStop(1, rgbaA(c).replace('A', .05)); g.fillStyle = gp; g.fillRect(-s, -s * 2.4, s * 2, s * 2.4); for (let k = 0; k < 4; k++) { const q = (WM.t * .7 + k / 4) % 1; g.strokeStyle = 'rgba(255,255,255,' + (.35 * (1 - q)) + ')'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, -s * .8, s * .75 * q, s * .9 * q, 0, 0, TAU); g.stroke(); } g.restore(); }
-    if (!open) { g.save(); g.translate(0, -s * .8); if (L.land) g.rotate(Math.PI / 2); wmPadlock(g, s * .8); g.restore(); }
-    g.restore(); g.translate(0, L.land ? s * 1.1 : s * .8);
+    if (!open) { g.save(); g.translate(0, -s * .8); wmPadlock(g, s * .8); g.restore(); }
+    g.restore(); g.translate(0, s * .8);
+    }
     // panneau du monde
     const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7, lx = gx; g.translate(clamp(lx, tw / 2 + 8, Math.max(tw / 2 + 8, W - tw / 2 - 8)) - lx, 0); // le panneau reste dans l'écran
     g.fillStyle = 'rgba(8,12,20,.88)'; rr(g, -tw / 2, -s * 3.05, tw, s * .72, s * .36); g.fill(); g.strokeStyle = open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = s * .05; g.stroke();
