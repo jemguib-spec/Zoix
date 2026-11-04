@@ -1,13 +1,17 @@
 package com.virusdefense.game;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import org.json.JSONObject;
 import android.graphics.Color;
 import android.os.Build;
@@ -27,6 +31,9 @@ public class MainActivity extends Activity {
     private WebView web;
     private boolean pageReady = false;
     private String pendingLevel = null;
+    private PermissionRequest pendingPerm = null;    // caméra demandée par le jeu (scanner un QR code)
+    private ValueCallback<Uri[]> fileCb = null;       // photo choisie (lire un QR code depuis une image)
+    private static final int REQ_CAM = 7, REQ_FILE = 8;
 
     /** Pont JavaScript : partage natif, presse-papiers (window.AndroidApp dans le jeu). */
     public class Bridge {
@@ -98,7 +105,30 @@ public class MainActivity extends Activity {
             @Override public void onPageFinished(WebView v, String url) { pageReady = true; deliverLevel(); }
         });
         web.addJavascriptInterface(new Bridge(), "AndroidApp");
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            /** Le jeu demande la caméra pour scanner un QR code : on demande l'autorisation Android si besoin. */
+            @Override public void onPermissionRequest(final PermissionRequest request) {
+                runOnUiThread(() -> {
+                    boolean cam = false;
+                    for (String r : request.getResources()) if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) cam = true;
+                    if (!cam) { request.deny(); return; }
+                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        request.grant(new String[] { PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+                    } else {
+                        pendingPerm = request;
+                        requestPermissions(new String[] { Manifest.permission.CAMERA }, REQ_CAM);
+                    }
+                });
+            }
+            /** Choix d'une photo (bouton « Depuis une photo »). */
+            @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams params) {
+                if (fileCb != null) fileCb.onReceiveValue(null);
+                fileCb = cb;
+                try { startActivityForResult(params.createIntent(), REQ_FILE); }
+                catch (Exception e) { fileCb = null; return false; }
+                return true;
+            }
+        });
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(web);
         hideSystemBars();
@@ -137,6 +167,25 @@ public class MainActivity extends Activity {
         web.evaluateJavascript("(window.onAndroidBack && window.onAndroidBack()) ? 'yes' : 'no'", value -> {
             if (value == null || !value.contains("yes")) finish();
         });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code == REQ_CAM && pendingPerm != null) {
+            if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) pendingPerm.grant(new String[] { PermissionRequest.RESOURCE_VIDEO_CAPTURE });
+            else pendingPerm.deny();
+            pendingPerm = null;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int code, int result, Intent data) {
+        super.onActivityResult(code, result, data);
+        if (code == REQ_FILE && fileCb != null) {
+            fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
+            fileCb = null;
+        }
     }
 
     @Override protected void onPause() { super.onPause(); web.onPause(); }

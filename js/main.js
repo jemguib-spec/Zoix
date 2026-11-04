@@ -30,7 +30,9 @@ function updateEnd(dt) {
   if (G.endT > 2.8 && state === 'play') { showResult(G.win); if (G.showEnd) { G.showEnd = false; save.story = save.story || {}; save.story.end = 1; persist(); showStory(STORY_END, '🏆 AVA · Fin de l\'infection', null); } }
 }
 function frame(now) {
-  let dt = Math.min(.05, (now - last) / 1000); last = now;
+  // économie de batterie : 30 images/s en partie, 20 dans les menus
+  if (save.eco && now - last < (state === 'play' ? 32 : 48)) { requestAnimationFrame(frame); return; }
+  let dt = Math.min(.07, (now - last) / 1000); last = now;
   if (state === 'play' && G && !G.over) {
     if (G.storyOpen) { } // le jeu attend que le message soit lu
     else if (G.hitstop > 0) G.hitstop -= dt; // petite pause sur les gros impacts
@@ -47,10 +49,11 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
+document.body.classList.toggle('cb', !!save.cb);
 layout();
 setState('menu');
 { // niveau partagé par lien (#lvl=…)
-  const hm = location.hash.match(/lvl=(VD[12]~[^&#\s]+)/);
+  const hm = location.hash.match(/lvl=(VD[1-4]~[^&#\s]+)/);
   if (hm) { history.replaceState(null, '', location.pathname + location.search); if (importLevel(hm[1])) setState('levels'); }
 }
 requestAnimationFrame(frame);

@@ -29,7 +29,7 @@ async function test(name, page, fn) {
   await page.evaluate(() => { localStorage.clear(); save = loadSave(); save.tuto = 1; save.story = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 }; for (const k of TORDER) save.unlockT[k] = 1; });
 
   await test('le jeu démarre sur le menu', page, () => state === 'menu' && !!DEMO || 'état : ' + state);
-  await test('les 24 zones de campagne sont valides', page, () => { for (let i = 0; i < NCAMP; i++) { const m = MAPS[i]; if (!m.routes.length || m.routes.some(r => r.length < 8)) return 'zone ' + i; } return NCAMP === 24; });
+  await test('les 40 zones de campagne sont valides (5 par monde, dans l\'ordre)', page, () => { for (let i = 0; i < NCAMP; i++) { const m = MAPS[i]; if (!m.routes.length || m.routes.some(r => r.length < 8)) return 'zone ' + i; } if (CORDER.length !== NCAMP || new Set(CORDER).size !== NCAMP) return 'ordre de campagne invalide'; for (let p = 0; p < NCAMP; p++) if (worldIdx(CORDER[p]) !== Math.floor(p / ZPW)) return 'zone ' + CORDER[p] + ' dans le mauvais monde'; return NCAMP === 40; });
 
   // simulation rapide de chaque monde avec une IA simple
   await test('chaque monde se joue 12 vagues sans erreur', page, () => {
@@ -82,6 +82,74 @@ async function test(name, page, fn) {
     if (edCheck(d)) return edCheck(d);
     const c = lvlEncode(d), d2 = lvlDecode(c);
     return !!d2 && JSON.stringify(d2.paths) === JSON.stringify(d.paths) && d2.name === 'Essai' && d2.world === 3 || 'décodage différent';
+  });
+  await test('éditeur : obstacles, bonus, tourelles, règles et réglages se codent (VD3)', page, () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Complet', world: 6, waves: 25, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]],
+      obst: [[5, 5], [6, 5]], bonus: [[8, 3]], allowed: ['pulse', 'cannon'], hp: 150, spd: 80, rew: 200, noRule: true, noPower: true, desc: 'Bonne chance !' });
+    const c = lvlEncode(d), d2 = lvlDecode(c);
+    if (!d2 || !c.startsWith('VD4~')) return 'code invalide';
+    const keys = ['obst', 'bonus', 'allowed', 'hp', 'spd', 'rew', 'noRule', 'noPower', 'desc'];
+    for (const k of keys) if (JSON.stringify(d2[k]) !== JSON.stringify(d[k])) return k + ' différent';
+    return true;
+  });
+  await test('éditeur : obstacles bloquent, bonus +30 %, règle et pouvoirs coupés', page, () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Jeu', world: 6, waves: 10, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]],
+      obst: [[5, 5]], bonus: [[8, 3]], allowed: ['pulse', 'gatling'], hp: 200, noRule: true, noPower: true });
+    playLevel(lvlEncode(d)); G.cash = 1000;
+    if (canPlace(5, 5) === null) return 'obstacle constructible';
+    tryPlace('pulse', 8, 3); const t = G.towers[0]; if (!t || !t.bonus || Math.abs(t.boost - 1.3) > .01) return 'bonus absent';
+    if (!G.allowed || G.allowed.length !== 2) return 'tourelles autorisées ignorées';
+    if (!G.muts.nopower) return 'pouvoirs actifs';
+    for (let i = 0; i < 40; i++) tryPlace('pulse', 1 + (i % 24), 4 + Math.floor(i / 24) * 2);
+    if (G.towers.length < 29) return 'règle du monde (28 tourelles max) encore active : ' + G.towers.length;
+    startWave(); for (let i = 0; i < 200 && !G.enemies.length; i++) update(1 / 30);
+    const e = G.enemies[0]; if (!e || Math.abs(e.max / (ETYPES[e.type].hp * hpScale(e.wave || 1) * G.d.hp * zoneHpK(G.mi)) - 2) > .05) return 'PV non multipliés';
+    setState('menu'); return true;
+  });
+  await test('éditeur : vagues personnalisées (code, groupes, entrée, boss)', page, () => {
+    const wl = [{ g: [{ t: 'bug', n: 4, gap: .5, d: 0, e: 0 }, { t: 'knight', n: 2, gap: 1, d: 2, e: 2 }] }, { g: [{ t: 'kernel', n: 1, gap: 1, d: 0, e: 1 }, { t: 'spam', n: 12, gap: .2, d: 1.5, e: 0 }] }];
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Vagues', world: 6, waves: 2, wl, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]], [[25, 13], [12, 13], [12, 9]]] });
+    const c = lvlEncode(d), d2 = lvlDecode(c);
+    if (!d2 || JSON.stringify(d2.wl) !== JSON.stringify(wl)) return 'vagues différentes après décodage';
+    playLevel(c); G.cash = 99999;
+    if (G.total !== 2) return 'nombre de vagues : ' + G.total;
+    startWave(); if (G.queue.length !== 6) return 'vague 1 : ' + G.queue.length + ' virus en attente';
+    const kn = G.queue.filter(q => q.type === 'knight'); if (kn.length !== 2 || kn[0].t < 2 || kn[0].ent !== 2) return 'groupe chevaliers mal programmé';
+    for (let i = 0; i < 120; i++) { update(1 / 30); G.hitstop = 0; }
+    const k = G.enemies.find(e => e.type === 'knight'); if (!k || k.route[0] + '' !== G.m.routes[G.m.entries[1][0]][0] + '') return 'le chevalier ne sort pas de l\'entrée 2';
+    for (const e of G.enemies) e.dead = true; G.enemies = []; G.queue = [];
+    startWave(); if (!G.queue.some(q => q.type === 'kernel') || G.queue.filter(q => q.type === 'spam').length !== 12) return 'vague 2 incorrecte';
+    setState('menu'); return true;
+  });
+  await test('nouveaux virus : 3 par monde, présents dans les vagues de leur monde', page, () => {
+    for (let w = 0; w < WORLDS.length; w++) {
+      if (WVIR3[w].length !== 3 || WVIR3[w].some(k => !ETYPES[k] || !EDESC[k] || ETYPES[k].world !== w)) return 'monde ' + w + ' : liste invalide';
+      startMap(w * 3); const seen = new Set(); for (let v = 1; v <= 20; v++) { const wd = waveDef(v); seen.add(wd.type); if (wd.type2) seen.add(wd.type2); }
+      if (!WVIR3[w].every(k => seen.has(k))) return 'monde ' + w + ' : virus absents des 20 premières vagues';
+    }
+    startMap(0); G.cash = 1e5; spawnEnemy('chipset', 3); const e = G.enemies[G.enemies.length - 1], n0 = G.enemies.length; hurt(e, 1e9, true);
+    if (G.enemies.filter(x => !x.dead && x.type === 'bug').length < 3) return 'la puce mère ne libère pas 3 virus';
+    setState('menu'); return true;
+  });
+  await test('partage : code compact VD4 et QR code relu par le scanner', page, async () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Zoé à l\'école', world: 5, waves: 20, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]], obst: [[6, 5]], desc: 'Défi ★' });
+    const c4 = lvlEncode(d), c3 = lvlEncode3(d), d2 = lvlDecode(c4);
+    if (!c4.startsWith('VD4~') || !d2 || d2.name !== d.name || d2.desc !== d.desc) return 'VD4 invalide';
+    if (c4.length >= c3.length * .75) return 'code pas assez court : ' + c4.length + ' / ' + c3.length;
+    if (!lvlDecode(c3)) return 'ancien format VD3 illisible';
+    const cv = document.createElement('canvas'); cv.width = cv.height = 220; document.body.appendChild(cv); drawQR(cv, c4);
+    const t = await readQR(cv, 220, 220); cv.remove();
+    return t === c4 || 'QR relu : ' + t;
+  });
+  await test('carte des mondes : parcours linéaire des 24 zones', page, () => {
+    save.unlocked.normal = Math.max(save.unlocked.normal, 7); curDiff = 'normal'; mapPage = null; setState('maps');
+    const L = wmLayout(900, 410); if (L.nodes.length !== NCAMP || L.nodes.some((o, i) => i && o.a <= L.nodes[i - 1].a)) return 'parcours non linéaire';
+    if (WM.sel !== save.unlocked.normal - 1 || $('#wmCard').classList.contains('hidden')) return 'zone à jouer non sélectionnée';
+    for (let i = 0; i < WORLDS.length; i++) { const c = document.createElement('canvas').getContext('2d'); c.translate(100, 100); drawIsland(c, i, 60, 1, true); }
+    const c2 = document.createElement('canvas'); c2.width = 900; c2.height = 410; wmDraw(c2.getContext('2d'), L);
+    wmOpen(3); if (mapPage !== 3) return 'aller au monde 4 impossible';
+    setState('menu'); if (getComputedStyle($('#maps')).display !== 'none') return 'la carte reste affichée par-dessus le menu';
+    return true;
   });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties

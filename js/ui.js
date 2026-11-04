@@ -23,6 +23,12 @@ cv.addEventListener('pointermove', e => {
     gesture.moved = true;
   } else if (!gesture.pinch) {
     if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 12) gesture.moved = true;
+    if (state === 'edit' && ED && ED.tool && ED.tool !== 'path' && ptrs.size === 1 && gesture.moved) { // peindre en glissant
+      const [mx, my] = toMap(e.clientX, e.clientY), tx = Math.floor(mx), ty = Math.floor(my), k = tx + ',' + ty;
+      if (!gesture.paint) { gesture.paint = new Set(); edSnap(); const [sx0, sy0] = toMap(p.sx, p.sy), arr = ED.tool === 'obst' ? ED.obst : ED.bonus; gesture.mode = ED.tool === 'erase' ? 'del' : tileIn(arr, Math.floor(sx0), Math.floor(sy0)) >= 0 ? 'del' : 'add'; edPaint(Math.floor(sx0), Math.floor(sy0), gesture.mode); gesture.paint.add(Math.floor(sx0) + ',' + Math.floor(sy0)); }
+      if (!gesture.paint.has(k)) { gesture.paint.add(k); if (edPaint(tx, ty, gesture.mode)) { sfx('build'); edUpdate(); } }
+      return;
+    }
     if (gesture.tower && gesture.moved) { G.dragSell = { t: gesture.tower, x: e.clientX, y: e.clientY, out: !inArea(e.clientX, e.clientY) }; dragGhost(G.dragSell); return; } // glisser une tourelle hors de la carte pour la vendre
     if (gesture.moved && L.zoom > 1.01) {
       if (L.port) { L.vx -= dy / L.s; L.vy += dx / L.s; } else { L.vx -= dx / L.s; L.vy -= dy / L.s; }
@@ -117,14 +123,14 @@ function towerInfo() {
   const d = TOWERS[k], st = tStats(k, 1), bar = (v, m) => '<i style="width:' + Math.round(Math.min(1, v / m) * 100) + '%"></i>';
   const nums = k === 'boost' ? 'Bonus +' + Math.round(st.boost * 100) + ' % · portée ' + st.range.toFixed(1) : k === 'miner' ? '+' + st.gain + ' cr par vague' :
     'Dégâts ' + st.dmg.toFixed(1) + ' · Portée ' + st.range.toFixed(1) + ' · ' + st.rate.toFixed(1) + '/s';
-  el.innerHTML = '<b style="color:' + d.col + '">' + tName(k) + ' <em>' + tCost(k) + ' cr</em></b><span class="tdesc">' + d.desc + '</span><span class="tnums">' + nums + (d.ground ? ' · sol' : '') + '</span>' +
+  el.innerHTML = '<b style="color:' + d.col + '">' + tName(k) + ' <em>' + tCost(k) + ' cr</em></b><span class="tdesc">' + tDesc(k) + '</span><span class="tnums">' + nums + (d.ground ? ' · sol' : '') + '</span>' +
     '<div class="tbars"><label>Dégâts</label><u>' + bar(st.dmg * st.rate * (st.chain || 1), 60) + '</u><label>Portée</label><u>' + bar(st.range, 4.5) + '</u><label>Cadence</label><u>' + bar(st.rate, 4) + '</u></div>';
 }
 function selectTool(k, quiet) {
   G.tool = k; closePopup(); towerInfo();
   document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('sel', b.dataset.t === k));
-  if (k && !unlockedT(k)) { toast('🔒 ' + TOWERS[k].name + ' : débloque-la dans la Boutique avec ' + UNLOCK[k] + ' ⬢'); G.tool = null; document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('sel')); towerInfo(); return; }
-  if (k && !quiet) toast(tName(k) + ' (' + tCost(k) + ' cr) : ' + TOWERS[k].desc + ' — touche le circuit ou glisse-la sur la carte');
+  if (k && !unlockedT(k)) { toast('🔒 ' + tName(k) + ' : débloque-la dans la Boutique avec ' + UNLOCK[k] + ' ⬢'); G.tool = null; document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('sel')); towerInfo(); return; }
+  if (k && !quiet) toast(tName(k) + ' (' + tCost(k) + ' cr) : ' + tDesc(k) + ' — touche le circuit ou glisse-la sur la carte');
 }
 const lastP = {};
 function setTxt(id, v) { if (lastP[id] !== v) { lastP[id] = v; $(id).textContent = v; } }
@@ -330,28 +336,109 @@ let ED = null;
 const hashStr = t => { let h = 7; for (const c of t) h = Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0; return h % 99991; };
 const onEdge = (x, y) => x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
 // virus et boss qu'on peut choisir dans l'éditeur (l'ordre fixe le code de partage : ne pas le changer)
-const ED_VIR = ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper', 'worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone'];
+const ED_VIR = ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper', 'worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone',
+  'capa', 'chipset', 'slag', 'phoenix', 'byte', 'stream', 'firewall', 'spam', 'yeti', 'flake', 'spectre', 'replicant', 'knight', 'invader', 'droplet', 'thunder'];
+// tous les virus utilisables dans les vagues personnalisées (ordre fixe : il sert au code de partage, on ne fait qu'ajouter à la fin)
+const ED_WT = ED_VIR.concat(['mini', 'bit', 'boss', 'kernel', 'magma', 'trojan', 'ddos', 'glacier', 'aicore', 'mainframe', 'tempest']);
 const ED_BOSS = ['', 'boss'].concat(WBOSS);
-const ED_DEF = { vir: ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper'], boss: 'auto', megas: true, cash: 0, lives: 0 };
+const ED_DEF = { vir: ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper'], boss: 'auto', megas: true, cash: 0, lives: 0,
+  obst: [], bonus: [], allowed: null, hp: 100, spd: 100, rew: 100, noRule: false, noPower: false, desc: '', wl: null };
+const tilesStr = a => (a || []).map(([x, y]) => x.toString(36) + y.toString(36)).join('');
+const strTiles = t => { const p = []; for (let i = 0; i + 1 < (t || '').length; i += 2) p.push([parseInt(t[i], 36), parseInt(t[i + 1], 36)]); return p; };
 const edBossIdx = d => d.boss === 'auto' ? 99 : Math.max(0, ED_BOSS.indexOf(d.boss));
+// vagues personnalisées : vagues séparées par |, groupes par , et champs d'un groupe par :
+// groupe = virus (rang dans ED_WT), nombre, écart et départ (dixièmes de seconde), entrée (0 = toutes à tour de rôle)
+const wlEncode = wl => wl.map(w => w.g.map(g => [ED_WT.indexOf(g.t), g.n, Math.round(g.gap * 10), Math.round(g.d * 10), g.e || 0].map(v => v.toString(36)).join(':')).join(',')).join('|');
+const wlDecode = s => s.split('|').map(w => ({ g: w.split(',').filter(Boolean).map(gs => { const f = gs.split(':').map(v => parseInt(v, 36)); return { t: ED_WT[f[0]], n: clamp(f[1] || 1, 1, 300), gap: clamp((f[2] || 0) / 10, .1, 5), d: clamp((f[3] || 0) / 10, 0, 60), e: clamp(f[4] || 0, 0, 8) }; }) }));
+// ---- format VD4 : code compact (bits serrés en base64url), environ 3 fois plus court que VD3 ----
+function BitW() { const b = []; return { put(v, n) { for (let i = n - 1; i >= 0; i--) b.push((v >>> i) & 1); }, bytes() { const o = new Uint8Array(Math.ceil(b.length / 8)); b.forEach((x, i) => { if (x) o[i >> 3] |= 128 >> (i & 7); }); return o; } }; }
+function BitR(by) { let p = 0; return { get(n) { let v = 0; for (let i = 0; i < n; i++) { const k = p++; v = v * 2 + ((by[k >> 3] >> (7 - (k & 7))) & 1); } return v; }, left() { return by.length * 8 - p; } }; }
+const b64u = by => btoa(String.fromCharCode(...by)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+const putStr = (w, s, nb) => { const by = new TextEncoder().encode(s); const n = Math.min(by.length, (1 << nb) - 1); w.put(n, nb); for (let i = 0; i < n; i++) w.put(by[i], 8); };
+const getStr = (r, nb) => { const n = r.get(nb), by = new Uint8Array(n); for (let i = 0; i < n; i++) by[i] = r.get(8); return new TextDecoder().decode(by); };
+// entiers de taille variable (code exp-Golomb d'ordre k) : les petites valeurs prennent peu de bits
+const putVar = (w, v, k) => { const u = v + (1 << k), nb = Math.floor(Math.log2(u)); w.put(0, nb - k); w.put(u, nb + 1); };
+const getVar = (r, k) => { let z = 0; while (r.left() > 0 && r.get(1) === 0) z++; const nb = z + k; return (1 << nb) + r.get(nb) - (1 << k); };
+const putPt = (w, [x, y]) => { w.put(x, 5); w.put(y, 4); }, getPt = r => [r.get(5), r.get(4)];
 function lvlEncode(d) {
+  const w = BitW(), vir = d.vir || ED_DEF.vir, virDef = vir.join() === ED_DEF.vir.join(), ps = d.paths.filter(p => p.length >= 2);
+  w.put(1, 3); w.put(d.world, 3); w.put(clamp(d.waves, 1, 99), 7); putStr(w, (d.name || 'Niveau').slice(0, 30), 6);
+  w.put(ps.length, 4);
+  for (const p of ps) { w.put(p.length, 6); putPt(w, p[0]); for (let i = 1; i < p.length; i++) { const v = p[i][0] === p[i - 1][0]; w.put(v ? 1 : 0, 1); w.put(v ? p[i][1] : p[i][0], v ? 4 : 5); } }
+  const am = d.allowed && d.allowed.length < TORDER.length ? d.allowed.reduce((a, k) => a | (1 << TORDER.indexOf(k)), 0) : 0;
+  const F = [!virDef, d.boss !== 'auto', d.megas === false, !!d.cash, !!d.lives, !!(d.obst || []).length, !!(d.bonus || []).length, !!am, (d.hp || 100) !== 100, (d.spd || 100) !== 100, (d.rew || 100) !== 100, !!d.noRule, !!d.noPower, !!d.desc, !!(d.wl && d.wl.length)];
+  F.forEach(f => w.put(f ? 1 : 0, 1));
+  if (F[0]) for (const k of ED_VIR) w.put(vir.includes(k) ? 1 : 0, 1);
+  if (F[1]) w.put(Math.max(0, ED_BOSS.indexOf(d.boss)), 4);
+  if (F[3]) w.put(clamp(d.cash, 0, 2000), 11);
+  if (F[4]) w.put(clamp(d.lives, 0, 99), 7);
+  if (F[5]) { w.put(d.obst.length, 7); d.obst.forEach(q => putPt(w, q)); }
+  if (F[6]) { w.put(d.bonus.length, 5); d.bonus.forEach(q => putPt(w, q)); }
+  if (F[7]) w.put(am, TORDER.length);
+  if (F[8]) w.put(clamp(Math.round((d.hp - 25) / 25), 0, 15), 4);
+  if (F[9]) w.put(clamp(Math.round((d.spd - 50) / 10), 0, 15), 4);
+  if (F[10]) w.put(clamp(Math.round((d.rew - 25) / 25), 0, 15), 4);
+  if (F[13]) putStr(w, d.desc.slice(0, 140), 9);
+  if (F[14]) { w.put(d.wl.length, 7); for (const wv of d.wl) { w.put(wv.g.length - 1, 3); for (const g of wv.g) { w.put(ED_WT.indexOf(g.t), 6); putVar(w, clamp(g.n, 1, 300) - 1, 3); putVar(w, clamp(Math.round(g.gap * 10), 1, 50) - 1, 2); putVar(w, clamp(Math.round(g.d * 10), 0, 600), 1); putVar(w, g.e || 0, 0); } } }
+  return 'VD4~' + b64u(w.bytes());
+}
+function lvlDecode4(s) {
+  const r = BitR(unb64u(s));
+  if (r.get(3) !== 1) return null;
+  const d = JSON.parse(JSON.stringify(ED_DEF)); d.world = r.get(3); d.waves = r.get(7); d.name = getStr(r, 6) || 'Niveau';
+  d.paths = []; for (let n = r.get(4), i = 0; i < n; i++) { const L = r.get(6), p = [getPt(r)]; for (let j = 1; j < L; j++) { const v = r.get(1), c = r.get(v ? 4 : 5), q = p[j - 1]; p.push(v ? [q[0], c] : [c, q[1]]); } d.paths.push(p); }
+  const F = []; for (let i = 0; i < 15; i++) F.push(r.get(1) === 1);
+  if (F[0]) { d.vir = ED_VIR.filter(() => r.get(1)); if (!d.vir.length) return null; }
+  if (F[1]) { d.boss = ED_BOSS[r.get(4)]; if (d.boss === undefined) return null; }
+  d.megas = !F[2];
+  if (F[3]) d.cash = r.get(11);
+  if (F[4]) d.lives = r.get(7);
+  if (F[5]) for (let n = r.get(7), i = 0; i < n; i++) d.obst.push(getPt(r));
+  if (F[6]) for (let n = r.get(5), i = 0; i < n; i++) d.bonus.push(getPt(r));
+  if (F[7]) { const am = r.get(TORDER.length); d.allowed = TORDER.filter((k, i) => am & (1 << i)); }
+  if (F[8]) d.hp = 25 + 25 * r.get(4);
+  if (F[9]) d.spd = 50 + 10 * r.get(4);
+  if (F[10]) d.rew = 25 + 25 * r.get(4);
+  d.noRule = F[11]; d.noPower = F[12];
+  if (F[13]) d.desc = getStr(r, 9);
+  if (F[14]) { d.wl = []; for (let n = r.get(7), i = 0; i < n; i++) { const g = []; for (let m = r.get(3) + 1, j = 0; j < m; j++) { const t = ED_WT[r.get(6)], n = getVar(r, 3) + 1, gap = (getVar(r, 2) + 1) / 10, dl = getVar(r, 1) / 10, e = getVar(r, 0); if (!t || n > 300 || gap > 5 || dl > 60 || e > 8) return null; g.push({ t, n, gap, d: dl, e }); } d.wl.push({ g }); } d.waves = d.wl.length; }
+  if (r.left() < 0) return null;
+  return d;
+}
+// identifiant d'un niveau pour ses records (indépendant du nom et du format du code)
+const lvKeyOf = code => { const d = lvlDecode(code); return d ? hashStr(JSON.stringify([d.world, d.waves, d.paths, d.vir, d.boss, d.obst, d.bonus, d.wl, d.hp, d.spd, d.allowed])) : 0; };
+// format VD3 (lisible ; les anciens codes VD1, VD2 et VD3 restent valides)
+function lvlEncode3(d) {
   const mask = (d.vir || ED_DEF.vir).reduce((a, k) => a + (ED_VIR.indexOf(k) >= 0 ? Math.pow(2, ED_VIR.indexOf(k)) : 0), 0);
-  return 'VD2~' + encodeURIComponent((d.name || 'Niveau').replace(/~/g, '').slice(0, 30)) + '~' + d.world + '~' + d.waves + '~' +
+  const am = d.allowed && d.allowed.length < TORDER.length ? d.allowed.reduce((a, k) => a + Math.pow(2, TORDER.indexOf(k)), 0) : 0;
+  return 'VD3~' + encodeURIComponent((d.name || 'Niveau').replace(/~/g, '').slice(0, 30)) + '~' + d.world + '~' + d.waves + '~' +
     d.paths.filter(p => p.length >= 2).map(p => p.map(([x, y]) => x.toString(36) + y.toString(36)).join('')).join('.') + '~' +
-    mask.toString(36) + '~' + edBossIdx(d) + '~' + (d.megas === false ? 0 : 1) + '~' + (d.cash || 0) + '~' + (d.lives || 0);
+    mask.toString(36) + '~' + edBossIdx(d) + '~' + (d.megas === false ? 0 : 1) + '~' + (d.cash || 0) + '~' + (d.lives || 0) + '~' +
+    tilesStr(d.obst) + '~' + tilesStr(d.bonus) + '~' + am.toString(36) + '~' + (d.hp || 100) + '~' + (d.spd || 100) + '~' + (d.rew || 100) + '~' +
+    ((d.noRule ? 1 : 0) + (d.noPower ? 2 : 0)) + '~' + encodeURIComponent((d.desc || '').replace(/~/g, '').slice(0, 140)) +
+    (d.wl && d.wl.length ? '~' + wlEncode(d.wl) : '');
 }
 function lvlDecode(code) {
   try {
-    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10))) return null;
+    if (code.trim().startsWith('VD4~')) { const d = lvlDecode4(code.trim().slice(4)); return d && !edCheck(d) ? d : null; }
+    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10) || (a[0] === 'VD3' && (a.length === 18 || a.length === 19)))) return null;
     const world = +a[2], waves = +a[3];
-    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 10 && waves <= 99)) return null;
-    const paths = a[4].split('.').filter(Boolean).map(t => { const p = []; for (let i = 0; i + 1 < t.length; i += 2) p.push([parseInt(t[i], 36), parseInt(t[i + 1], 36)]); return p; });
-    const d = Object.assign({ name: decodeURIComponent(a[1]) || 'Niveau', world, waves, paths }, JSON.parse(JSON.stringify(ED_DEF)));
-    if (a[0] === 'VD2') {
+    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 1 && waves <= 99)) return null;
+    const paths = a[4].split('.').filter(Boolean).map(strTiles);
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: decodeURIComponent(a[1]) || 'Niveau', world, waves, paths });
+    if (a[0] !== 'VD1') {
       const mask = parseInt(a[5], 36), bi = +a[6];
       d.vir = ED_VIR.filter((k, i) => Math.floor(mask / Math.pow(2, i)) % 2); if (!d.vir.length) return null;
       d.boss = bi === 99 ? 'auto' : ED_BOSS[bi]; if (d.boss === undefined) return null;
       d.megas = a[7] !== '0'; d.cash = clamp(+a[8] || 0, 0, 2000); d.lives = clamp(+a[9] || 0, 0, 99);
+    }
+    if (a[0] === 'VD3') {
+      d.obst = strTiles(a[10]); d.bonus = strTiles(a[11]);
+      const am = parseInt(a[12], 36) || 0; d.allowed = am ? TORDER.filter((k, i) => Math.floor(am / Math.pow(2, i)) % 2) : null;
+      d.hp = clamp(+a[13] || 100, 25, 400); d.spd = clamp(+a[14] || 100, 50, 200); d.rew = clamp(+a[15] || 100, 25, 300);
+      const fl = +a[16] || 0; d.noRule = !!(fl & 1); d.noPower = !!(fl & 2); d.desc = decodeURIComponent(a[17] || '');
+      if (a[18]) { d.wl = wlDecode(a[18]); d.waves = d.wl.length; }
     }
     return edCheck(d) ? null : d;
   } catch (e) { return null; }
@@ -371,42 +458,99 @@ function edCheck(d) { // renvoie le problème, ou null si le niveau est jouable
   }
   if (!entries) return 'Il faut au moins une entrée sur un bord';
   if (all.size < 10) return 'Le couloir est trop court (10 cases minimum)';
+  if ((d.obst || []).length > 80 || (d.bonus || []).length > 30) return 'Trop d\'obstacles ou de cases bonus';
+  if (d.wl) { if (!d.wl.length || d.wl.length > 99) return 'Entre 1 et 99 vagues'; for (let i = 0; i < d.wl.length; i++) { const w = d.wl[i]; if (!w.g.length) return 'La vague ' + (i + 1) + ' est vide'; if (w.g.length > 8) return 'Vague ' + (i + 1) + ' : 8 groupes au maximum'; if (w.g.some(g => !ETYPES[g.t])) return 'Vague ' + (i + 1) + ' : virus inconnu'; } }
+  if ((d.obst || []).concat(d.bonus || []).some(([x, y]) => !(x >= 0 && y >= 0 && x < COLS && y < ROWS))) return 'Case hors de la carte';
   return null;
 }
 function defToMap(d, seed) {
   const b = MAPS[d.world * 3];
-  return processMap({ name: d.name, base: b.base, acc: b.acc, waves: d.waves, world: d.world, custom: true, paths: d.paths.filter(p => p.length >= 2).map(p => p.map(q => q.slice())),
-    vir: (d.vir || ED_DEF.vir).slice(), bossK: d.boss === undefined ? 'auto' : d.boss, megas: d.megas !== false, cashC: d.cash || 0, livesC: d.lives || 0 }, seed);
+  return processMap({ name: d.name, base: b.base, acc: b.acc, waves: d.wl ? d.wl.length : d.waves, wl: d.wl ? JSON.parse(JSON.stringify(d.wl)) : null, world: d.world, custom: true, paths: d.paths.filter(p => p.length >= 2).map(p => p.map(q => q.slice())),
+    vir: (d.vir || ED_DEF.vir).slice(), bossK: d.boss === undefined ? 'auto' : d.boss, megas: d.megas !== false, cashC: d.cash || 0, livesC: d.lives || 0,
+    obstC: (d.obst || []).map(q => q.slice()), bonusC: (d.bonus || []).map(q => q.slice()), allowedC: d.allowed && d.allowed.length ? d.allowed.slice() : null,
+    hpC: (d.hp || 100) / 100, spdC: (d.spd || 100) / 100, rewC: (d.rew || 100) / 100, noRule: !!d.noRule, noPower: !!d.noPower, desc: d.desc || '' }, seed);
 }
+// ---- outils de l'éditeur : couloir, obstacle, case bonus, gomme ----
+const ED_TOOLS = { path: 'Couloir', obst: 'Obstacle', bonus: 'Bonus', erase: 'Gomme' };
+const tileIn = (arr, x, y) => (arr || []).findIndex(q => q[0] === x && q[1] === y);
+const onCorridor = (x, y) => ED.paths.some(p => (p.length >= 2 ? pathTiles(p) : p).some(c => c[0] === x && c[1] === y));
+function edSnap() { // historique pour Annuler / Rétablir
+  ED.hist = ED.hist || []; ED.redo = [];
+  ED.hist.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); if (ED.hist.length > 80) ED.hist.shift();
+}
+function edRestore(js) { const st = JSON.parse(js); ED.paths = st.p; ED.obst = st.o; ED.bonus = st.b; ED.cur = st.c; edUpdate(); }
 function edUpdate() {
   if (!ED) return;
+  ED.obst = ED.obst || []; ED.bonus = ED.bonus || [];
+  // un couloir dessiné par-dessus efface les obstacles et bonus qu'il recouvre
+  ED.obst = ED.obst.filter(([x, y]) => !onCorridor(x, y)); ED.bonus = ED.bonus.filter(([x, y]) => !onCorridor(x, y) && tileIn(ED.obst, x, y) < 0);
   ED.map = null; try { if (ED.paths.some(p => p.length >= 2)) ED.map = defToMap(ED, 1); } catch (e) { }
-  $('#edName').textContent = '✎ ' + ED.name; $('#edWorld').textContent = WORLDS[ED.world].name; $('#edWaves').textContent = ED.waves + ' vagues';
+  $('#edName').textContent = '✎ ' + ED.name; $('#edWorld').textContent = WORLDS[ED.world].name; $('#edWaves').textContent = (ED.wl ? ED.wl.length : ED.waves) + ' vagues' + (ED.wl ? ' ✎' : '');
   const err = edCheck(ED);
   const nEx = ED.map ? new Set(ED.map.routes.map(r => r[r.length - 1] + '')).size : 0, nEn = ED.map ? ED.map.entries.length : 0, nBr = ED.map ? ED.map.branchAt.length : 0;
-  $('#edStats').textContent = nEn + ' entrée' + (nEn > 1 ? 's' : '') + ' · ' + nBr + ' division' + (nBr > 1 ? 's' : '') + ' · ' + nEx + ' sortie' + (nEx > 1 ? 's' : '') + ' · ' + (ED.vir || ED_DEF.vir).length + ' virus';
-  $('#edHint').innerHTML = ED.cur < 0 ? (ED.paths.length ? (err ? '⚠ ' + err + '<br>' : '✔ Niveau jouable !<br>') + 'Touche un <b>bord</b> : nouvelle entrée. Touche un <b>couloir</b> : division (les virus choisissent leur voie).' : 'Touche une case du <b>bord</b> de la carte : ce sera l\'entrée des virus.')
-    : 'Touche une case pour prolonger le couloir. Le <b>dernier point</b> termine : un <b>processeur</b> (sortie) y est placé, sauf si tu rejoins un autre couloir.';
+  const len = ED.map ? Math.round(ED.map.routes.reduce((a, r) => a + r.length, 0) / Math.max(1, ED.map.routes.length)) : 0;
+  // estimation de difficulté : couloirs courts, beaucoup d'entrées, virus costauds = plus dur
+  const diff = ED.map ? clamp(Math.round(1.5 + (nEn - 1) * .8 + (nEx - 1) * .3 + Math.max(0, (45 - len) / 15) + (ED.hp - 100) / 50 + (ED.spd - 100) / 25 + (ED.waves - 30) / 30 - ED.bonus.length * .1), 1, 5) : 0;
+  $('#edStats').innerHTML = nEn + ' entrée' + (nEn > 1 ? 's' : '') + ' · ' + nBr + ' division' + (nBr > 1 ? 's' : '') + ' · ' + nEx + ' sortie' + (nEx > 1 ? 's' : '') +
+    '<br>' + len + ' cases de trajet · ' + ED.obst.length + ' obstacle' + (ED.obst.length > 1 ? 's' : '') + ' · ' + ED.bonus.length + ' bonus' + (diff ? '<br>Difficulté estimée : ' + '★'.repeat(diff) + '☆'.repeat(5 - diff) : '');
+  const tips = {
+    path: ED.cur < 0 ? (ED.paths.length ? 'Touche un <b>bord</b> : nouvelle entrée. Touche un <b>couloir</b> : division (les virus choisissent leur voie).' : 'Touche une case du <b>bord</b> de la carte : ce sera l\'entrée des virus.')
+      : 'Touche une case pour prolonger le couloir. Retouche le <b>dernier point</b> pour finir : un <b>processeur</b> y est placé, sauf si tu rejoins un autre couloir.',
+    obst: 'Touche ou <b>glisse</b> sur le circuit pour poser des <b>obstacles</b> : on ne peut pas construire dessus.',
+    bonus: 'Touche ou <b>glisse</b> pour poser des <b>cases bonus</b> : une tourelle posée dessus fait <b>+30 % de dégâts</b>.',
+    erase: 'Touche un <b>couloir</b> pour le supprimer, ou <b>glisse</b> sur les obstacles et bonus pour les effacer.'
+  };
+  $('#edHint').innerHTML = (err ? '⚠ ' + err : '✔ Niveau jouable !') + '<br>' + tips[ED.tool || 'path'];
+  document.querySelectorAll('#edTools [data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === (ED.tool || 'path')));
+  $('#edUndo').classList.toggle('off', !(ED.hist && ED.hist.length)); $('#edRedo').classList.toggle('off', !(ED.redo && ED.redo.length));
   $('#edTest').classList.toggle('off', !!err); $('#edShare').classList.toggle('off', !!err);
-
+}
+// poser / retirer un obstacle ou un bonus (mode = 'add' | 'del')
+function edPaint(tx, ty, mode) {
+  if (!ED || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return false;
+  const tool = ED.tool;
+  if (tool === 'erase') {
+    let k = tileIn(ED.obst, tx, ty); if (k >= 0) { ED.obst.splice(k, 1); return true; }
+    k = tileIn(ED.bonus, tx, ty); if (k >= 0) { ED.bonus.splice(k, 1); return true; }
+    return false;
+  }
+  const arr = tool === 'obst' ? ED.obst : ED.bonus, k = tileIn(arr, tx, ty);
+  if (mode === 'del') { if (k >= 0) { arr.splice(k, 1); return true; } return false; }
+  if (k >= 0 || onCorridor(tx, ty)) return false;
+  if (arr.length >= (tool === 'obst' ? 80 : 30)) { toast(tool === 'obst' ? '80 obstacles au maximum' : '30 cases bonus au maximum'); return false; }
+  const other = tool === 'obst' ? ED.bonus : ED.obst, ko = tileIn(other, tx, ty); if (ko >= 0) other.splice(ko, 1);
+  arr.push([tx, ty]); return true;
 }
 function edTap(tx, ty) {
   if (!ED || tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS) return;
+  const tool = ED.tool || 'path';
+  if (tool === 'obst' || tool === 'bonus') {
+    if (onCorridor(tx, ty)) { toast('Pas sur un couloir : pose-le sur le circuit'); sfx('err'); return; }
+    const arr = tool === 'obst' ? ED.obst : ED.bonus; edSnap();
+    edPaint(tx, ty, tileIn(arr, tx, ty) >= 0 ? 'del' : 'add'); sfx('build'); edUpdate(); return;
+  }
+  if (tool === 'erase') {
+    edSnap();
+    if (edPaint(tx, ty)) { sfx('sell'); edUpdate(); return; }
+    let pi = -1; ED.paths.forEach((p, i) => { if ((p.length >= 2 ? pathTiles(p) : p).some(c => c[0] === tx && c[1] === ty)) pi = i; });
+    if (pi < 0) { ED.hist.pop(); toast('Rien à effacer ici'); return; }
+    ED.paths.splice(pi, 1); ED.cur = -1; sfx('sell'); toast('Couloir supprimé'); edUpdate(); return;
+  }
   if (ED.cur < 0) {
     const onCorr = ED.paths.some(o => o.length >= 2 && pathTiles(o).some(c => c[0] === tx && c[1] === ty));
     if (!onEdge(tx, ty) && !onCorr) { toast('Touche un bord (nouvelle entrée) ou un couloir existant (division)'); sfx('err'); return; }
     if (ED.paths.filter(p => p.length >= 2).length >= 8) { toast('8 couloirs au maximum'); sfx('err'); return; }
-    ED.paths.push([[tx, ty]]); ED.cur = ED.paths.length - 1; sfx('build');
+    edSnap(); ED.paths.push([[tx, ty]]); ED.cur = ED.paths.length - 1; sfx('build');
     if (!onEdge(tx, ty)) toast('🔀 Division : trace la nouvelle branche'); edUpdate(); return;
   }
   const p = ED.paths[ED.cur], last = p[p.length - 1];
-  if (tx === last[0] && ty === last[1]) { if (p.length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; sfx('coin'); edUpdate(); return; }
+  if (tx === last[0] && ty === last[1]) { edSnap(); if (p.length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; sfx('coin'); edUpdate(); return; }
   if (p.length >= 40) { toast('Chemin trop long'); return; }
   const add = []; if (tx !== last[0] && ty !== last[1]) add.push([tx, last[1]]); add.push([tx, ty]);
   const own = new Set((p.length >= 2 ? pathTiles(p) : [last]).map(q => q + ''));
   let prev = last;
   for (const q of add) { for (const c of pathTiles([prev, q]).slice(1)) { if (own.has(c + '')) { toast('Le couloir ne peut pas repasser sur lui-même'); sfx('err'); return; } own.add(c + ''); } prev = q; }
-  p.push(...add); sfx('build');
+  edSnap(); p.push(...add); sfx('build');
   // arrivé sur un autre couloir : on s'y raccorde et on termine
   const other = ED.paths.some((o, i) => i !== ED.cur && o.length >= 2 && pathTiles(o).some((c, ci) => c[0] === tx && c[1] === ty));
   if (other) { ED.cur = -1; toast('🔗 Couloir raccordé'); }
@@ -420,17 +564,29 @@ function edCommit() {
 }
 function openEditor(idx) {
   const d = idx >= 0 ? lvlDecode(save.levels[idx].code) : null;
-  ED = d ? Object.assign(d, { idx, cur: -1 }) : Object.assign({ name: 'Mon niveau', world: 0, waves: 30, paths: [], cur: -1, idx: -1 }, JSON.parse(JSON.stringify(ED_DEF)));
+  ED = d ? Object.assign(d, { idx, cur: -1 }) : Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Mon niveau', world: 0, waves: 30, paths: [], cur: -1, idx: -1 });
+  ED.tool = 'path'; ED.hist = []; ED.redo = [];
   L.zoom = 1; L.vx = COLS / 2; L.vy = ROWS / 2; setState('edit'); edUpdate();
+}
+// génère un niveau au hasard (couloirs, obstacles, bonus) en gardant les réglages
+function edGenerate() {
+  edSnap();
+  const seed = Math.floor(Math.random() * 1e6), d = randomDef(seed), R2 = mulberry(seed + 9);
+  ED.paths = d.paths; ED.cur = -1; ED.obst = []; ED.bonus = [];
+  const free = []; for (let y = 1; y < ROWS - 1; y++) for (let x = 1; x < COLS - 1; x++) if (!onCorridor(x, y)) free.push([x, y]);
+  for (let i = 0; i < 6 && free.length; i++) { const [x, y] = free.splice(Math.floor(R2() * free.length), 1)[0]; ED.obst.push([x, y]); if (R2() < .5 && x + 1 < COLS - 1 && !onCorridor(x + 1, y)) ED.obst.push([x + 1, y]); }
+  const near = free.filter(([x, y]) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => onCorridor(x + a, y + b)) && tileIn(ED.obst, x, y) < 0);
+  for (let i = 0; i < 3 && near.length; i++) ED.bonus.push(near.splice(Math.floor(R2() * near.length), 1)[0]);
+  sfx('up'); edUpdate(); toast('🎲 Niveau généré : modifie-le à ta guise !');
 }
 function playLevel(code, fromEditor) {
   const d = lvlDecode(code); if (!d) { toast('Niveau invalide'); return; }
   MAPS[NCAMP] = defToMap(d, hashStr(code)); delete thumbs[NCAMP]; initAudio();
-  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor });
+  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor, lvKey: lvKeyOf(code) });
 }
 // partage : fenêtre avec le code, copie et partage natif (navigateur ou appli Android)
 const APP = window.AndroidApp || null; // pont fourni par l'appli Android
-const LVL_RE = /VD[12]~[^\s#&]+/;
+const LVL_RE = /VD[1-4]~[^\s#&]+/;
 const shareLink = code => location.protocol.startsWith('http') ? location.href.split('#')[0].split('?')[0] + '#lvl=' + code : '';
 function copyText(t, okMsg) {
   const ok = () => { toast(okMsg); sfx('coin'); };
@@ -442,7 +598,8 @@ function copyText(t, okMsg) {
 function shareLevel(code) {
   const d = lvlDecode(code); if (!d) return;
   const link = shareLink(code), msg = 'Essaie mon niveau « ' + d.name + ' » sur Virus Défense ! Ouvre Créer des niveaux → Importer, et colle ce code :\n' + code + (link ? '\n' + link : '');
-  $('#shareName').textContent = d.name; $('#shareCode').value = code;
+  $('#shareName').textContent = d.name; $('#shareCode').value = code; $('#shareLen').textContent = code.length + ' caractères';
+  drawQR($('#shareQR'), link || code);
   $('#shareLink').classList.toggle('hidden', !link);
   $('#shareNative').classList.toggle('hidden', !(APP && APP.share) && !navigator.share);
   $('#shareNative').onclick = () => { if (APP && APP.share) APP.share(msg); else navigator.share({ title: 'Virus Défense · ' + d.name, text: msg }).catch(() => { }); };
@@ -450,6 +607,52 @@ function shareLevel(code) {
   $('#shareLink').onclick = () => copyText(link, '🔗 Lien copié');
   $('#shareBox').classList.remove('hidden');
 }
+// QR code du niveau (bibliothèque qrcode-generator, licence MIT)
+function drawQR(cv, text) {
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  try {
+    const q = qrcode(0, text.length > 600 ? 'L' : 'M'); q.addData(text, 'Byte'); q.make();
+    const n = q.getModuleCount(), cell = Math.floor(cv.width / (n + 6)), off = Math.floor((cv.width - cell * n) / 2);
+    g.fillStyle = '#0b1410'; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(off + c * cell, off + r * cell, cell, cell);
+    cv.parentNode.classList.remove('hidden');
+  } catch (e) { cv.parentNode.classList.add('hidden'); } // code trop long pour un QR code
+}
+// lecture d'un QR code : détecteur du navigateur, sinon jsQR (chargé seulement quand on scanne)
+let jsQRp = null, scan = null;
+const loadJsQR = () => jsQRp || (jsQRp = new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'js/vendor/jsQR.js'; s.onload = () => ok(window.jsQR); s.onerror = ko; document.head.appendChild(s); }));
+async function readQR(src, w, h) {
+  if ('BarcodeDetector' in window) { try { const r = await new BarcodeDetector({ formats: ['qr_code'] }).detect(src); if (r[0]) return r[0].rawValue; return null; } catch (e) { } }
+  const jq = await loadJsQR(), c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0, w, h);
+  const res = jq(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'attemptBoth' }); return res ? res.data : null;
+}
+function gotQR(txt) {
+  if (!txt || !LVL_RE.test(txt)) { toast('Ce QR code n\'est pas un niveau de Virus Défense'); sfx('err'); return false; }
+  closeScan(); if (importLevel(txt)) { $('#importBox').classList.add('hidden'); vibe(30); if (state === 'levels') buildLevels(); else setState('levels'); } return true;
+}
+async function openScan() {
+  const box = $('#scanBox'), v = $('#scanVid'); box.classList.remove('hidden'); $('#scanMsg').textContent = 'Vise le QR code du niveau…';
+  try { const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); scan = { st, on: true }; v.srcObject = st; await v.play(); }
+  catch (e) { box.classList.add('hidden'); toast('Caméra indisponible : choisis « Depuis une photo »'); sfx('err'); return; }
+  const tick = async () => {
+    if (!scan || !scan.on) return;
+    if (v.videoWidth) { const k = Math.min(1, 640 / v.videoWidth); try { const t = await readQR(v, Math.round(v.videoWidth * k), Math.round(v.videoHeight * k)); if (t && LVL_RE.test(t)) { gotQR(t); return; } } catch (e) { } }
+    setTimeout(tick, 250);
+  };
+  tick();
+}
+function closeScan() { if (scan) { scan.on = false; scan.st.getTracks().forEach(t => t.stop()); scan = null; } $('#scanVid').srcObject = null; $('#scanBox').classList.add('hidden'); }
+$('#scanClose').onclick = closeScan;
+$('#importScan').onclick = () => { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Caméra indisponible : choisis « Depuis une photo »'); return; } openScan(); };
+$('#importPhoto').onclick = () => { $('#importFile').value = ''; $('#importFile').click(); };
+$('#importFile').onchange = async () => {
+  const f = $('#importFile').files[0]; if (!f) return;
+  try {
+    const img = await createImageBitmap(f); let t = null;
+    for (const mx of [1000, 1800, 600]) { const k = Math.min(1, mx / Math.max(img.width, img.height)); t = await readQR(img, Math.round(img.width * k), Math.round(img.height * k)); if (t) break; }
+    if (!t) { toast('Aucun QR code trouvé sur cette photo'); sfx('err'); return; }
+    gotQR(t);
+  } catch (e) { toast('Impossible de lire cette image'); sfx('err'); }
+};
 function importLevel(txt) {
   const m = (txt || '').match(LVL_RE), d = m && lvlDecode(m[0]);
   if (!d) { toast('Code de niveau invalide'); sfx('err'); return false; }
@@ -509,6 +712,19 @@ function renderEditor() {
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = .04; ctx.beginPath(); ctx.moveTo(bx + .5, by + .15); ctx.lineTo(bx + .85, by + .5); ctx.lineTo(bx + .5, by + .85); ctx.lineTo(bx + .15, by + .5); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#000'; ctx.font = '900 .38px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('⑂', bx + .5, by + .52);
   }
+  for (const [x, y] of ED.obst || []) { // obstacles
+    ctx.fillStyle = '#4a545c'; ctx.fillRect(x + .06, y + .06, .88, .88); ctx.strokeStyle = '#ffc400'; ctx.lineWidth = .07;
+    ctx.beginPath(); ctx.moveTo(x + .25, y + .25); ctx.lineTo(x + .75, y + .75); ctx.moveTo(x + .75, y + .25); ctx.lineTo(x + .25, y + .75); ctx.stroke();
+  }
+  for (const [x, y] of ED.bonus || []) { // cases bonus
+    ctx.fillStyle = 'rgba(255,215,64,' + (.2 + .1 * Math.sin(t * 3 + x)).toFixed(2) + ')'; ctx.fillRect(x + .05, y + .05, .9, .9);
+    ctx.strokeStyle = '#ffd740'; ctx.lineWidth = .04; ctx.setLineDash([.15, .1]); ctx.strokeRect(x + .08, y + .08, .84, .84); ctx.setLineDash([]); star(ctx, x + .5, y + .5, .17);
+  }
+  if (ED.map && ED.cur < 0 && !edCheck(ED)) for (let ri = 0; ri < ED.map.routes.length; ri++) { // aperçu : des virus parcourent les couloirs
+    const r = ED.map.routes[ri], u = ((t * 3 + ri * 2.3) % (r.length + 6));
+    for (let k = 0; k < 3; k++) { const q = u - k * 2.2; if (q < 0 || q >= r.length - 1) continue; const i0 = Math.floor(q), f = q - i0, a = r[i0], b = r[i0 + 1];
+      const vx = a[0] + (b[0] - a[0]) * f + .5, vy = a[1] + (b[1] - a[1]) * f + .5; ctx.fillStyle = '#76ff03'; ctx.strokeStyle = '#1b1230'; ctx.lineWidth = .04; ctx.beginPath(); ctx.arc(vx, vy, .2, 0, TAU); ctx.fill(); ctx.stroke(); }
+  }
   if (ED.hover) { const [hx, hy] = ED.hover; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = .05; ctx.strokeRect(hx + .03, hy + .03, .94, .94); }
   ctx.restore();
 }
@@ -524,9 +740,13 @@ function buildLevels() {
     const info = document.createElement('div'); info.className = 'lvinfo';
         let mm = null; try { mm = defToMap(d, 1); } catch (e) { }
     const nEx = mm ? new Set(mm.routes.map(r => r[r.length - 1] + '')).size : 1;
-    info.innerHTML = '<b>' + d.name.replace(/</g, '&lt;') + '</b><small>' + WORLDS[d.world].name + ' · ' + d.waves + ' vagues · ' + (mm ? mm.entries.length : 1) + ' entrée(s) · ' + nEx + ' sortie(s)' + (mm && mm.branchAt.length ? ' · ' + mm.branchAt.length + ' division(s)' : '') + ' · ' + d.vir.length + ' virus</small>';
+    const rec = (save.lvBest || {})[lvKeyOf(l.code)], esc = t => t.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    info.innerHTML = '<b>' + esc(d.name) + '</b><small>' + WORLDS[d.world].name + ' · ' + d.waves + ' vagues · ' + (mm ? mm.entries.length : 1) + ' entrée(s) · ' + nEx + ' sortie(s)' + (mm && mm.branchAt.length ? ' · ' + mm.branchAt.length + ' division(s)' : '') + ' · ' + d.vir.length + ' virus' +
+      ((d.obst || []).length ? ' · ' + d.obst.length + ' obstacle(s)' : '') + ((d.bonus || []).length ? ' · ' + d.bonus.length + ' bonus' : '') + '</small>' +
+      (d.desc ? '<small class="lvdesc">« ' + esc(d.desc) + ' »</small>' : '') +
+      '<small class="lvrec">' + (rec ? '<span class="st">' + '★'.repeat(rec.st) + '☆'.repeat(3 - rec.st) + '</span> Record ' + rec.s + ' · ' + rec.n + ' partie' + (rec.n > 1 ? 's' : '') : 'Pas encore joué') + '</small>';
     const bts = document.createElement('div'); bts.className = 'lvbtns';
-    for (const [lab, cls, fn] of [['▶ Jouer', 'go', () => playLevel(l.code)], ['✎', '', () => openEditor(i)], ['⇪', '', () => shareLevel(l.code)], ['✕', 'del', () => { if (confirm('Supprimer « ' + d.name + ' » ?')) { save.levels.splice(i, 1); persist(); buildLevels(); } }]]) {
+    for (const [lab, cls, fn] of [['▶ Jouer', 'go', () => playLevel(l.code)], ['✎', '', () => openEditor(i)], ['⧉', '', () => { const c2 = lvlDecode(l.code); c2.name = (c2.name + ' (copie)').slice(0, 30); save.levels.splice(i + 1, 0, { code: lvlEncode(c2) }); persist(); buildLevels(); toast('Niveau dupliqué'); }], ['⇪', '', () => shareLevel(l.code)], ['✕', 'del', () => { if (confirm('Supprimer « ' + d.name + ' » ?')) { save.levels.splice(i, 1); persist(); buildLevels(); } }]]) {
       const b = document.createElement('button'); b.textContent = lab; b.className = cls; b.onclick = fn; bts.appendChild(b);
     }
     info.appendChild(bts); c.appendChild(info); box.appendChild(c);
@@ -538,45 +758,144 @@ $('#lvImport').onclick = () => openImport();
 $('#edName').onclick = () => { const n = prompt('Nom du niveau :', ED.name); if (n && n.trim()) { ED.name = n.trim().slice(0, 30); edUpdate(); } };
 $('#edWPrev').onclick = () => { ED.world = (ED.world + WORLDS.length - 1) % WORLDS.length; edUpdate(); };
 $('#edWNext').onclick = () => { ED.world = (ED.world + 1) % WORLDS.length; edUpdate(); };
-$('#edVMinus').onclick = () => { ED.waves = Math.max(10, ED.waves - 5); edUpdate(); };
-$('#edVPlus').onclick = () => { ED.waves = Math.min(95, ED.waves + 5); edUpdate(); };
+$('#edVMinus').onclick = () => { if (ED.wl) { if (ED.wl.length > 1) ED.wl.pop(); ED.waves = ED.wl.length; } else ED.waves = Math.max(5, ED.waves - 5); edUpdate(); };
+$('#edVPlus').onclick = () => { if (ED.wl) { if (ED.wl.length < 99) ED.wl.push(JSON.parse(JSON.stringify(ED.wl[ED.wl.length - 1]))); ED.waves = ED.wl.length; } else ED.waves = Math.min(99, ED.waves + 5); edUpdate(); };
 $('#edNewPath').onclick = () => { if (ED.cur >= 0 && ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; edUpdate(); toast('Touche une case du bord pour la nouvelle entrée'); };
-$('#edUndo').onclick = () => {
-  if (ED.cur < 0) { if (!ED.paths.length) return; ED.cur = ED.paths.length - 1; }
-  const p = ED.paths[ED.cur]; p.pop(); if (!p.length) { ED.paths.splice(ED.cur, 1); ED.cur = -1; } edUpdate();
-};
-// réglages du niveau : virus, boss, méga-virus, crédits, vies
+$('#edUndo').onclick = () => { if (!ED.hist || !ED.hist.length) return; ED.redo.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.hist.pop()); };
+$('#edRedo').onclick = () => { if (!ED.redo || !ED.redo.length) return; ED.hist.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.redo.pop()); };
+$('#edGen').onclick = () => { if (ED.paths.length && !confirm('Remplacer la carte par un niveau généré au hasard ?')) return; edGenerate(); };
+document.querySelectorAll('#edTools [data-tool]').forEach(b => b.onclick = () => { ED.tool = b.dataset.tool; if (ED.tool !== 'path' && ED.cur >= 0) { if (ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; } edUpdate(); });
+// ---- vagues personnalisées ----
+let edWSel = 0, edPick = -1; // vague sélectionnée, groupe dont on choisit le virus
+function autoWaves() { // transforme les vagues automatiques en vagues modifiables
+  const m = defToMap(Object.assign({}, ED, { wl: null }), 1), keep = G, wl = [];
+  G = { m, total: ED.waves, mi: ED.world * 3, demo: false, endless: false, daily: false };
+  try {
+    for (let w = 1; w <= ED.waves; w++) {
+      const wd = waveDef(w), g = [{ t: wd.type, n: wd.n, gap: Math.max(.1, Math.round(ETYPES[wd.type].int * 10) / 10), d: 0, e: 0 }];
+      if (wd.type2) g.push({ t: wd.type2, n: wd.n2, gap: Math.round(ETYPES[wd.type2].int * 13) / 10, d: .4, e: 0 });
+      if (wd.type === 'boss' || wd.wboss) g.push({ t: 'bug', n: 6, gap: .6, d: .5, e: 0 });
+      wl.push({ g });
+    }
+  } finally { G = keep; }
+  return wl;
+}
+const fmtS = v => (Math.round(v * 10) / 10).toString().replace('.', ',') + ' s';
+function edWavesHTML() {
+  edWSel = clamp(edWSel, 0, ED.wl.length - 1);
+  const w = ED.wl[edWSel], tot = w.g.reduce((a, x) => a + x.n, 0), dur = Math.max(...w.g.map(x => x.d + x.gap * (x.n - 1)));
+  const hpT = Math.round(w.g.reduce((a, x) => a + x.n * ETYPES[x.t].hp, 0) * hpScale(edWSel + 1) * (ED.hp / 100));
+  let h = '<div class="eo-sec"><b>Vagues</b> <small>(' + ED.wl.length + ' · touche une vague pour la modifier)</small><div class="wl-bar">';
+  ED.wl.forEach((x, i) => { const n = x.g.reduce((a, y) => a + y.n, 0), boss = x.g.some(y => ETYPES[y.t].boss); h += '<button data-ws="' + i + '" class="wl-chip' + (i === edWSel ? ' on' : '') + (boss ? ' boss' : '') + '"><b>' + (i + 1) + '</b><small>' + (boss ? '👑' : n) + '</small></button>'; });
+  h += '</div><div class="eo-row"><button data-wa="add">＋ Vague</button><button data-wa="dup">⧉ Dupliquer</button><button data-wa="del">🗑 Supprimer</button><button data-wa="left">❮ Avant</button><button data-wa="right">Après ❯</button><button data-wa="fill">🎲 Recréer tout en auto</button></div></div>';
+  h += '<div class="eo-sec wl-edit"><b>Vague ' + (edWSel + 1) + '</b> <small>' + tot + ' virus · arrivée en ' + fmtS(dur) + ' · ≈ ' + hpT + ' PV au total</small><div class="wg-list"></div>' +
+    (w.g.length < 8 ? '<div class="eo-row"><button data-wa="gadd">＋ Ajouter un groupe de virus</button></div>' : '') + '</div>';
+  return h;
+}
+function edWavesBind(box) {
+  if (!ED.wl || edTab !== 'wav' || !box.querySelector('.wg-list')) return;
+  const w = ED.wl[edWSel], nEnt = ED.map ? ED.map.entries.length : 1, re = () => { ED.waves = ED.wl.length; buildEdOpts(); edUpdate(); };
+  const list = box.querySelector('.wg-list');
+  w.g.forEach((g, gi) => {
+    const row = document.createElement('div'); row.className = 'wg-row';
+    const pick = document.createElement('button'); pick.className = 'wg-pick' + (edPick === gi ? ' on' : ''); pick.title = 'Changer de virus';
+    pick.appendChild(enemyIcon(g.t, 40)); const nm = document.createElement('small'); nm.textContent = ETYPES[g.t].name; pick.appendChild(nm);
+    pick.onclick = () => { edPick = edPick === gi ? -1 : gi; buildEdOpts(); }; row.appendChild(pick);
+    const ctl = (lab, val, fm, fn) => { const c = document.createElement('div'); c.className = 'wg-ctl'; c.innerHTML = '<small>' + lab + '</small><span class="eo-pm"><button>−</button><b>' + fm(val) + '</b><button>+</button></span>'; const [m, p] = c.querySelectorAll('button'); m.onclick = () => { fn(-1); re(); }; p.onclick = () => { fn(1); re(); }; row.appendChild(c); };
+    ctl('Nombre', g.n, v => v, d => { const st = g.n >= 20 ? 5 : 1; g.n = clamp(g.n + d * st, 1, 300); });
+    ctl('Écart', g.gap, fmtS, d => { g.gap = clamp(Math.round((g.gap + d * (g.gap >= 1 ? .25 : .1)) * 100) / 100, .1, 5); });
+    ctl('Départ', g.d, v => '+' + fmtS(v), d => { g.d = clamp(Math.round((g.d + d * .5) * 10) / 10, 0, 60); });
+    ctl('Entrée', g.e || 0, v => v ? 'n° ' + v : 'toutes', d => { g.e = ((g.e || 0) + d + nEnt + 1) % (nEnt + 1); });
+    const del = document.createElement('button'); del.className = 'wg-del'; del.textContent = '✕'; del.title = 'Retirer ce groupe';
+    del.onclick = () => { if (w.g.length === 1) { toast('Une vague garde au moins un groupe'); return; } w.g.splice(gi, 1); edPick = -1; re(); }; row.appendChild(del);
+    list.appendChild(row);
+    if (edPick === gi) { // choix du virus du groupe
+      const grid = document.createElement('div'); grid.className = 'eo-vir wg-grid';
+      for (const k of ED_WT) { const b = document.createElement('button'); b.className = 'eo-v' + (k === g.t ? ' on' : ''); b.title = ETYPES[k].name + ' : ' + (EDESC[k] || ''); b.appendChild(enemyIcon(k, 40)); const n = document.createElement('small'); n.textContent = ETYPES[k].name; b.appendChild(n); b.onclick = () => { g.t = k; edPick = -1; re(); }; grid.appendChild(b); }
+      list.appendChild(grid);
+    }
+  });
+  box.querySelectorAll('[data-ws]').forEach(b => b.onclick = () => { edWSel = +b.dataset.ws; edPick = -1; buildEdOpts(); });
+  box.querySelectorAll('[data-wa]').forEach(b => b.onclick = () => {
+    const a = b.dataset.wa, cp = x => JSON.parse(JSON.stringify(x));
+    if (a === 'add') { if (ED.wl.length >= 99) return toast('99 vagues au maximum'); ED.wl.splice(edWSel + 1, 0, { g: [{ t: (ED.vir || ['bug'])[0], n: 10, gap: .8, d: 0, e: 0 }] }); edWSel++; }
+    if (a === 'dup') { if (ED.wl.length >= 99) return toast('99 vagues au maximum'); ED.wl.splice(edWSel + 1, 0, cp(w)); edWSel++; }
+    if (a === 'del') { if (ED.wl.length === 1) return toast('Garde au moins une vague'); ED.wl.splice(edWSel, 1); edWSel = Math.max(0, edWSel - 1); }
+    if (a === 'left' && edWSel > 0) { ED.wl.splice(edWSel - 1, 0, ED.wl.splice(edWSel, 1)[0]); edWSel--; }
+    if (a === 'right' && edWSel < ED.wl.length - 1) { ED.wl.splice(edWSel + 1, 0, ED.wl.splice(edWSel, 1)[0]); edWSel++; }
+    if (a === 'fill') { if (!confirm('Remplacer toutes les vagues par des vagues automatiques ?')) return; ED.wl = autoWaves(); }
+    if (a === 'gadd') { const last = w.g[w.g.length - 1]; w.g.push({ t: last.t, n: 5, gap: last.gap, d: Math.round((last.d + last.gap * last.n) * 10) / 10, e: 0 }); }
+    edPick = -1; re();
+  });
+}
+// réglages du niveau, en onglets : virus, vagues, économie, tourelles, règles, infos
+let edTab = 'vir';
 function buildEdOpts() {
-  const box = $('#edOptsBody'), V = new Set(ED.vir);
+  const box = $('#edOptsBody'), V = new Set(ED.vir), W = WORLDS[ED.world], rule = RULES[W.style];
   const bossName = k => k === 'auto' ? 'Boss du monde' : k === '' ? 'Aucun' : k === 'boss' ? 'Méga-virus' : ETYPES[k].name;
-  box.innerHTML = '<div class="eo-sec"><b>🦠 Virus présents</b> <small>(' + V.size + ' choisis · ils arrivent dans cet ordre)</small><div class="eo-vir"></div><div class="eo-row"><button data-a="all">Tous</button><button data-a="base">Classiques</button><button data-a="world">Du monde</button></div></div>' +
-    '<div class="eo-sec"><b>👑 Boss de la dernière vague</b><div class="eo-row eo-boss">' + ['auto', '', 'boss'].concat(WBOSS).map(k => '<button data-b="' + k + '" class="' + (ED.boss === k ? 'on' : '') + '">' + bossName(k) + '</button>').join('') + '</div></div>' +
-    '<div class="eo-sec eo-nums"><label><span>Méga-virus toutes les 10 vagues</span><button data-a="megas" class="' + (ED.megas ? 'on' : '') + '">' + (ED.megas ? 'OUI' : 'NON') + '</button></label>' +
-    '<label><span>Crédits de départ</span><span class="eo-pm"><button data-n="cash" data-d="-10">−</button><b>' + (ED.cash || 'auto') + '</b><button data-n="cash" data-d="10">+</button></span></label>' +
-    '<label><span>Vies</span><span class="eo-pm"><button data-n="lives" data-d="-1">−</button><b>' + (ED.lives || 'auto') + '</b><button data-n="lives" data-d="1">+</button></span></label></div>';
-  const vb = box.querySelector('.eo-vir');
-  for (const k of ED_VIR) {
+  const pm = (k, lab, unit, cur, hint) => '<label><span>' + lab + (hint ? '<small>' + hint + '</small>' : '') + '</span><span class="eo-pm"><button data-n="' + k + '" data-d="-1">−</button><b>' + cur + unit + '</b><button data-n="' + k + '" data-d="1">+</button></span></label>';
+  const tog = (k, lab, on, hint) => '<label><span>' + lab + (hint ? '<small>' + hint + '</small>' : '') + '</span><button data-t="' + k + '" class="' + (on ? 'on' : '') + '">' + (on ? 'OUI' : 'NON') + '</button></label>';
+  const tabs = [['vir', '🦠 Virus'], ['wav', '🌊 Vagues'], ['eco', '💰 Économie'], ['tow', '🏰 Tourelles'], ['rul', '⚙ Règles'], ['inf', '✎ Infos']];
+  let h = '<div class="eo-tabs">' + tabs.map(([k, l]) => '<button data-tab="' + k + '" class="' + (edTab === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div><div class="eo-page">';
+  if (edTab === 'vir') h += '<div class="eo-sec"><b>Virus présents</b> <small>(' + V.size + ' choisis · ils arrivent dans cet ordre)</small><div class="eo-vir"></div><div class="eo-row"><button data-a="all">Tous</button><button data-a="base">Classiques</button><button data-a="world">Du monde</button></div></div>' +
+    '<div class="eo-sec"><b>Boss de la dernière vague</b><div class="eo-row eo-boss">' + ['auto', '', 'boss'].concat(WBOSS).map(k => '<button data-b="' + k + '" class="' + (ED.boss === k ? 'on' : '') + '">' + bossName(k) + '</button>').join('') + '</div></div>';
+  if (edTab === 'wav') {
+    h += '<div class="eo-sec eo-nums"><label><span>Composition des vagues<small>' + (ED.wl ? 'Personnalisée : tu choisis les virus de chaque vague, leur nombre, leur rythme et leur entrée.' : 'Automatique : le jeu crée les vagues avec les virus de l\'onglet Virus.') + '</small></span><span class="eo-seg"><button data-wm="auto" class="' + (ED.wl ? '' : 'on') + '">Auto</button><button data-wm="custom" class="' + (ED.wl ? 'on' : '') + '">Personnalisée</button></span></label>' +
+      (ED.wl ? '' : pm('waves', 'Nombre de vagues', '', ED.waves)) + pm('hp', 'Points de vie des virus', ' %', ED.hp, '100 % = normal') + pm('spd', 'Vitesse des virus', ' %', ED.spd) +
+      (ED.wl ? '' : tog('megas', 'Méga-virus toutes les 10 vagues', ED.megas)) + '</div>';
+    if (ED.wl) h += edWavesHTML();
+  }
+  if (edTab === 'eco') h += '<div class="eo-sec eo-nums">' + pm('cash', 'Crédits de départ', '', ED.cash || 'auto') + pm('lives', 'Vies', '', ED.lives || 'auto') + pm('rew', 'Crédits gagnés par virus', ' %', ED.rew) + '</div>';
+  if (edTab === 'tow') h += '<div class="eo-sec"><b>Tourelles autorisées</b> <small>(' + (ED.allowed ? ED.allowed.length : TORDER.length) + ' / ' + TORDER.length + ' · le joueur doit quand même les avoir débloquées)</small><div class="eo-vir eo-tow"></div><div class="eo-row"><button data-a="tall">Toutes</button><button data-a="tcheap">Petit budget</button><button data-a="tnone">Aucune sauf le Pulseur</button></div></div>';
+  if (edTab === 'rul') h += '<div class="eo-sec eo-nums">' + tog('noRule', 'Règle du monde : ' + rule.name, !ED.noRule, rule.desc) + tog('noPower', 'Pouvoirs du joueur', !ED.noPower, 'Frappe orbitale, gel, redémarrage') + '</div>';
+  if (edTab === 'inf') h += '<div class="eo-sec eo-nums"><label><span>Nom</span></label><input id="eoName" class="eo-in noico" maxlength="30"><label><span>Message affiché au début<small>Raconte une histoire ou donne un indice (140 caractères)</small></span></label><textarea id="eoDesc" class="eo-in noico" maxlength="140" rows="3"></textarea>' +
+    '<label><span>Monde</span><span class="eo-pm"><button data-w="-1">❮</button><b>' + W.name + '</b><button data-w="1">❯</button></span></label></div>';
+  box.innerHTML = h + '</div>';
+  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { edTab = b.dataset.tab; edPick = -1; buildEdOpts(); });
+  box.querySelectorAll('[data-wm]').forEach(b => b.onclick = () => {
+    if (b.dataset.wm === 'custom' && !ED.wl) { ED.wl = autoWaves(); edWSel = 0; toast('Les vagues automatiques sont copiées : modifie-les à ta guise'); }
+    else if (b.dataset.wm === 'auto' && ED.wl) { if (!confirm('Revenir aux vagues automatiques ? Tes vagues personnalisées seront perdues.')) return; ED.wl = null; }
+    ED.waves = ED.wl ? ED.wl.length : ED.waves; buildEdOpts(); edUpdate();
+  });
+  edWavesBind(box);
+  const vb = box.querySelector('.eo-vir:not(.eo-tow)');
+  if (vb) for (const k of ED_VIR) {
     const b = document.createElement('button'); b.className = 'eo-v' + (V.has(k) ? ' on' : ''); b.title = ETYPES[k].name + ' : ' + EDESC[k];
     b.appendChild(enemyIcon(k, 44)); const n = document.createElement('small'); n.textContent = ETYPES[k].name; b.appendChild(n);
     b.onclick = () => { if (V.has(k)) { if (V.size === 1) { toast('Garde au moins un virus'); return; } ED.vir = ED.vir.filter(x => x !== k); } else ED.vir = ED_VIR.filter(x => V.has(x) || x === k); buildEdOpts(); edUpdate(); };
     vb.appendChild(b);
   }
+  const tb = box.querySelector('.eo-tow');
+  if (tb) { const A = new Set(ED.allowed || TORDER); shopWorld = ED.world; for (const k of TORDER) {
+    const b = document.createElement('button'); b.className = 'eo-v' + (A.has(k) ? ' on' : '');
+    const cv2 = document.createElement('canvas'); cv2.width = cv2.height = 64; const g = cv2.getContext('2d'); g.setTransform(64, 0, 0, 64, 32, 32); drawTower(g, k, 1, -Math.PI / 4, 0, 0); b.appendChild(cv2);
+    const n = document.createElement('small'); n.textContent = tName(k, true); b.appendChild(n);
+    b.onclick = () => { if (A.has(k)) { if (A.size === 1) { toast('Garde au moins une tourelle'); return; } A.delete(k); } else A.add(k); ED.allowed = A.size === TORDER.length ? null : TORDER.filter(x => A.has(x)); buildEdOpts(); };
+    tb.appendChild(b);
+  } shopWorld = null; }
   box.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
     if (a === 'all') ED.vir = ED_VIR.slice(); if (a === 'base') ED.vir = ED_DEF.vir.slice();
-    if (a === 'world') ED.vir = ['bug', 'runner', WVIRUS[ED.world]].concat(ED.world === 7 ? ['flyer'] : ['armor']);
-    if (a === 'megas') ED.megas = !ED.megas;
+    if (a === 'world') ED.vir = ED_VIR.filter(k => ['bug', 'runner'].includes(k) || WVIR3[ED.world].includes(k));
+    if (a === 'tall') ED.allowed = null; if (a === 'tcheap') ED.allowed = TORDER.filter(k => TOWERS[k].cost <= 40); if (a === 'tnone') ED.allowed = ['pulse'];
     buildEdOpts(); edUpdate();
   });
   box.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { ED.boss = b.dataset.b; buildEdOpts(); });
+  box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const k = b.dataset.t; ED[k] = !ED[k]; buildEdOpts(); edUpdate(); });
+  box.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { ED.world = (ED.world + WORLDS.length + +b.dataset.w) % WORLDS.length; buildEdOpts(); edUpdate(); });
+  const STEP = { waves: [5, 5, 99], hp: [25, 25, 400], spd: [10, 50, 200], rew: [25, 25, 300], cash: [10, 0, 2000], lives: [1, 0, 99] };
   box.querySelectorAll('[data-n]').forEach(b => b.onclick = () => {
-    const k = b.dataset.n, d = +b.dataset.d, lim = k === 'cash' ? [0, 2000] : [0, 99];
-    ED[k] = clamp((ED[k] || (d > 0 ? (k === 'cash' ? 20 : 0) : 0)) + d, lim[0], lim[1]); buildEdOpts();
+    const k = b.dataset.n, d = +b.dataset.d, [st, lo, hi] = STEP[k];
+    let v = ED[k] || 0; if (!v && (k === 'cash' || k === 'lives') && d > 0) v = k === 'cash' ? 20 : 0;
+    ED[k] = clamp(v + d * st, lo, hi); buildEdOpts(); edUpdate();
   });
+  const nm = $('#eoName'), ds = $('#eoDesc');
+  if (nm) { nm.value = ED.name; nm.oninput = () => { ED.name = nm.value.replace(/~/g, '').slice(0, 30) || 'Niveau'; edUpdate(); }; }
+  if (ds) { ds.value = ED.desc || ''; ds.oninput = () => { ED.desc = ds.value.replace(/~/g, '').slice(0, 140); }; }
 }
 $('#edOptsBtn').onclick = () => { buildEdOpts(); $('#edOpts').classList.remove('hidden'); };
 $('#edOptsOk').onclick = () => { $('#edOpts').classList.add('hidden'); edUpdate(); };
-$('#edClear').onclick = () => { if (confirm('Effacer tous les chemins ?')) { ED.paths = []; ED.cur = -1; edUpdate(); } };
+$('#edClear').onclick = () => { if (confirm('Tout effacer (couloirs, obstacles, bonus) ?')) { edSnap(); ED.paths = []; ED.obst = []; ED.bonus = []; ED.cur = -1; edUpdate(); } };
 $('#edSave').onclick = () => { if (edCommit()) { toast('💾 Niveau enregistré'); sfx('up'); } };
 $('#edTest').onclick = () => { const c = edCommit(); if (c) playLevel(c, true); };
 $('#edShare').onclick = () => { const c = edCommit(); if (c) shareLevel(c); };
