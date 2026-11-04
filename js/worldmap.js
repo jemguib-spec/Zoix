@@ -171,29 +171,19 @@ function wmAmbience(g, w, x, y, rw, rh, t) {
 // socle hexagonal d'une zone
 function wmHex(g, r) { g.beginPath(); for (let i = 0; i < 6; i++) { const q = i * Math.PI / 3 + Math.PI / 6; g.lineTo(Math.cos(q) * r, Math.sin(q) * r * .55); } g.closePath(); }
 function wmDraw(g, L) {
-  const { W, H } = L, acc = w => MAPS[w * 3].acc, un = n => save.unlocked[curDiff] > n;
+  const { W, H } = L, un = n => save.unlocked[curDiff] > n;
+  // couleur du monde ; les mondes très clairs (glace, nuage) prennent une teinte plus soutenue pour que le chemin ressorte
+  const acc = w => { const c = MAPS[w * 3].acc, v = parseInt(c.slice(1), 16), lum = ((v >> 16 & 255) * .3 + (v >> 8 & 255) * .59 + (v & 255) * .11) / 255; return lum > .8 ? WORLDS[w].panel[0] : c; };
   // fond : chaque monde a ses couleurs, son décor estompé et son ambiance ; fondu entre deux mondes
   for (let w = 0; w < WORLDS.length; w++) {
     const [x, y, rw, rh] = wmSegRect(L, w); if (x > W || y > H || x + rw < 0 || y + rh < 0) continue;
-    const P = WORLDS[w].panel, gr = L.land ? g.createLinearGradient(0, 0, 0, H) : g.createLinearGradient(0, 0, W, 0);
-    gr.addColorStop(0, shade(P[2], -.45)); gr.addColorStop(.5, shade(P[2], .05)); gr.addColorStop(1, shade(P[2], -.6));
-    g.fillStyle = gr; g.fillRect(x, y, rw + 1, rh + 1);
-    if (!thumbs[w * 3]) thumbs[w * 3] = buildBG(w * 3, 16);
-    const bg = thumbs[w * 3]; g.save(); g.beginPath(); g.rect(x, y, rw + 1, rh + 1); g.clip(); g.globalAlpha = .2;
-    const sc = Math.max(rw / bg.width, rh / bg.height) * 1.05; g.drawImage(bg, x + (rw - bg.width * sc) / 2, y + (rh - bg.height * sc) / 2, bg.width * sc, bg.height * sc); g.restore();
-    wmAmbience(g, w, x, y, rw, rh, WM.t);
-    if (!wmUnlocked(w)) { g.fillStyle = 'rgba(4,6,10,.5)'; g.fillRect(x, y, rw + 1, rh + 1); }
+    drawScene(g, w, x, y, rw + 1, rh + 1, WM.t + w * 3); // paysage peint du monde (js/scenery.js)
+    if (!wmUnlocked(w)) { g.fillStyle = 'rgba(4,6,12,.55)'; g.fillRect(x, y, rw + 1, rh + 1); }
     if (w > 0) { // fondu avec le monde précédent
       const Q = WORLDS[w - 1].panel, f = 140;
       const gf = L.land ? g.createLinearGradient(x - f, 0, x + f, 0) : g.createLinearGradient(0, y + rh + f, 0, y + rh - f);
       gf.addColorStop(0, rgbaA(shade(Q[2], -.2)).replace('A', 0)); gf.addColorStop(.5, rgbaA(shade(Q[2], -.2)).replace('A', .55)); gf.addColorStop(1, rgbaA(shade(Q[2], -.2)).replace('A', 0));
       g.fillStyle = gf; if (L.land) g.fillRect(x - f, 0, f * 2, H); else g.fillRect(0, y + rh - f, W, f * 2);
-    }
-    // repères du monde : décors dessinés au bord du parcours
-    for (const [kk, side, sz] of [[0, -1, 1], [2, 1, .8]]) {
-      const lm = L.nodes[w * ZPW + kk], mA = lm.a + L.seg * .09, cOpp = side * (Math.sign(lm.c || 1) > 0 ? -1 : 1) * .82, [lx, ly] = wmXY(L, mA, cOpp), ls = Math.min(W, H) * (L.land ? .1 : .085) * sz;
-      if (lx < -ls * 2 || lx > W + ls * 2 || ly < -ls * 2 || ly > H + ls * 2) continue;
-      g.save(); g.translate(lx, ly + ls * .4); g.globalAlpha = wmUnlocked(w) ? 1 : .45; drawIsland(g, w, ls, WM.t + w + kk, true); g.restore();
     }
   }
   // tracé du parcours : piste de circuit à double rail, courbe lisse qui passe par toutes les zones
