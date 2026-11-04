@@ -126,7 +126,7 @@ function wmLayout(W, H) {
   const land = W > H, seg = land ? Math.max(W * 1.3, 700) : Math.max(H * 1.05, 700), pad = (land ? W : H) * .14;
   const nodes = [];
   for (let n = 0; n < NCAMP; n++) {
-    const w = Math.floor(n / ZPW), k = n % ZPW, a = pad + w * seg + seg * (.12 + .19 * k), c = Math.sin(n * 1.15 + .4) * (k === ZPW - 1 ? .35 : 1);
+    const w = Math.floor(n / ZPW), k = n % ZPW, a = pad + w * seg + seg * (.16 + .17 * k), c = Math.sin(n * 1.15 + .4) * (k === ZPW - 1 ? .35 : 1);
     nodes.push({ n, w, k, mi: CORDER[n], a, c });
   }
   return { land, seg, pad, len: pad * 2 + WORLDS.length * seg, nodes, W, H };
@@ -164,7 +164,7 @@ function wmAmbience(g, w, x, y, rw, rh, t) {
     case 4: for (let i = 0; i < n; i++) { const q = (t * (.03 + R() * .05) + R()) % 1, px = x + R() * rw + Math.sin(t * .8 + i) * 18, py = y + rh * q; g.fillStyle = 'rgba(255,255,255,' + (.7 * (1 - q * .6)) + ')'; g.beginPath(); g.arc(px, py, 1.5 + R() * 2, 0, TAU); g.fill(); } break; // neige
     case 5: { g.strokeStyle = 'rgba(255,43,214,.18)'; g.lineWidth = 1; const off = (t * 20) % 40; g.beginPath(); for (let k = -1; k * 40 < rh + 40; k++) { g.moveTo(x, y + k * 40 + off); g.lineTo(x + rw, y + k * 40 + off); } for (let k = 0; k * 60 < rw; k++) { g.moveTo(x + k * 60, y); g.lineTo(x + k * 60, y + rh); } g.stroke(); break; } // grille néon
     case 6: { g.fillStyle = 'rgba(0,0,0,.12)'; for (let yy = y; yy < y + rh; yy += 4) g.fillRect(x, yy, rw, 1.5); const sy = y + ((t * 60) % rh); g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(x, sy, rw, 24); break; } // balayage d'écran rétro
-    case 7: for (let i = 0; i < 6; i++) { const px = x + ((R() * rw + t * (8 + R() * 10)) % (rw + 200)) - 100, py = y + R() * rh, sc = 30 + R() * 40; g.fillStyle = 'rgba(255,255,255,.07)'; for (const [dx, dy, r] of [[0, 0, 1], [.8, .2, .8], [-.8, .25, .7]]) { g.beginPath(); g.arc(px + dx * sc, py + dy * sc, r * sc, 0, TAU); g.fill(); } } break; // nuages
+    case 7: for (let i = 0; i < 6; i++) { const px = x + ((R() * rw + t * (8 + R() * 10)) % (rw + 400)) - 200, py = y + R() * rh, sc = 30 + R() * 40; g.fillStyle = 'rgba(255,255,255,.07)'; for (const [dx, dy, r] of [[0, 0, 1], [.8, .2, .8], [-.8, .25, .7]]) { g.beginPath(); g.arc(px + dx * sc, py + dy * sc, r * sc, 0, TAU); g.fill(); } } break; // nuages
   }
   g.restore();
 }
@@ -190,8 +190,11 @@ function wmDraw(g, L) {
   const pts = L.nodes.map(o => wmXY(L, o.a, o.c));
   const pre = wmXY(L, L.nodes[0].a - L.seg * .2, L.nodes[0].c * .5), post = wmXY(L, L.nodes[NCAMP - 1].a + L.seg * .2, 0);
   const all = [pre].concat(pts, [post]);
-  const curve = i => { const p0 = all[Math.max(0, i - 1)], p1 = all[i], p2 = all[i + 1], p3 = all[Math.min(all.length - 1, i + 2)];
-    g.beginPath(); g.moveTo(p1[0], p1[1]); g.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]); };
+  const ctrl = i => { const p0 = all[Math.max(0, i - 1)], p1 = all[i], p2 = all[i + 1], p3 = all[Math.min(all.length - 1, i + 2)];
+    return [p1, [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6], p2]; };
+  const curve = i => { const [a, b, c, d] = ctrl(i); g.beginPath(); g.moveTo(a[0], a[1]); g.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]); };
+  // milieu exact d'un tronçon de piste et sa direction (pour poser les portails dessus)
+  const onPath = i => { const [a, b, c, d] = ctrl(i); return [(a[0] + 3 * b[0] + 3 * c[0] + d[0]) / 8, (a[1] + 3 * b[1] + 3 * c[1] + d[1]) / 8, d[0] - a[0] + c[0] - b[0], d[1] - a[1] + c[1] - b[1]]; };
   const sw = Math.min(W, H) * .024; g.lineCap = 'round'; g.lineJoin = 'round';
   const vis = i => { const [x1, y1] = all[i], [x2, y2] = all[i + 1]; return !(Math.max(x1, x2) < -80 || Math.min(x1, x2) > W + 80 || Math.max(y1, y2) < -80 || Math.min(y1, y2) > H + 80); };
   for (let i = 0; i < all.length - 1; i++) { if (!vis(i)) continue; curve(i); g.setLineDash([]); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = sw * 2.6; g.stroke(); }
@@ -208,21 +211,22 @@ function wmDraw(g, L) {
   // portails entre les mondes
   WM.hit = [];
   for (let w = 0; w < WORLDS.length; w++) {
-    const [gx, gy] = wmXY(L, L.pad + w * L.seg, Math.sin((w * ZPW - .5) * 1.15 + .4) * .9), s = Math.min(W, H) * .075;
+    const [gx, gy, tx, ty] = onPath(w * ZPW), s = Math.min(W, H) * .075;
     if (gx < -s * 4 || gx > W + s * 4 || gy < -s * 4 || gy > H + s * 4) continue;
-    const open = wmUnlocked(w), c = acc(w);
-    g.save(); g.translate(gx, gy);
+    const open = wmUnlocked(w), c = acc(w), lean = L.land || Math.abs(ty) < 1e-3 ? 0 : clamp(tx / ty, -1.2, 1.2); // l'arche suit la pente de la piste
+    g.save(); g.translate(gx, gy + s * .45); g.save(); g.transform(1, 0, lean, 1, 0, 0);
     wmGlow(g, 0, -s * 1.2, s * 2.2, c, open ? .25 + .08 * Math.sin(WM.t * 2) : .05);
     for (const sx of [-1, 1]) { wmBox(g, sx * s * .95 - s * .2, -s * 1.6, s * .4, s * 1.7, shade(c, -.05), shade(c, -.65), s * .08); g.fillStyle = shade(c, -.75); g.fillRect(sx * s * .95 - s * .28, -s * .02, s * .56, s * .16); wmGlow(g, sx * s * .95, -s * 1.65, s * .5, c, open ? .9 : .2); }
     g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = s * .26; g.beginPath(); g.arc(0, -s * 1.5, s * .95, Math.PI, 0); g.stroke();
     g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .16; g.stroke();
     if (open) { g.save(); g.beginPath(); g.arc(0, -s * 1.5, s * .8, Math.PI, 0); g.lineTo(s * .8, 0); g.lineTo(-s * .8, 0); g.closePath(); g.clip(); const gp = g.createLinearGradient(0, -s * 2.4, 0, 0); gp.addColorStop(0, rgbaA(c).replace('A', .45)); gp.addColorStop(1, rgbaA(c).replace('A', .05)); g.fillStyle = gp; g.fillRect(-s, -s * 2.4, s * 2, s * 2.4); for (let k = 0; k < 4; k++) { const q = (WM.t * .7 + k / 4) % 1; g.strokeStyle = 'rgba(255,255,255,' + (.35 * (1 - q)) + ')'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, -s * .8, s * .75 * q, s * .9 * q, 0, 0, TAU); g.stroke(); } g.restore(); }
+    if (!open) { g.save(); g.translate(0, -s * .55); wmPadlock(g, s * .8); g.restore(); }
+    g.restore(); g.translate(lean * -s * 2.69, 0);
     // panneau du monde
-    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7;
+    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7, lx = gx - lean * s * 2.69; g.translate(clamp(lx, tw / 2 + 8, Math.max(tw / 2 + 8, W - tw / 2 - 8)) - lx, 0); // le panneau reste dans l'écran
     g.fillStyle = 'rgba(8,12,20,.88)'; rr(g, -tw / 2, -s * 3.05, tw, s * .72, s * .36); g.fill(); g.strokeStyle = open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = s * .05; g.stroke();
     g.fillStyle = open ? '#fff' : 'rgba(255,255,255,.6)'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lab, 0, -s * 2.69);
     if (open) { const st = wmStars(w); g.font = '700 ' + Math.round(s * .26) + 'px Rubik, system-ui'; g.fillStyle = '#ffd740'; g.fillText('★ ' + st + ' / ' + ZPW * 3, 0, -s * 2.12); }
-    else { g.translate(0, -s * .55); wmPadlock(g, s * .8); }
     g.restore();
   }
   // zones
@@ -275,7 +279,7 @@ function wmFrame() {
   WM.scroll = wmClampScroll(L, WM.scroll);
   wmG.setTransform(dpr, 0, 0, dpr, 0, 0); wmDraw(wmG, L);
   // le monde affiché au centre de l'écran donne le titre, la règle et la progression
-  const mid = WM.scroll + wmView(L) * .5, w = clamp(Math.floor((mid - L.pad) / L.seg), 0, WORLDS.length - 1);
+  const mid = WM.scroll + wmView(L) * (L.land ? .42 : .4), w = clamp(Math.floor((mid - L.pad) / L.seg), 0, WORLDS.length - 1);
   if (w !== WM.shown) { WM.shown = w; wmWorldInfo(w); }
 }
 function wmStart() { if (!WM.run) { WM.run = true; WM.last = 0; requestAnimationFrame(wmFrame); } }

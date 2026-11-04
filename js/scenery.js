@@ -24,13 +24,13 @@ function sGridFloor(g, W, H, hy, vx, col, nx, ny) {
   for (let j = 1; j <= ny; j++) { const u = Math.pow(j / ny, 2.2), y = hy + (H - hy) * u; g.globalAlpha = .3 + .7 * u; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
   g.globalAlpha = 1;
 }
-function sCloud(g, x, y, s, top, bot, a) { // cumulus doux en boules superposées
-  const R = mulberry((x * 13 + y * 7) | 0), blobs = [];
+function sCloud(g, x, y, s, top, bot, a, seed) { // cumulus doux en boules superposées ; seed fixe = forme stable quand le nuage bouge
+  const R = mulberry(seed != null ? seed : (x * 13 + y * 7) | 0), blobs = [];
   for (let i = 0; i < 9; i++) blobs.push([x + (R() - .5) * s * 2.2, y - Math.abs(R() - .5) * s * .9, s * (.35 + R() * .45)]);
   blobs.push([x, y + s * .1, s * .6]);
   g.globalAlpha = a; g.fillStyle = bot; for (const [bx, by, r] of blobs) { g.beginPath(); g.arc(bx + r * .08, by + r * .14, r, 0, TAU); g.fill(); }
   for (const [bx, by, r] of blobs) { g.fillStyle = sRad(g, bx - r * .35, by - r * .45, r * .1, r * 1.05, [[0, top], [.7, top], [1, bot]]); g.beginPath(); g.arc(bx, by, r, 0, TAU); g.fill(); }
-  g.fillStyle = bot; g.fillRect(x - s * 1.4, y + s * .05, s * 2.8, s * .5); g.globalAlpha = 1;
+  g.fillStyle = bot; g.beginPath(); g.ellipse(x, y + s * .25, s * 1.35, s * .3, 0, 0, TAU); g.fill(); g.globalAlpha = 1; // base arrondie (plus de rectangle visible)
 }
 
 /* ---------- partie fixe de chaque monde ---------- */
@@ -262,7 +262,7 @@ const SCENE_LIVE = [
   },
   (g, W, H, S, t) => { // nuages qui dérivent, éclairs au loin, rayons de soleil
     for (let k = 0; k < 6; k++) { const a = -.6 + k * .14 + Math.sin(t * .2 + k) * .02; g.fillStyle = 'rgba(255,250,230,.06)'; g.beginPath(); g.moveTo(W * .82, H * .14); g.lineTo(W * .82 + Math.cos(Math.PI / 2 + a) * H * 1.6 - S * .05, H * .14 + Math.sin(Math.PI / 2 + a) * H * 1.6); g.lineTo(W * .82 + Math.cos(Math.PI / 2 + a) * H * 1.6 + S * .05, H * .14 + Math.sin(Math.PI / 2 + a) * H * 1.6); g.closePath(); g.fill(); }
-    for (let k = 0; k < 3; k++) { const x = ((t * .015 * (k + 1) + k * .37) % 1.3 - .15) * W; sCloud(g, x, H * (.18 + k * .08), S * (.12 + k * .03), '#ffffff', '#cfe0f5', .75); }
+    for (let k = 0; k < 3; k++) { const x = ((t * .015 * (k + 1) + k * .37) % 1.3 - .15) * W; sCloud(g, x, H * (.18 + k * .08), S * (.12 + k * .03), '#ffffff', '#cfe0f5', .75, 911 + k * 37); }
     const fl = Math.sin(t * 1.7) > .97 || Math.sin(t * 2.9 + 1) > .985; if (fl) { sGlow(g, W * .2, H * .3, S * .5, '#ffffff', .5); g.strokeStyle = '#fffde7'; g.lineWidth = 2.5; g.beginPath(); let x = W * .2, y = H * .33; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (Math.sin(t * 50 + k * 7) * .5) * S * .08; y += S * .07; g.lineTo(x, y); } g.stroke(); }
     for (const [px, py, sc] of [[W * .52, H * .55, 1], [W * .82, H * .5, .7]]) sGlow(g, px, py - S * .36 * sc, S * .04, '#ff5252', Math.sin(t * 4 + px) > 0 ? .9 : .2);
   }
