@@ -33,6 +33,20 @@ function sCloud(g, x, y, s, top, bot, a, seed) { // cumulus doux en boules super
   g.fillStyle = bot; g.beginPath(); g.ellipse(x, y + s * .25, s * 1.35, s * .3, 0, 0, TAU); g.fill(); g.globalAlpha = 1; // base arrondie (plus de rectangle visible)
 }
 
+// évènement qui revient toutes les `per` secondes et dure `dur` : renvoie { q: avancement 0→1, n: numéro } ou null
+function sEvent(t, per, dur, ph) { const u = t + (ph || 0), n = Math.floor(u / per), e = u - n * per; return e < dur ? { q: e / dur, n } : null; }
+// éclair en zigzag à forme stable (même graine = même éclair), avec quelques branches
+function sBolt(g, x, y, dx, dy, seed, col, a, w) {
+  const R = mulberry(seed), steps = 8, path = [[x, y]], len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
+  for (let i = 1; i <= steps; i++) { const u = i / steps, j = i < steps ? (R() - .5) * len * .22 : 0; path.push([x + dx * u + nx * j, y + dy * u + ny * j]); }
+  const line = (pts, lw, al) => { g.globalAlpha = a * al; g.lineWidth = lw; g.beginPath(); pts.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py)); g.stroke(); };
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = col; line(path, w * 4, .25); g.strokeStyle = '#ffffff'; line(path, w, 1);
+  for (let b = 0; b < 2; b++) { const i = 2 + (R() * (steps - 4) | 0), [bx, by] = path[i], br = [[bx, by]]; let cx = bx, cy = by; for (let k = 0; k < 3; k++) { cx += dx / steps * .8 + nx * (R() - .2) * len * .12; cy += dy / steps * .8 + ny * (R() - .2) * len * .12; br.push([cx, cy]); } g.strokeStyle = col; line(br, w * .6, .8); }
+  g.restore(); g.globalAlpha = 1;
+}
+// traînée lumineuse (étoile filante, paquet de données)
+function sStreak(g, x, y, dx, dy, col, a, w) { const gr = g.createLinearGradient(x - dx, y - dy, x, y); gr.addColorStop(0, rgbaA(col).replace('A', 0)); gr.addColorStop(1, rgbaA(col).replace('A', a)); g.strokeStyle = gr; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - dx, y - dy); g.lineTo(x, y); g.stroke(); sGlow(g, x, y, w * 3, col, a); }
+
 /* ---------- partie fixe de chaque monde ---------- */
 const SCENE_STATIC = [
   // 0 Circuit imprimé : ville de composants géants, processeur, pistes en perspective
@@ -219,6 +233,8 @@ const SCENE_LIVE = [
     const hy = H * .56, cx = W * .5, cy = hy + S * .05;
     sGlow(g, cx, cy - S * .05, S * (.5 + .05 * Math.sin(t * 2)), '#76ff03', .22);
     for (let i = 0; i < 8; i++) { const u = (t * .25 + i / 8) % 1, x = cx + (i - 3.5) * W * .12 * Math.pow(u, 1.2), y = hy + (H - hy) * Math.pow(u, 1.8); sGlow(g, x, y, S * .015 + u * S * .03, '#c6ff00', .9 * (1 - u * .4)); }
+    const e = sEvent(t, 4.5, .35); if (e) { const R = mulberry(e.n * 31 + 5), x0 = W * (.1 + R() * .8), y0 = hy + (H - hy) * (.2 + R() * .6), a = Math.sin(e.q * Math.PI); // arc électrique entre deux composants
+      sGlow(g, x0, y0, S * .15, '#c6ff00', .4 * a); sBolt(g, x0, y0, (R() - .5) * S * .5, (R() - .5) * S * .2, e.n * 7 + 1, '#c6ff00', a, 1.5); }
   },
   (g, W, H, S, t) => { // fumée du volcan, lave qui palpite, braises, chaleur sur la rivière
     const hy = H * .62, vx = W * .55, vt = hy - S * .46;
@@ -226,6 +242,10 @@ const SCENE_LIVE = [
     for (let k = 0; k < 9; k++) { const q = (t * .06 + k / 9) % 1, r = S * (.06 + q * .3); g.fillStyle = 'rgba(' + (60 + q * 40 | 0) + ',' + (40 + q * 40 | 0) + ',' + (40 + q * 40 | 0) + ',' + (.55 * (1 - q)) + ')'; g.beginPath(); g.arc(vx + Math.sin(k * 2.3 + q * 3) * S * .08 + q * S * .4, vt - q * S * .9, r, 0, TAU); g.fill(); }
     for (let k = 0; k < 18; k++) { const q = (t * (.15 + (k % 5) * .03) + k / 18) % 1; g.fillStyle = 'rgba(255,' + (150 + (k % 4) * 25) + ',60,' + (1 - q) + ')'; g.fillRect(vx + Math.sin(k * 7.1) * S * .3 * q, vt - q * S * .7 + q * q * S * .5, 2.5, 2.5); }
     for (let k = 0; k < 6; k++) { const x = (k / 6 + t * .03) % 1 * W; sGlow(g, x, H * .89, S * .08, '#ffeb3b', .25 + .15 * Math.sin(t * 2 + k)); }
+    const e = sEvent(t, 7, 2.2); if (e) { const R = mulberry(e.n * 13 + 3), q = e.q; // éruption : éclat au cratère puis bombes de lave en cloche
+      sGlow(g, vx, vt, S * (.4 + .3 * (1 - q)), '#ffab40', .7 * (1 - q)); if (q < .15) { g.fillStyle = 'rgba(255,120,40,' + (.12 * (1 - q / .15)) + ')'; g.fillRect(0, 0, W, H); }
+      for (let k = 0; k < 14; k++) { const vxk = (R() - .5) * S * .9, vyk = S * (.6 + R() * .7), u = q * (.8 + R() * .4), px = vx + vxk * u, py = vt - vyk * u + S * 1.1 * u * u, r = S * (.008 + R() * .012);
+        if (py > H) continue; g.fillStyle = 'rgba(255,' + (90 + R() * 120 | 0) + ',30,' + (1 - q * .7) + ')'; g.beginPath(); g.arc(px, py, r, 0, TAU); g.fill(); sGlow(g, px, py, r * 4, '#ff6d00', .35 * (1 - q)); } }
   },
   (g, W, H, S, t) => { // faisceaux de fibre optique en arc avec impulsions
     const hy = H * .6;
@@ -233,24 +253,33 @@ const SCENE_LIVE = [
       g.strokeStyle = rgbaA(col).replace('A', .35); g.lineWidth = 2; g.beginPath(); g.moveTo(x0, hy); g.quadraticCurveTo((x0 + x1) / 2, top, x1, hy); g.stroke();
       for (let j = 0; j < 2; j++) { const u = (t * .3 + k * .17 + j * .5) % 1, x = (1 - u) * (1 - u) * x0 + 2 * (1 - u) * u * (x0 + x1) / 2 + u * u * x1, y = (1 - u) * (1 - u) * hy + 2 * (1 - u) * u * top + u * u * hy; sGlow(g, x, y, S * .03, col, 1); } }
     const off = (t * 30) % 40; g.strokeStyle = 'rgba(24,255,255,.25)'; g.lineWidth = 1; for (let j = 0; j < 8; j++) { const y = hy + Math.pow((j + off / 40) / 8, 2) * (H - hy); g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    const e = sEvent(t, 3.5, .9); if (e) { const R = mulberry(e.n * 17 + 2), x = W * (-.1 + e.q * 1.2), y = hy * (.15 + R() * .4) + e.q * S * .15; sStreak(g, x, y, S * .35, S * .04, R() < .5 ? '#18ffff' : '#b388ff', .9 * Math.sin(e.q * Math.PI), 2); } // paquet de données filant
   },
   (g, W, H, S, t) => { // voyants des baies et brume froide
     const vy = H * .45, vx = W * .5, rows = 12, p = u => Math.pow(u, 1.7);
     for (const side of [-1, 1]) for (let i = 0; i < rows; i++) { const u = (i + .5) / rows, x = vx + side * (S * .12 + p(u) * W * .7), top = vy - S * .08 - p(u) * vy * 1.1, bot = vy + S * .05 + p(u) * (H - vy) * 1.1, sz = 1 + u * 4;
       for (let k = 0; k < 7; k++) { const on = Math.sin(t * (3 + (i * 7 + k) % 5) + i * 1.3 + k * 2.1) > .1; if (!on) continue; g.fillStyle = (i + k) % 5 ? '#76ff03' : '#ffab00'; g.fillRect(x - sz / 2, top + (bot - top) * (k + .5) / 7.5, sz, sz); } }
     for (let k = 0; k < 4; k++) { const x = ((t * .02 + k / 4) % 1) * W * 1.4 - W * .2; g.fillStyle = sRad(g, x, H * .8, 0, S * .6, [[0, 'rgba(160,220,240,.12)'], [1, 'rgba(160,220,240,0)']]); g.fillRect(x - S * .6, H * .5, S * 1.2, H * .5); }
+    const e = sEvent(t, 6, .5, 1); if (e) { const R = mulberry(e.n * 23 + 9), x = W * (.2 + R() * .6), y = H * (.05 + R() * .12), on = Math.sin(e.q * 40) > 0; // néon qui grésille et étincelle sur un chemin de câbles
+      if (on) { g.fillStyle = 'rgba(200,240,255,.05)'; g.fillRect(0, 0, W, H); } sGlow(g, x, y, S * .12, '#80deea', on ? .8 : .2);
+      for (let k = 0; k < 8; k++) { const u = e.q, a = R() * TAU, d = S * (.05 + R() * .12) * u; g.fillStyle = 'rgba(255,240,160,' + (1 - u) + ')'; g.fillRect(x + Math.cos(a) * d, y + Math.sin(a) * d + u * u * S * .2, 2, 2); } }
   },
   (g, W, H, S, t) => { // aurore boréale et neige
     const hy = H * .6;
     for (let b = 0; b < 3; b++) { const col = b === 1 ? '124,77,255' : '105,240,174'; g.beginPath(); for (let x = 0; x <= W; x += W / 30) { const y = hy * (.18 + b * .08) + Math.sin(x / W * 6 + t * .6 + b) * S * .06; x ? g.lineTo(x, y) : g.moveTo(x, y); }
       g.lineWidth = S * (.08 - b * .015); g.strokeStyle = 'rgba(' + col + ',' + (.18 + .08 * Math.sin(t + b)) + ')'; g.stroke(); g.lineWidth = S * .015; g.strokeStyle = 'rgba(' + col + ',.35)'; g.stroke(); }
     const R = mulberry(9); for (let k = 0; k < 40; k++) { const sp = .03 + R() * .05, q = (t * sp + R()) % 1, x = (R() * W + Math.sin(t + k) * 15 + W) % W, y = q * H; g.fillStyle = 'rgba(255,255,255,' + (.5 + R() * .5) + ')'; g.beginPath(); g.arc(x, y, 1 + R() * 2, 0, TAU); g.fill(); }
+    const e = sEvent(t, 5, 1.1, 2); if (e) { const R2 = mulberry(e.n * 19 + 4), x = W * (.1 + R2() * .5) + e.q * W * .4, y = hy * (.1 + R2() * .3) + e.q * S * .2; sStreak(g, x, y, S * .3, S * .15, '#e0f7fa', .9 * Math.sin(e.q * Math.PI), 1.6); } // étoile filante
+    for (let k = 0; k < 5; k++) { const R3 = mulberry(k * 41 + Math.floor(t / 2.5 + k * .37)), a = Math.max(0, Math.sin(((t / 2.5 + k * .37) % 1) * Math.PI)), x = R3() * W, y = hy + R3() * (H - hy) * .9, r = S * .025 * a; // reflets qui scintillent sur la glace
+      g.strokeStyle = 'rgba(255,255,255,' + a + ')'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke(); }
   },
   (g, W, H, S, t) => { // grille néon qui défile vers l'avant
     const hy = H * .6, vx = W * .5;
     g.strokeStyle = 'rgba(255,43,214,.7)'; g.lineWidth = 1.5; g.beginPath(); for (let i = -14; i <= 14; i++) { g.moveTo(vx + i * S * .01, hy); g.lineTo(vx + i * W * .12, H); } g.stroke();
     const off = (t * .5) % 1; g.strokeStyle = 'rgba(0,229,255,.7)'; for (let j = 0; j < 10; j++) { const y = hy + Math.pow((j + off) / 10, 2.2) * (H - hy); g.globalAlpha = (j + off) / 10; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); } g.globalAlpha = 1;
     sGlow(g, vx, hy, S * .5, '#ff2bd6', .2 + .05 * Math.sin(t * 2));
+    const e = sEvent(t, 5.5, .45, 3); if (e) { const R = mulberry(e.n * 29 + 6), x = W * (.15 + R() * .7), a = e.q < .3 || (e.q > .5 && e.q < .7) ? 1 : .25; // éclair néon dans le ciel
+      g.fillStyle = 'rgba(255,43,214,' + (.06 * a) + ')'; g.fillRect(0, 0, W, hy); sBolt(g, x, 0, (R() - .5) * S * .3, hy * .85, e.n * 11 + 3, R() < .5 ? '#ff2bd6' : '#00e5ff', a, 1.8); }
   },
   (g, W, H, S, t) => { // texte qui s'écrit sur l'écran, lumière de lampe
     const hy = H * .55, mx = W * .55, mw = S * .66, mh = S * .46, my = hy + S * .1, lines = ['C:\\> VIRUS.EXE', 'SCAN 640K OK', 'MEM ' + (32 + ((t * 7) | 0) % 600) + 'K', 'DEFENSE ON_'];
@@ -259,11 +288,13 @@ const SCENE_LIVE = [
     sGlow(g, mx, my - mh * .56, mw * .55, '#76ff03', .12 + .03 * Math.sin(t * 30));
     g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = my - mh * .87; y < my - mh * .25; y += 3) g.fillRect(mx - mw * .37, y, mw * .74, 1);
     g.fillStyle = sRad(g, W * .1, 0, 0, S * .9, [[0, 'rgba(255,214,140,.25)'], [1, 'rgba(255,214,140,0)']]); g.beginPath(); g.moveTo(W * .1 - S * .05, 0); g.lineTo(W * .1 + S * .05, 0); g.lineTo(W * .1 + S * .5, H); g.lineTo(W * .1 - S * .4, H); g.closePath(); g.fill();
+    const e = sEvent(t, 5, .3, 1.5); if (e) { const R = mulberry(e.n * 37 + 8); for (let k = 0; k < 3; k++) { const y = my - mh * (.85 - R() * .55), h = S * (.006 + R() * .02); g.fillStyle = k % 2 ? 'rgba(255,64,129,.35)' : 'rgba(118,255,3,.4)'; g.fillRect(mx - mw * .37 + (R() - .5) * S * .04, y, mw * .74, h); } } // parasite sur l'écran
   },
   (g, W, H, S, t) => { // nuages qui dérivent, éclairs au loin, rayons de soleil
     for (let k = 0; k < 6; k++) { const a = -.6 + k * .14 + Math.sin(t * .2 + k) * .02; g.fillStyle = 'rgba(255,250,230,.06)'; g.beginPath(); g.moveTo(W * .82, H * .14); g.lineTo(W * .82 + Math.cos(Math.PI / 2 + a) * H * 1.6 - S * .05, H * .14 + Math.sin(Math.PI / 2 + a) * H * 1.6); g.lineTo(W * .82 + Math.cos(Math.PI / 2 + a) * H * 1.6 + S * .05, H * .14 + Math.sin(Math.PI / 2 + a) * H * 1.6); g.closePath(); g.fill(); }
     for (let k = 0; k < 3; k++) { const x = ((t * .015 * (k + 1) + k * .37) % 1.3 - .15) * W; sCloud(g, x, H * (.18 + k * .08), S * (.12 + k * .03), '#ffffff', '#cfe0f5', .75, 911 + k * 37); }
-    const fl = Math.sin(t * 1.7) > .97 || Math.sin(t * 2.9 + 1) > .985; if (fl) { sGlow(g, W * .2, H * .3, S * .5, '#ffffff', .5); g.strokeStyle = '#fffde7'; g.lineWidth = 2.5; g.beginPath(); let x = W * .2, y = H * .33; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (Math.sin(t * 50 + k * 7) * .5) * S * .08; y += S * .07; g.lineTo(x, y); } g.stroke(); }
+    const e = sEvent(t, 4.5, .5); if (e) { const R = mulberry(e.n * 43 + 1), x = W * (.1 + R() * .2), a = e.q < .25 || (e.q > .45 && e.q < .6) ? 1 : .2; // éclair dans l'orage, double flash
+      g.fillStyle = 'rgba(255,255,255,' + (.07 * a) + ')'; g.fillRect(0, 0, W, H); sGlow(g, x, H * .3, S * .5, '#ffffff', .45 * a); sBolt(g, x, H * .33, (R() - .5) * S * .12, S * .22, e.n * 5 + 2, '#2979ff', a, 2.2); }
     for (const [px, py, sc] of [[W * .52, H * .55, 1], [W * .82, H * .5, .7]]) sGlow(g, px, py - S * .36 * sc, S * .04, '#ff5252', Math.sin(t * 4 + px) > 0 ? .9 : .2);
   }
 ];
