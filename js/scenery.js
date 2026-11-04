@@ -47,6 +47,43 @@ function sBolt(g, x, y, dx, dy, seed, col, a, w) {
 // traînée lumineuse (étoile filante, paquet de données)
 function sStreak(g, x, y, dx, dy, col, a, w) { const gr = g.createLinearGradient(x - dx, y - dy, x, y); gr.addColorStop(0, rgbaA(col).replace('A', 0)); gr.addColorStop(1, rgbaA(col).replace('A', a)); g.strokeStyle = gr; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - dx, y - dy); g.lineTo(x, y); g.stroke(); sGlow(g, x, y, w * 3, col, a); }
 
+// écran du vieux PC : une session DOS qui copie, décompresse et lance un petit jeu de raquettes, puis recommence
+const RETRO_SCRIPT = [
+  ['c', 'C:\\> A:'], ['c', 'A:\\> DIR'], ['o', ' TENNIS.ZIP   12 Ko'], ['o', ' 1 fichier(s)'],
+  ['c', 'A:\\> COPY TENNIS.ZIP C:'], ['w', .8], ['o', ' 1 fichier(s) copié(s)'],
+  ['c', 'A:\\> C:'], ['c', 'C:\\> PKUNZIP TENNIS.ZIP'], ['o', ' Extraction TENNIS.EXE'], ['w', .5], ['o', ' OK'],
+  ['c', 'C:\\> TENNIS'], ['p', 1.8], ['g', 9], ['o', 'MERCI D\'AVOIR JOUÉ !'], ['w', 1.2], ['c', 'C:\\> CLS'], ['w', .6]
+];
+const RETRO_DUR = RETRO_SCRIPT.reduce((d, [k, v]) => d + (k === 'c' ? v.length / 11 + .6 : k === 'o' ? .35 : v), 0);
+function retroScreen(g, x, y, w, h, S, t) {
+  const fs = Math.max(6, Math.round(S * .03)), lh = fs * 1.25, maxL = Math.max(2, Math.floor(h / lh)), cur = Math.sin(t * 6) > 0 ? '█' : '';
+  let tt = t % RETRO_DUR, out = [], game = -1, last = '';
+  for (const [k, v] of RETRO_SCRIPT) {
+    const d = k === 'c' ? v.length / 11 + .6 : k === 'o' ? .35 : v;
+    if (tt >= d) { if (k === 'c' || k === 'o') out.push(v); tt -= d; continue; }
+    if (k === 'c') { const n = Math.min(v.length, Math.floor(tt * 11)); last = v.slice(0, n) + cur; }
+    else if (k === 'p') { const n = Math.floor(tt / v * 10); last = ' [' + '#'.repeat(n) + '.'.repeat(10 - n) + '] ' + n * 10 + '%'; }
+    else if (k === 'g') game = tt;
+    else if (k === 'w') last = ' ';
+    break;
+  }
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  g.fillStyle = '#76ff03'; g.strokeStyle = '#76ff03';
+  if (game >= 0) { // le jeu : deux raquettes, une balle qui rebondit, le score
+    const tri = (u, p) => { const q = (u / p) % 2; return q < 1 ? q : 2 - q; }, bx = x + w * (.06 + .88 * tri(game + .3, 1.1)), by = y + h * (.12 + .8 * tri(game * 1.37 + .5, .9)), bs = Math.max(2, S * .012);
+    const pad = (px, lag) => { const py = clamp(y + h * (.12 + .8 * tri(game * 1.37 + .5 - lag, .9)) - h * .11, y + h * .1, y + h * .76); g.fillRect(px, py, bs, h * .22); };
+    const sc = Math.floor((game + .3) / 2.2); g.font = '700 ' + fs + 'px monospace'; g.textAlign = 'center'; g.textBaseline = 'top';
+    g.fillText(String(sc % 4), x + w * .38, y + h * .02); g.fillText(String((sc + 1) / 2 | 0), x + w * .62, y + h * .02);
+    for (let yy = y + h * .12; yy < y + h; yy += bs * 2.5) g.fillRect(x + w / 2 - bs / 4, yy, bs / 2, bs * 1.2);
+    pad(x + w * .03, .12); pad(x + w * .97 - bs, .2); g.fillRect(bx - bs / 2, by - bs / 2, bs, bs);
+  } else { // la console : on garde les dernières lignes qui tiennent à l'écran
+    const L = last ? out.concat([last]) : out.concat([cur ? 'C:\\>' + cur : '']), view = L.slice(-maxL);
+    g.font = '700 ' + fs + 'px monospace'; g.textAlign = 'left'; g.textBaseline = 'top';
+    view.forEach((l, i) => g.fillText(l, x, y + i * lh));
+  }
+  g.restore();
+}
+
 /* ---------- partie fixe de chaque monde ---------- */
 const SCENE_STATIC = [
   // 0 Circuit imprimé : ville de composants géants, processeur, pistes en perspective
@@ -281,10 +318,9 @@ const SCENE_LIVE = [
     const e = sEvent(t, 5.5, .45, 3); if (e) { const R = mulberry(e.n * 29 + 6), x = W * (.15 + R() * .7), a = e.q < .3 || (e.q > .5 && e.q < .7) ? 1 : .25; // éclair néon dans le ciel
       g.fillStyle = 'rgba(255,43,214,' + (.06 * a) + ')'; g.fillRect(0, 0, W, hy); sBolt(g, x, 0, (R() - .5) * S * .3, hy * .85, e.n * 11 + 3, R() < .5 ? '#ff2bd6' : '#00e5ff', a, 1.8); }
   },
-  (g, W, H, S, t) => { // texte qui s'écrit sur l'écran, lumière de lampe
-    const hy = H * .55, mx = W * .55, mw = S * .66, mh = S * .46, my = hy + S * .1, lines = ['C:\\> VIRUS.EXE', 'SCAN 640K OK', 'MEM ' + (32 + ((t * 7) | 0) % 600) + 'K', 'DEFENSE ON_'];
-    g.fillStyle = '#76ff03'; g.font = '700 ' + Math.round(S * .034) + 'px monospace'; g.textAlign = 'left'; g.textBaseline = 'top';
-    const shown = Math.floor(t * 1.5) % 6; lines.slice(0, Math.min(4, shown + 1)).forEach((l, i) => g.fillText(i === Math.min(3, shown) && Math.sin(t * 6) > 0 ? l + '█' : l, mx - mw * .33, my - mh * .82 + i * S * .045));
+  (g, W, H, S, t) => { // l'ordinateur tape de vraies commandes DOS pour installer un jeu de raquettes et y jouer, lumière de lampe
+    const hy = H * .55, mx = W * .55, mw = S * .66, mh = S * .46, my = hy + S * .1;
+    retroScreen(g, mx - mw * .35, my - mh * .84, mw * .7, mh * .56, S, t);
     sGlow(g, mx, my - mh * .56, mw * .55, '#76ff03', .12 + .03 * Math.sin(t * 30));
     g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = my - mh * .87; y < my - mh * .25; y += 3) g.fillRect(mx - mw * .37, y, mw * .74, 1);
     g.fillStyle = sRad(g, W * .1, 0, 0, S * .9, [[0, 'rgba(255,214,140,.25)'], [1, 'rgba(255,214,140,0)']]); g.beginPath(); g.moveTo(W * .1 - S * .05, 0); g.lineTo(W * .1 + S * .05, 0); g.lineTo(W * .1 + S * .5, H); g.lineTo(W * .1 - S * .4, H); g.closePath(); g.fill();
