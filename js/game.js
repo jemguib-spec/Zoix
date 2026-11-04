@@ -101,7 +101,7 @@ function startMap(mi, opts) {
   toast(G.tuto !== undefined ? 'Bienvenue dans Virus Défense !' : opts.custom && MAPS[mi].desc ? '✎ ' + MAPS[mi].desc : '🌍 Règle du monde · ' + (opts.custom && MAPS[mi].noRule ? 'désactivée' : rule.name + ' : ' + rule.desc));
   updatePowers(); tutoTick();
   const wi = worldIdx(mi);
-  if (!opts.endless && !opts.daily && !opts.custom && mi < NCAMP && mi % 3 === 0 && !(save.story || {})[wi]) {
+  if (!opts.endless && !opts.daily && !opts.custom && mi < NCAMP && CPOS[mi] % ZPW === 0 && !(save.story || {})[wi]) {
     G.storyOpen = true; save.story = save.story || {}; save.story[wi] = 1; persist();
     showStory(STORY[wi] || '', '🛡 AVA · Monde ' + (wi + 1) + ' : ' + WORLDS[wi].name, () => { if (G) G.storyOpen = false; });
   }
@@ -255,7 +255,7 @@ function spawnEnemy(type, wave, quiet, entK) {
     rew: Math.max(1, Math.round(d.rew * rewScale(wave) * (1 + .06 * gup('rew')) * (G.mod === 'rich' ? .7 : 1))), armor: (d.armor || 0) * (1 + wave * .03), fly: !!d.fly, regen: d.regen || 0,
     lives: d.lives || 1, wave, slowT: 0, slowF: 1, ang: 0, anim: Math.random() * 10, prog: 0, dead: false, route, ri: 0
   };
-  e.hp = e.max = hp * (1 + G.mi * .025);
+  e.hp = e.max = hp * zoneHpK(G.mi);
   if (G.th === 'ice' && !G.m.noRule) e.spd *= 1.2;
   if (G.m.hpC) e.hp = e.max = e.max * G.m.hpC;
   if (G.m.spdC) e.spd *= G.m.spdC;

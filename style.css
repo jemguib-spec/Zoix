@@ -907,3 +907,10 @@ body.cb .tbars u i{background:linear-gradient(90deg,#60a5fa,#ffd54f)}
   #maps.wm-path .wm-arrow{width:36px;height:36px!important}
   #maps.wm-path .wm-arrow.l{left:calc(64px + env(safe-area-inset-left))!important}#maps.wm-path .wm-arrow.r{right:calc(64px + env(safe-area-inset-right))!important}
 }
+/* en-tête de la carte : titre et barre de progression du monde */
+.wm-head{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 54px}
+.wm-head h2{padding:0!important;max-width:100%}
+.wm-prog{position:relative;width:min(300px,70%);height:16px;border-radius:99px;background:rgba(8,12,20,.75);border:1px solid var(--line);overflow:hidden}
+.wm-prog i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;opacity:.75;transition:width .4s var(--ease)}
+.wm-prog span{position:relative;display:block;text-align:center;font-size:10.5px;font-weight:700;line-height:15px;color:#fff;text-shadow:0 1px 2px #000}
+@media (orientation:portrait){.wm-head{padding:0 42px}.wm-prog{height:14px}.wm-prog span{font-size:9.5px;line-height:13px}#maps.wm-path .wm-pathui{top:calc(86px + env(safe-area-inset-top))}}

@@ -29,7 +29,7 @@ async function test(name, page, fn) {
   await page.evaluate(() => { localStorage.clear(); save = loadSave(); save.tuto = 1; save.story = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 }; for (const k of TORDER) save.unlockT[k] = 1; });
 
   await test('le jeu démarre sur le menu', page, () => state === 'menu' && !!DEMO || 'état : ' + state);
-  await test('les 24 zones de campagne sont valides', page, () => { for (let i = 0; i < NCAMP; i++) { const m = MAPS[i]; if (!m.routes.length || m.routes.some(r => r.length < 8)) return 'zone ' + i; } return NCAMP === 24; });
+  await test('les 40 zones de campagne sont valides (5 par monde, dans l\'ordre)', page, () => { for (let i = 0; i < NCAMP; i++) { const m = MAPS[i]; if (!m.routes.length || m.routes.some(r => r.length < 8)) return 'zone ' + i; } if (CORDER.length !== NCAMP || new Set(CORDER).size !== NCAMP) return 'ordre de campagne invalide'; for (let p = 0; p < NCAMP; p++) if (worldIdx(CORDER[p]) !== Math.floor(p / ZPW)) return 'zone ' + CORDER[p] + ' dans le mauvais monde'; return NCAMP === 40; });
 
   // simulation rapide de chaque monde avec une IA simple
   await test('chaque monde se joue 12 vagues sans erreur', page, () => {
@@ -103,7 +103,7 @@ async function test(name, page, fn) {
     for (let i = 0; i < 40; i++) tryPlace('pulse', 1 + (i % 24), 4 + Math.floor(i / 24) * 2);
     if (G.towers.length < 29) return 'règle du monde (28 tourelles max) encore active : ' + G.towers.length;
     startWave(); for (let i = 0; i < 200 && !G.enemies.length; i++) update(1 / 30);
-    const e = G.enemies[0]; if (!e || Math.abs(e.max / (ETYPES[e.type].hp * hpScale(e.wave || 1) * G.d.hp * (1 + G.mi * .025)) - 2) > .05) return 'PV non multipliés';
+    const e = G.enemies[0]; if (!e || Math.abs(e.max / (ETYPES[e.type].hp * hpScale(e.wave || 1) * G.d.hp * zoneHpK(G.mi)) - 2) > .05) return 'PV non multipliés';
     setState('menu'); return true;
   });
   await test('éditeur : vagues personnalisées (code, groupes, entrée, boss)', page, () => {

@@ -1,11 +1,12 @@
 'use strict';
-/* Virus Défense — carte des mondes : un seul parcours linéaire qui traverse les 8 mondes et leurs 24 zones.
+/* Virus Défense — carte des mondes : un seul parcours linéaire qui traverse les 8 mondes et leurs 40 zones.
    Tout est dessiné par le jeu, dans l'univers de l'ordinateur (puces, forge, disques, serveurs, glace, néon, vieux PC, nuage). */
 const WM = { scroll: 0, scrollT: 0, vel: 0, drag: null, sel: -1, t: 0, run: false, hit: [], cache: {}, stars: null, L: null };
 const wmCv = $('#wmCv'), wmG = wmCv.getContext('2d');
-const wmUnlocked = wi => save.unlocked[curDiff] > wi * 3; // un monde est ouvert dès que sa première zone l'est
-const wmStars = wi => [0, 1, 2].reduce((a, k) => a + (save.stars[curDiff + (wi * 3 + k)] || 0), 0);
-const wmDone = wi => [0, 1, 2].filter(k => save.unlocked[curDiff] > wi * 3 + k + 1 || (save.stars[curDiff + (wi * 3 + k)] || 0) > 0).length;
+const wmUnlocked = wi => save.unlocked[curDiff] > wi * ZPW; // un monde est ouvert dès que sa première zone l'est
+const wmZones = wi => CORDER.slice(wi * ZPW, wi * ZPW + ZPW);  // numéros des zones du monde, dans l'ordre de la campagne
+const wmStars = wi => wmZones(wi).reduce((a, mi) => a + (save.stars[curDiff + mi] || 0), 0);
+const wmDone = wi => wmZones(wi).filter(mi => save.unlocked[curDiff] > CPOS[mi] + 1).length;
 // couleurs des îles : dessus, roche claire, roche sombre, lueur
 const ISLE = [
   ['#2e7d32', '#8d6e63', '#3e2723', '#76ff03'], ['#3e2723', '#6d4c41', '#1b0f0b', '#ff6d00'], ['#1565c0', '#546e7a', '#1c2a33', '#40c4ff'], ['#78909c', '#546e7a', '#263238', '#76ff03'],
@@ -122,22 +123,22 @@ function wmPadlock(g, s) {
 /* ---------- parcours : mise en page ---------- */
 // le parcours avance à l'horizontale en paysage, de bas en haut en portrait ; a = position le long du parcours
 function wmLayout(W, H) {
-  const land = W > H, seg = land ? Math.max(W * .82, 440) : Math.max(H * .62, 420), pad = (land ? W : H) * .14;
+  const land = W > H, seg = land ? Math.max(W * 1.3, 700) : Math.max(H * 1.05, 700), pad = (land ? W : H) * .14;
   const nodes = [];
   for (let n = 0; n < NCAMP; n++) {
-    const w = Math.floor(n / 3), k = n % 3, a = pad + w * seg + seg * (.2 + .3 * k), c = Math.sin(n * 1.25 + .6);
-    nodes.push({ n, w, k, a, c });
+    const w = Math.floor(n / ZPW), k = n % ZPW, a = pad + w * seg + seg * (.12 + .19 * k), c = Math.sin(n * 1.15 + .4) * (k === ZPW - 1 ? .35 : 1);
+    nodes.push({ n, w, k, mi: CORDER[n], a, c });
   }
   return { land, seg, pad, len: pad * 2 + WORLDS.length * seg, nodes, W, H };
 }
 // position à l'écran d'un point du parcours (a le long, c en travers entre -1 et 1)
 function wmXY(L, a, c) {
-  if (L.land) { const top = 92, bot = 150, mid = (top + L.H - bot) / 2, amp = (L.H - bot - top) / 2 * .78; return [a - WM.scroll, mid + c * amp]; }
+  if (L.land) { const top = 104, bot = 150, mid = (top + L.H - bot) / 2, amp = (L.H - bot - top) / 2 * .8; return [a - WM.scroll, mid + c * amp]; }
   const base = L.H - 250, mid = L.W / 2, amp = L.W * .3; return [mid + c * amp, base - (a - WM.scroll)];
 }
-const wmView = L => L.land ? L.W : L.H - 250 - 120; // longueur visible du parcours
-const wmClampScroll = (L, v) => clamp(v, 0, Math.max(0, L.len - wmView(L) - (L.land ? 0 : 0)));
-const wmFocus = (L, n) => wmClampScroll(L, L.nodes[n].a - wmView(L) * (L.land ? .45 : .4));
+const wmView = L => L.land ? L.W : L.H - 250 - 130; // longueur visible du parcours
+const wmClampScroll = (L, v) => clamp(v, 0, Math.max(0, L.len - wmView(L)));
+const wmFocus = (L, n) => wmClampScroll(L, L.nodes[n].a - wmView(L) * (L.land ? .42 : .4));
 
 /* ---------- dessin ---------- */
 function wmSize() {
@@ -151,81 +152,128 @@ function wmSegRect(L, w) { // rectangle à l'écran de la portion d'un monde
   if (L.land) return [a0 - WM.scroll, 0, a1 - a0, L.H];
   const base = L.H - 250; return [0, base - (a1 - WM.scroll), L.W, a1 - a0];
 }
+// ambiance animée propre à chaque monde, dessinée dans le rectangle du monde
+function wmAmbience(g, w, x, y, rw, rh, t) {
+  const R = mulberry(w * 71 + 3), n = save.eco ? 10 : 26;
+  g.save(); g.beginPath(); g.rect(x, y, rw, rh); g.clip();
+  switch (w) {
+    case 0: for (let i = 0; i < n; i++) { const px = x + R() * rw, py = y + R() * rh, k = (Math.sin(t * 2 + i) + 1) / 2; wmGlow(g, px, py, 3 + k * 5, '#76ff03', .35 * k); } break; // étincelles des pistes
+    case 1: for (let i = 0; i < n; i++) { const q = (t * (.05 + R() * .08) + R()) % 1, px = x + R() * rw + Math.sin(t + i) * 12, py = y + rh * (1 - q); g.fillStyle = 'rgba(255,' + (120 + R() * 80 | 0) + ',30,' + (.8 * (1 - q)) + ')'; g.fillRect(px, py, 3, 3); } break; // braises qui montent
+    case 2: g.font = '700 12px monospace'; for (let i = 0; i < n; i++) { const q = (t * (.06 + R() * .1) + R()) % 1, px = x + R() * rw, py = y + rh * q; g.fillStyle = 'rgba(24,255,255,' + (.35 * (1 - q)) + ')'; g.fillText(R() < .5 ? '0' : '1', px, py); } break; // pluie binaire
+    case 3: for (let i = 0; i < n; i++) { const px = x + R() * rw, py = y + R() * rh, on = Math.sin(t * (3 + R() * 4) + i) > .3; g.fillStyle = on ? (i % 4 ? 'rgba(118,255,3,.6)' : 'rgba(255,171,0,.6)') : 'rgba(118,255,3,.08)'; g.fillRect(px, py, 4, 4); } break; // voyants de serveurs
+    case 4: for (let i = 0; i < n; i++) { const q = (t * (.03 + R() * .05) + R()) % 1, px = x + R() * rw + Math.sin(t * .8 + i) * 18, py = y + rh * q; g.fillStyle = 'rgba(255,255,255,' + (.7 * (1 - q * .6)) + ')'; g.beginPath(); g.arc(px, py, 1.5 + R() * 2, 0, TAU); g.fill(); } break; // neige
+    case 5: { g.strokeStyle = 'rgba(255,43,214,.18)'; g.lineWidth = 1; const off = (t * 20) % 40; g.beginPath(); for (let k = -1; k * 40 < rh + 40; k++) { g.moveTo(x, y + k * 40 + off); g.lineTo(x + rw, y + k * 40 + off); } for (let k = 0; k * 60 < rw; k++) { g.moveTo(x + k * 60, y); g.lineTo(x + k * 60, y + rh); } g.stroke(); break; } // grille néon
+    case 6: { g.fillStyle = 'rgba(0,0,0,.12)'; for (let yy = y; yy < y + rh; yy += 4) g.fillRect(x, yy, rw, 1.5); const sy = y + ((t * 60) % rh); g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(x, sy, rw, 24); break; } // balayage d'écran rétro
+    case 7: for (let i = 0; i < 6; i++) { const px = x + ((R() * rw + t * (8 + R() * 10)) % (rw + 200)) - 100, py = y + R() * rh, sc = 30 + R() * 40; g.fillStyle = 'rgba(255,255,255,.07)'; for (const [dx, dy, r] of [[0, 0, 1], [.8, .2, .8], [-.8, .25, .7]]) { g.beginPath(); g.arc(px + dx * sc, py + dy * sc, r * sc, 0, TAU); g.fill(); } } break; // nuages
+  }
+  g.restore();
+}
+// socle hexagonal d'une zone
+function wmHex(g, r) { g.beginPath(); for (let i = 0; i < 6; i++) { const q = i * Math.PI / 3 + Math.PI / 6; g.lineTo(Math.cos(q) * r, Math.sin(q) * r * .55); } g.closePath(); }
 function wmDraw(g, L) {
   const { W, H } = L, acc = w => MAPS[w * 3].acc, un = n => save.unlocked[curDiff] > n;
-  // fond : chaque monde a ses couleurs et son décor estompé
+  // fond : chaque monde a ses couleurs, son décor estompé et son ambiance ; fondu entre deux mondes
   for (let w = 0; w < WORLDS.length; w++) {
     const [x, y, rw, rh] = wmSegRect(L, w); if (x > W || y > H || x + rw < 0 || y + rh < 0) continue;
     const P = WORLDS[w].panel, gr = L.land ? g.createLinearGradient(0, 0, 0, H) : g.createLinearGradient(0, 0, W, 0);
-    gr.addColorStop(0, shade(P[2], -.35)); gr.addColorStop(.5, P[2]); gr.addColorStop(1, shade(P[2], -.5));
+    gr.addColorStop(0, shade(P[2], -.45)); gr.addColorStop(.5, shade(P[2], .05)); gr.addColorStop(1, shade(P[2], -.6));
     g.fillStyle = gr; g.fillRect(x, y, rw + 1, rh + 1);
     if (!thumbs[w * 3]) thumbs[w * 3] = buildBG(w * 3, 16);
-    const bg = thumbs[w * 3]; g.save(); g.beginPath(); g.rect(x, y, rw + 1, rh + 1); g.clip(); g.globalAlpha = .22;
-    const sc = Math.max(rw / bg.width, rh / bg.height); g.drawImage(bg, x + (rw - bg.width * sc) / 2, y + (rh - bg.height * sc) / 2, bg.width * sc, bg.height * sc); g.restore();
-    if (!wmUnlocked(w)) { g.fillStyle = 'rgba(4,6,10,.45)'; g.fillRect(x, y, rw + 1, rh + 1); }
-    // repère du monde (décor thématique posé à côté du parcours)
-    const lm = L.nodes[w * 3], mA = lm.a + L.seg * .15, cOpp = -Math.sign(Math.sin(w * 3 * 1.25 + .6 + .9) || 1) * .78, [lx, ly] = wmXY(L, mA, cOpp), ls = Math.min(W, H) * (L.land ? .1 : .085);
-    g.save(); g.translate(lx, ly + ls * .4); g.globalAlpha = wmUnlocked(w) ? 1 : .5; drawIsland(g, w, ls, WM.t + w, true); g.restore();
+    const bg = thumbs[w * 3]; g.save(); g.beginPath(); g.rect(x, y, rw + 1, rh + 1); g.clip(); g.globalAlpha = .2;
+    const sc = Math.max(rw / bg.width, rh / bg.height) * 1.05; g.drawImage(bg, x + (rw - bg.width * sc) / 2, y + (rh - bg.height * sc) / 2, bg.width * sc, bg.height * sc); g.restore();
+    wmAmbience(g, w, x, y, rw, rh, WM.t);
+    if (!wmUnlocked(w)) { g.fillStyle = 'rgba(4,6,10,.5)'; g.fillRect(x, y, rw + 1, rh + 1); }
+    if (w > 0) { // fondu avec le monde précédent
+      const Q = WORLDS[w - 1].panel, f = 140;
+      const gf = L.land ? g.createLinearGradient(x - f, 0, x + f, 0) : g.createLinearGradient(0, y + rh + f, 0, y + rh - f);
+      gf.addColorStop(0, rgbaA(shade(Q[2], -.2)).replace('A', 0)); gf.addColorStop(.5, rgbaA(shade(Q[2], -.2)).replace('A', .55)); gf.addColorStop(1, rgbaA(shade(Q[2], -.2)).replace('A', 0));
+      g.fillStyle = gf; if (L.land) g.fillRect(x - f, 0, f * 2, H); else g.fillRect(0, y + rh - f, W, f * 2);
+    }
+    // repères du monde : décors dessinés au bord du parcours
+    for (const [kk, side, sz] of [[0, -1, 1], [2, 1, .8]]) {
+      const lm = L.nodes[w * ZPW + kk], mA = lm.a + L.seg * .09, cOpp = side * (Math.sign(lm.c || 1) > 0 ? -1 : 1) * .82, [lx, ly] = wmXY(L, mA, cOpp), ls = Math.min(W, H) * (L.land ? .1 : .085) * sz;
+      if (lx < -ls * 2 || lx > W + ls * 2 || ly < -ls * 2 || ly > H + ls * 2) continue;
+      g.save(); g.translate(lx, ly + ls * .4); g.globalAlpha = wmUnlocked(w) ? 1 : .45; drawIsland(g, w, ls, WM.t + w + kk, true); g.restore();
+    }
   }
-  // étoiles et poussière lumineuse
-  if (!WM.stars) { const R = mulberry(42); WM.stars = Array.from({ length: 60 }, () => [R(), R(), R()]); }
-  for (const [x, y, z] of WM.stars) { g.fillStyle = 'rgba(255,255,255,' + (.1 + .35 * z * (.6 + .4 * Math.sin(WM.t * 2 + x * 40))) + ')'; const px = L.land ? ((x * W * 3 - WM.scroll * z * .3) % W + W) % W : x * W, py = L.land ? y * H : ((y * H * 3 + WM.scroll * z * .3) % H + H) % H; g.fillRect(px, py, 1 + z * 1.5, 1 + z * 1.5); }
-  // tracé du parcours : courbe lisse qui passe par toutes les zones
+  // tracé du parcours : piste de circuit à double rail, courbe lisse qui passe par toutes les zones
   const pts = L.nodes.map(o => wmXY(L, o.a, o.c));
-  const pre = wmXY(L, L.nodes[0].a - L.seg * .3, L.nodes[0].c * .5), post = wmXY(L, L.nodes[NCAMP - 1].a + L.seg * .3, 0);
+  const pre = wmXY(L, L.nodes[0].a - L.seg * .2, L.nodes[0].c * .5), post = wmXY(L, L.nodes[NCAMP - 1].a + L.seg * .2, 0);
   const all = [pre].concat(pts, [post]);
-  const seg = (i, col, w, dash) => { const p0 = all[Math.max(0, i - 1)], p1 = all[i], p2 = all[i + 1], p3 = all[Math.min(all.length - 1, i + 2)];
-    g.strokeStyle = col; g.lineWidth = w; g.setLineDash(dash); g.beginPath(); g.moveTo(p1[0], p1[1]);
-    g.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]); g.stroke(); };
-  const sw = Math.min(W, H) * .022; g.lineCap = 'round';
+  const curve = i => { const p0 = all[Math.max(0, i - 1)], p1 = all[i], p2 = all[i + 1], p3 = all[Math.min(all.length - 1, i + 2)];
+    g.beginPath(); g.moveTo(p1[0], p1[1]); g.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]); };
+  const sw = Math.min(W, H) * .024; g.lineCap = 'round'; g.lineJoin = 'round';
+  const vis = i => { const [x1, y1] = all[i], [x2, y2] = all[i + 1]; return !(Math.max(x1, x2) < -80 || Math.min(x1, x2) > W + 80 || Math.max(y1, y2) < -80 || Math.min(y1, y2) > H + 80); };
+  for (let i = 0; i < all.length - 1; i++) { if (!vis(i)) continue; curve(i); g.setLineDash([]); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = sw * 2.6; g.stroke(); }
   for (let i = 0; i < all.length - 1; i++) {
-    const [x1, y1] = all[i], [x2, y2] = all[i + 1]; if (Math.max(x1, x2) < -60 || Math.min(x1, x2) > W + 60 || Math.max(y1, y2) < -60 || Math.min(y1, y2) > H + 60) continue;
-    const n = i, open = n === 0 || un(n), w = Math.min(WORLDS.length - 1, Math.floor(Math.max(0, n - 1) / 3)), col = acc(open ? Math.floor(Math.max(0, n - 1) / 3) : w);
-    seg(i, 'rgba(0,0,0,.45)', sw * 2.2, []);
-    seg(i, open ? rgbaA(col).replace('A', .3) : 'rgba(255,255,255,.06)', sw * 1.7, []);
-    seg(i, open ? col : 'rgba(255,255,255,.35)', sw * .45, open ? [] : [sw, sw * .9]);
+    if (!vis(i)) continue;
+    const open = i === 0 || un(i), w = clamp(Math.floor(Math.max(0, i - 1) / ZPW), 0, WORLDS.length - 1), col = acc(w);
+    curve(i);
+    g.setLineDash([]); g.strokeStyle = open ? shade(col, -.55) : '#1d2128'; g.lineWidth = sw * 2; g.stroke();             // fond de la piste
+    g.strokeStyle = open ? rgbaA(col).replace('A', .22) : 'rgba(255,255,255,.04)'; g.lineWidth = sw * 3.2; g.stroke();     // halo
+    g.strokeStyle = open ? shade(col, .15) : 'rgba(255,255,255,.18)'; g.lineWidth = sw * .32; g.setLineDash(open ? [] : [sw * .9, sw * .9]); g.stroke(); // rail central
+    if (open) { g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = sw * .3; g.setLineDash([sw * .4, sw * 2.6]); g.lineDashOffset = -WM.t * sw * 6; g.stroke(); g.lineDashOffset = 0; } // impulsions d'énergie
   }
   g.setLineDash([]);
-  // lueur qui parcourt la partie débloquée
-  const lastOpen = clamp(save.unlocked[curDiff], 1, NCAMP);
-  for (let k = 0; k < 3; k++) { const q = ((WM.t * .12 + k / 3) % 1) * lastOpen, i = Math.floor(q), f = q - i, a = all[i], b = all[i + 1] || a; wmGlow(g, a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, sw * 2.2, '#ffffff', .7); }
   // portails entre les mondes
   WM.hit = [];
   for (let w = 0; w < WORLDS.length; w++) {
-    const [gx, gy] = wmXY(L, L.pad + w * L.seg, Math.sin((w * 3 - .5) * 1.25 + .6) * .9), s = Math.min(W, H) * .07;
-    if (gx < -s * 3 || gx > W + s * 3 || gy < -s * 3 || gy > H + s * 3) continue;
+    const [gx, gy] = wmXY(L, L.pad + w * L.seg, Math.sin((w * ZPW - .5) * 1.15 + .4) * .9), s = Math.min(W, H) * .075;
+    if (gx < -s * 4 || gx > W + s * 4 || gy < -s * 4 || gy > H + s * 4) continue;
     const open = wmUnlocked(w), c = acc(w);
     g.save(); g.translate(gx, gy);
-    for (const sx of [-1, 1]) { wmBox(g, sx * s * .9 - s * .18, -s * 1.5, s * .36, s * 1.6, shade(c, -.1), shade(c, -.6), s * .06); wmGlow(g, sx * s * .9, -s * 1.55, s * .45, c, open ? .8 : .2); }
-    g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .14; g.beginPath(); g.arc(0, -s * 1.45, s * .9, Math.PI, 0); g.stroke();
+    wmGlow(g, 0, -s * 1.2, s * 2.2, c, open ? .25 + .08 * Math.sin(WM.t * 2) : .05);
+    for (const sx of [-1, 1]) { wmBox(g, sx * s * .95 - s * .2, -s * 1.6, s * .4, s * 1.7, shade(c, -.05), shade(c, -.65), s * .08); g.fillStyle = shade(c, -.75); g.fillRect(sx * s * .95 - s * .28, -s * .02, s * .56, s * .16); wmGlow(g, sx * s * .95, -s * 1.65, s * .5, c, open ? .9 : .2); }
+    g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = s * .26; g.beginPath(); g.arc(0, -s * 1.5, s * .95, Math.PI, 0); g.stroke();
+    g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .16; g.stroke();
+    if (open) { g.save(); g.beginPath(); g.arc(0, -s * 1.5, s * .8, Math.PI, 0); g.lineTo(s * .8, 0); g.lineTo(-s * .8, 0); g.closePath(); g.clip(); const gp = g.createLinearGradient(0, -s * 2.4, 0, 0); gp.addColorStop(0, rgbaA(c).replace('A', .45)); gp.addColorStop(1, rgbaA(c).replace('A', .05)); g.fillStyle = gp; g.fillRect(-s, -s * 2.4, s * 2, s * 2.4); for (let k = 0; k < 4; k++) { const q = (WM.t * .7 + k / 4) % 1; g.strokeStyle = 'rgba(255,255,255,' + (.35 * (1 - q)) + ')'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, -s * .8, s * .75 * q, s * .9 * q, 0, 0, TAU); g.stroke(); } g.restore(); }
     // panneau du monde
-    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .38) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .6;
-    g.fillStyle = 'rgba(8,12,20,.82)'; rr(g, -tw / 2, -s * 2.95, tw, s * .7, s * .18); g.fill(); g.strokeStyle = open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = s * .04; g.stroke();
-    g.fillStyle = open ? '#fff' : 'rgba(255,255,255,.6)'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText((open ? '' : '🔒 ') + lab, 0, -s * 2.6);
-    if (!open) { g.translate(0, -s * .55); wmPadlock(g, s * .8); }
+    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7;
+    g.fillStyle = 'rgba(8,12,20,.88)'; rr(g, -tw / 2, -s * 3.05, tw, s * .72, s * .36); g.fill(); g.strokeStyle = open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = s * .05; g.stroke();
+    g.fillStyle = open ? '#fff' : 'rgba(255,255,255,.6)'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lab, 0, -s * 2.69);
+    if (open) { const st = wmStars(w); g.font = '700 ' + Math.round(s * .26) + 'px Rubik, system-ui'; g.fillStyle = '#ffd740'; g.fillText('★ ' + st + ' / ' + ZPW * 3, 0, -s * 2.12); }
+    else { g.translate(0, -s * .55); wmPadlock(g, s * .8); }
     g.restore();
   }
   // zones
-  const next = clamp(save.unlocked[curDiff] - 1, 0, NCAMP - 1), s0 = Math.min(W, H) * (L.land ? .085 : .075);
+  const next = clamp(save.unlocked[curDiff] - 1, 0, NCAMP - 1), s0 = Math.min(W, H) * (L.land ? .08 : .07);
   L.nodes.forEach((o, n) => {
-    const [x, y] = pts[n], boss = o.k === 2, ss = s0 * (boss ? 1.3 : 1); if (x < -ss * 2 || x > W + ss * 2 || y < -ss * 3 || y > H + ss * 2) return;
-    const open = un(n), st = save.stars[curDiff + n] || 0, P = ISLE[o.w], c = acc(o.w), bob = Math.sin(WM.t * 1.5 + n) * ss * .04;
-    g.save(); g.translate(x, y + bob);
-    if ((n === next && curMode !== 'endless') || n === WM.sel) { const gr = g.createLinearGradient(0, -ss * 2.8, 0, 0); gr.addColorStop(0, rgbaA(c).replace('A', 0)); gr.addColorStop(1, rgbaA(c).replace('A', n === WM.sel ? .6 : .38)); g.fillStyle = gr; g.beginPath(); g.moveTo(-ss * .5, 0); g.lineTo(-ss * .32, -ss * 2.8); g.lineTo(ss * .32, -ss * 2.8); g.lineTo(ss * .5, 0); g.closePath(); g.fill(); }
-    // socle de la zone, aux couleurs du monde
-    g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(ss * .06, ss * .16, ss * .78, ss * .3, 0, 0, TAU); g.fill();
-    const gr2 = g.createLinearGradient(0, -ss * .3, 0, ss * .3); gr2.addColorStop(0, shade(P[0], .2)); gr2.addColorStop(1, shade(P[1], -.3));
-    g.fillStyle = gr2; g.beginPath(); g.ellipse(0, 0, ss * .75, ss * .3, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = ss * .04; g.stroke();
-    const gr = g.createRadialGradient(0, -ss * .04, 0, 0, 0, ss * .5); gr.addColorStop(0, open ? '#ffffff' : '#9e9e9e'); gr.addColorStop(1, open ? c : '#424242');
-    g.fillStyle = gr; g.beginPath(); g.ellipse(0, -ss * .04, ss * .48, ss * .18, 0, 0, TAU); g.fill();
-    if (boss) { const ic = WM.cache['b' + o.w] || (WM.cache['b' + o.w] = enemyIcon(WBOSS[o.w], 128)); const bs = ss * 1.2; g.globalAlpha = open ? 1 : .45; g.drawImage(ic, -bs / 2, -ss * .12 - bs + Math.sin(WM.t * 2 + n) * ss * .05, bs, bs); g.globalAlpha = 1; }
-    g.font = '900 ' + Math.round(ss * .38) + 'px Rubik, system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = ss * .09; g.strokeStyle = '#0b1410'; g.fillStyle = '#fff';
-    const lab = String(n + 1), ly = boss ? ss * .55 : -ss * .55; g.strokeText(lab, 0, ly); g.fillText(lab, 0, ly);
-    if (curMode !== 'endless') { g.font = Math.round(ss * .27) + 'px system-ui'; for (let j = 0; j < 3; j++) { g.fillStyle = j < st ? '#ffd740' : 'rgba(255,255,255,.28)'; g.fillText('★', (j - 1) * ss * .29, boss ? ss * .88 : ss * .55); } }
-    if (!open) { g.translate(0, -ss * .3); wmPadlock(g, ss * .55); }
+    const [x, y] = pts[n], boss = o.k === ZPW - 1, ss = s0 * (boss ? 1.3 : 1); if (x < -ss * 2 || x > W + ss * 2 || y < -ss * 3 || y > H + ss * 2) return;
+    const open = un(n), done = un(n + 1) || (save.stars[curDiff + o.mi] || 0) > 0, st = save.stars[curDiff + o.mi] || 0, c = acc(o.w), cur = n === next && curMode !== 'endless', sel = n === WM.sel;
+    g.save(); g.translate(x, y);
+    if (cur || sel) { // ondes et faisceau sur la zone à jouer / choisie
+      for (let k = 0; k < 2; k++) { const q = (WM.t * .8 + k * .5) % 1; g.strokeStyle = rgbaA(c).replace('A', .6 * (1 - q)); g.lineWidth = 2; g.beginPath(); g.ellipse(0, 0, ss * (.8 + q * .9), ss * (.44 + q * .5), 0, 0, TAU); g.stroke(); }
+      const gr = g.createLinearGradient(0, -ss * 3, 0, 0); gr.addColorStop(0, rgbaA(c).replace('A', 0)); gr.addColorStop(1, rgbaA(c).replace('A', sel ? .5 : .32)); g.fillStyle = gr; g.beginPath(); g.moveTo(-ss * .55, 0); g.lineTo(-ss * .3, -ss * 3); g.lineTo(ss * .3, -ss * 3); g.lineTo(ss * .55, 0); g.closePath(); g.fill();
+    }
+    // socle hexagonal métallique
+    g.fillStyle = 'rgba(0,0,0,.45)'; g.save(); g.translate(ss * .06, ss * .2); wmHex(g, ss * .85); g.fill(); g.restore();
+    g.save(); g.translate(0, ss * .14); wmHex(g, ss * .8); g.fillStyle = boss ? '#4a0d14' : '#1d232c'; g.fill(); g.restore();
+    wmHex(g, ss * .8); let gr = g.createLinearGradient(0, -ss * .45, 0, ss * .45); gr.addColorStop(0, boss ? '#ffd54f' : '#cfd8dc'); gr.addColorStop(.5, boss ? '#b71c1c' : '#607d8b'); gr.addColorStop(1, boss ? '#4a0d14' : '#263238'); g.fillStyle = gr; g.fill();
+    g.strokeStyle = done ? '#ffd740' : open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = ss * (done ? .07 : .05); g.stroke();
+    wmHex(g, ss * .58); gr = g.createRadialGradient(0, -ss * .05, 0, 0, 0, ss * .6); gr.addColorStop(0, open ? '#ffffff' : '#616161'); gr.addColorStop(.45, open ? c : '#424242'); gr.addColorStop(1, open ? shade(c, -.6) : '#212121'); g.fillStyle = gr; g.fill();
+    if (open) wmGlow(g, 0, -ss * .05, ss * .9, c, .25 + (cur ? .15 * Math.sin(WM.t * 4) : 0));
+    if (boss) { // boss du monde : couronne et virus géant
+      const ic = WM.cache['b' + o.w] || (WM.cache['b' + o.w] = enemyIcon(WBOSS[o.w], 128)); const bs = ss * 1.25, by = -ss * .15 - bs + Math.sin(WM.t * 2 + n) * ss * .06;
+      g.globalAlpha = open ? 1 : .45; g.drawImage(ic, -bs / 2, by, bs, bs); g.globalAlpha = 1;
+      g.fillStyle = '#ffd740'; g.strokeStyle = '#5d4300'; g.lineWidth = ss * .04; g.beginPath(); const cy2 = by + bs * .2; g.moveTo(-ss * .25, cy2); g.lineTo(-ss * .25, cy2 - ss * .2); g.lineTo(-ss * .12, cy2 - ss * .1); g.lineTo(0, cy2 - ss * .26); g.lineTo(ss * .12, cy2 - ss * .1); g.lineTo(ss * .25, cy2 - ss * .2); g.lineTo(ss * .25, cy2); g.closePath(); g.fill(); g.stroke();
+    }
+    // numéro, étoiles, état
+    g.font = '900 ' + Math.round(ss * .4) + 'px Rubik, system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = ss * .1; g.strokeStyle = 'rgba(0,0,0,.75)'; g.fillStyle = '#fff';
+    const lab = String(n + 1);
+    if (open) { g.strokeText(lab, 0, -ss * .02); g.fillText(lab, 0, -ss * .02); }
+    else { // zone verrouillée : cadenas au centre, numéro dans une pastille dessous
+      g.font = '800 ' + Math.round(ss * .26) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + ss * .3;
+      g.fillStyle = 'rgba(8,12,20,.85)'; rr(g, -tw / 2, ss * .42, tw, ss * .32, ss * .16); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText(lab, 0, ss * .58);
+    }
+    if (curMode !== 'endless' && open) { g.font = Math.round(ss * .3) + 'px system-ui'; g.lineWidth = ss * .06; for (let j = 0; j < 3; j++) { const sx = (j - 1) * ss * .32, sy = ss * .7 + (j === 1 ? ss * .06 : 0); g.strokeText('★', sx, sy); g.fillStyle = j < st ? '#ffd740' : 'rgba(255,255,255,.3)'; g.fillText('★', sx, sy); } }
+    if (done && !boss) { g.fillStyle = '#ffd740'; g.beginPath(); g.arc(ss * .62, -ss * .32, ss * .17, 0, TAU); g.fill(); g.strokeStyle = '#3b2a00'; g.lineWidth = ss * .05; g.beginPath(); g.moveTo(ss * .54, -ss * .32); g.lineTo(ss * .6, -ss * .25); g.lineTo(ss * .71, -ss * .4); g.stroke(); }
+    if (!open) { g.translate(0, ss * .12); wmPadlock(g, ss * .55); }
+    if (cur) { const by2 = -ss * (boss ? 2.1 : 1.2) - Math.abs(Math.sin(WM.t * 3)) * ss * .25; g.fillStyle = '#ffffff'; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = ss * .05; g.beginPath(); g.moveTo(-ss * .2, by2 - ss * .25); g.lineTo(ss * .2, by2 - ss * .25); g.lineTo(0, by2); g.closePath(); g.fill(); g.stroke(); } // flèche « à jouer »
     g.restore();
-    WM.hit.push({ x: x - ss * .9, y: y - ss * 1.3, w: ss * 1.8, h: ss * 2.2, n });
+    WM.hit.push({ x: x - ss * .9, y: y - ss * (boss ? 2 : 1.2), w: ss * 1.8, h: ss * (boss ? 2.9 : 2.1), n });
   });
+  // vignettage
+  const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.5)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
 }
 function wmFrame() {
   if (state !== 'maps') { WM.run = false; return; }
@@ -236,7 +284,7 @@ function wmFrame() {
   if (!WM.drag) { if (Math.abs(WM.vel) > 5) { WM.scrollT = wmClampScroll(L, WM.scrollT + WM.vel * dt); WM.vel *= Math.pow(.04, dt); } WM.scroll += (WM.scrollT - WM.scroll) * Math.min(1, dt * 10); }
   WM.scroll = wmClampScroll(L, WM.scroll);
   wmG.setTransform(dpr, 0, 0, dpr, 0, 0); wmDraw(wmG, L);
-  // le monde affiché au centre de l'écran donne le titre et la règle
+  // le monde affiché au centre de l'écran donne le titre, la règle et la progression
   const mid = WM.scroll + wmView(L) * .5, w = clamp(Math.floor((mid - L.pad) / L.seg), 0, WORLDS.length - 1);
   if (w !== WM.shown) { WM.shown = w; wmWorldInfo(w); }
 }
@@ -244,18 +292,20 @@ function wmStart() { if (!WM.run) { WM.run = true; WM.last = 0; requestAnimation
 
 /* ---------- interface (HTML par-dessus le dessin) ---------- */
 function wmWorldInfo(w) {
-  const W0 = WORLDS[w], d = DIFFS[curDiff], st = wmStars(w);
-  $('#mapsTitle').innerHTML = (curMode === 'endless' ? '♾ ' : '') + 'Monde ' + (w + 1) + ' · <span style="color:' + MAPS[w * 3].acc + '">' + W0.name + '</span> · <span style="color:' + d.col + '">' + d.name + '</span>';
-  $('#worldDesc').innerHTML = '<b>' + RULES[W0.style].name + '</b> : ' + RULES[W0.style].desc + (curMode === 'endless' ? '' : ' · ★ ' + st + ' / 9') + ' · Boss : ' + ETYPES[WBOSS[w]].name;
+  const W0 = WORLDS[w], d = DIFFS[curDiff], st = wmStars(w), dz = wmDone(w), acc = MAPS[w * 3].acc;
+  $('#mapsTitle').innerHTML = (curMode === 'endless' ? '♾ ' : '') + 'Monde ' + (w + 1) + ' · <span style="color:' + acc + '">' + W0.name + '</span> · <span style="color:' + d.col + '">' + d.name + '</span>';
+  $('#wmProg').innerHTML = '<i style="width:' + Math.round(dz / ZPW * 100) + '%;background:' + acc + '"></i><span>' + dz + ' / ' + ZPW + ' zones' + (curMode === 'endless' ? '' : ' · ★ ' + st + ' / ' + ZPW * 3) + '</span>';
+  $('#worldDesc').innerHTML = '<b>' + RULES[W0.style].name + '</b> : ' + RULES[W0.style].desc + ' · Boss : ' + ETYPES[WBOSS[w]].name;
   $('#mapPrev').classList.toggle('off', w === 0); $('#mapNext').classList.toggle('off', w === WORLDS.length - 1);
 }
 function wmCard(n) {
-  const i = n, m = MAPS[i], box = $('#wmCard'), k = n % 3;
+  const box = $('#wmCard');
   if (n < 0) { box.classList.add('hidden'); return; }
-  const locked = i >= save.unlocked[curDiff], st = save.stars[curDiff + i] || 0, best = save.best[curDiff + i] || 0;
+  const i = CORDER[n], m = MAPS[i], k = n % ZPW;
+  const locked = n >= save.unlocked[curDiff], st = save.stars[curDiff + i] || 0, best = save.best[curDiff + i] || 0;
   const ent = m.routes.length, ex = new Set(m.routes.map(r => r[r.length - 1].join(','))).size, ch = zoneChals(i), rec = (save.endless || {})[curDiff + i] || 0;
-  box.innerHTML = '<canvas width="' + COLS * 8 + '" height="' + ROWS * 8 + '"></canvas><div class="wm-ci"><b>' + (locked ? '🔒 ' : '') + (i + 1) + '. ' + m.name + (k === 2 ? ' <span class="wm-boss">BOSS</span>' : '') + '</b>' +
-    '<small>' + WORLDS[Math.floor(i / 3)].name + ' · ' + (curMode === 'endless' ? '∞ vagues · record : vague ' + rec : m.waves + ' vagues · ' + ent + ' entrée' + (ent > 1 ? 's' : '') + ' · ' + ex + ' sortie' + (ex > 1 ? 's' : '')) + '</small>' +
+  box.innerHTML = '<canvas width="' + COLS * 8 + '" height="' + ROWS * 8 + '"></canvas><div class="wm-ci"><b>' + (locked ? '🔒 ' : '') + (n + 1) + '. ' + m.name + (k === ZPW - 1 ? ' <span class="wm-boss">BOSS</span>' : '') + '</b>' +
+    '<small>' + WORLDS[worldIdx(i)].name + ' · ' + (curMode === 'endless' ? '∞ vagues · record : vague ' + rec : m.waves + ' vagues · ' + ent + ' entrée' + (ent > 1 ? 's' : '') + ' · ' + ex + ' sortie' + (ex > 1 ? 's' : '')) + '</small>' +
     (curMode === 'endless' ? '' : '<span class="st">' + '★'.repeat(st) + '☆'.repeat(3 - st) + (best ? ' <i>record ' + best + '</i>' : '') + '</span>' + ch.map(c => '<small class="chl' + ((save.chal || {})[i + ':' + c] ? ' done' : '') + '">' + ((save.chal || {})[i + ':' + c] ? '🏅 ' : '◻ ') + CHALS[c].name + '</small>').join('')) +
     '</div><button class="big" id="wmPlay"' + (locked ? ' disabled' : '') + '>' + (locked ? '🔒 Verrouillée' : '▶ Jouer') + '</button>';
   if (!thumbs[i]) thumbs[i] = buildBG(i, 16);
@@ -263,12 +313,11 @@ function wmCard(n) {
   box.classList.remove('hidden');
   $('#wmPlay').onclick = () => { if (locked) { toast('Termine la zone précédente pour débloquer celle-ci'); return; } initAudio(); startMap(i, curMode === 'endless' ? { endless: true } : {}); };
 }
-const wmUnlockedZone = n => save.unlocked[curDiff] > n;
-// aller à un monde (sa première zone débloquée, ou la zone en cours)
+// aller à un monde : sa zone en cours (ou sa première zone)
 function wmOpen(w) {
-  const L = WM.L || wmLayout(innerWidth, innerHeight), n = clamp(Math.min(save.unlocked[curDiff] - 1, w * 3 + 2), w * 3, w * 3 + 2);
-  mapPage = w; WM.sel = wmUnlockedZone(w * 3) ? n : -1; WM.scrollT = wmFocus(L, w * 3 + 1); WM.vel = 0; wmCard(WM.sel);
-  if (!wmUnlocked(w)) { toast('Monde ' + (w + 1) + ' verrouillé : termine le monde précédent'); }
+  const L = WM.L || wmLayout(innerWidth, innerHeight), n = clamp(save.unlocked[curDiff] - 1, w * ZPW, w * ZPW + ZPW - 1);
+  mapPage = w; WM.sel = wmUnlocked(w) ? n : -1; WM.scrollT = wmFocus(L, w * ZPW + 2); WM.vel = 0; wmCard(WM.sel);
+  if (!wmUnlocked(w)) toast('Monde ' + (w + 1) + ' verrouillé : termine le monde précédent');
 }
 function buildMaps() {
   const sec = $('#maps'), r = sec.getBoundingClientRect(), L = WM.L = wmLayout(r.width || innerWidth, r.height || innerHeight);
@@ -277,7 +326,7 @@ function buildMaps() {
   buildMuts();
   // nouvelle difficulté : on va à la prochaine zone à jouer ; au retour d'une partie on reste sur la zone jouée
   if (mapPage === null || WM.diff !== curDiff + curMode || WM.sel < 0) { WM.diff = curDiff + curMode; WM.sel = clamp(save.unlocked[curDiff] - 1, 0, NCAMP - 1); }
-  mapPage = Math.floor(WM.sel / 3); WM.scroll = WM.scrollT = wmFocus(L, WM.sel); WM.vel = 0; WM.shown = -1;
+  mapPage = Math.floor(WM.sel / ZPW); WM.scroll = WM.scrollT = wmFocus(L, WM.sel); WM.vel = 0; WM.shown = -1;
   wmCard(WM.sel); wmWorldInfo(mapPage); wmStart();
 }
 // glisser pour parcourir la carte, toucher une zone pour l'ouvrir
@@ -292,7 +341,7 @@ const wmUp = e => {
   if (D.moved) { if (performance.now() - D.lt > 80) WM.vel = 0; return; }
   WM.vel = 0;
   const r = wmCv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, h = WM.hit.find(o => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h);
-  if (h) { WM.sel = h.n; mapPage = Math.floor(h.n / 3); sfx('build'); wmCard(h.n); }
+  if (h) { WM.sel = h.n; mapPage = Math.floor(h.n / ZPW); sfx('build'); wmCard(h.n); }
 };
 wmCv.addEventListener('pointerup', wmUp); wmCv.addEventListener('pointercancel', wmUp);
 wmCv.addEventListener('wheel', e => { if (!WM.L) return; WM.scrollT = wmClampScroll(WM.L, WM.scrollT + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * (WM.L.land ? 1 : -1)); e.preventDefault(); }, { passive: false });

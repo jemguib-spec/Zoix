@@ -41,8 +41,8 @@ function endGame(win) {
     G.record = G.score > (save.best[key] || 0);
     save.best[key] = Math.max(save.best[key] || 0, G.score);
     const first = !(save.stars[key + 'won']); save.stars[key + 'won'] = 1;
-    if (G.mi + 2 > save.unlocked[curDiff]) save.unlocked[curDiff] = Math.min(NCAMP, G.mi + 2);
-    G.chipsWon = Math.round((20 + 8 * st + 3 * G.mi) * CHIP_MULT[curDiff]) + (first ? 15 : 0);
+    if (CPOS[G.mi] + 2 > save.unlocked[curDiff]) save.unlocked[curDiff] = Math.min(NCAMP, CPOS[G.mi] + 2);
+    G.chipsWon = Math.round((20 + 8 * st + 1.8 * CPOS[G.mi]) * CHIP_MULT[curDiff]) + (first ? 15 : 0);
     // défis de la zone
     save.chal = save.chal || {}; G.chalRes = [];
     for (const c of zoneChals(G.mi)) { const ok = CHALS[c].ok(G), was = save.chal[G.mi + ':' + c]; if (ok && !was) { save.chal[G.mi + ':' + c] = 1; G.chipsWon += 12; } G.chalRes.push({ c, ok, isNew: ok && !was }); }
@@ -60,11 +60,11 @@ function endGame(win) {
   if (mutBonus(G.muts)) G.chipsWon = Math.round(G.chipsWon * (1 + mutBonus(G.muts)));
   save.chips = (save.chips || 0) + G.chipsWon;
   checkAch(); persist();
-  if (win && !G.endless && !G.daily && G.mi === NCAMP - 1 && !(save.story || {}).end) G.showEnd = true;
+  if (win && !G.endless && !G.daily && G.mi === lastZone() && !(save.story || {}).end) G.showEnd = true;
 }
 function showResult(win) {
   setState('result');
-  const last = G.mi === NCAMP - 1, endless = G.endless, daily = G.daily, waves = win ? G.total : Math.max(0, G.wave - 1);
+  const last = G.mi === lastZone(), endless = G.endless, daily = G.daily, waves = win ? G.total : Math.max(0, G.wave - 1);
   $('#resTitle').textContent = G.custom ? (win ? '🛠 Niveau réussi !' : '🛠 Niveau perdu…') : endless ? '♾ Fin du mode infini' : daily ? (win ? '📅 Défi du jour réussi !' : '📅 Défi du jour raté') : win ? (last ? '🏆 Ordinateur sauvé !' : 'Zone nettoyée !') : 'L\'ordinateur est infecté…';
   $('#resTitle').style.color = win || (endless && waves >= 10) ? '#a5d6a7' : '#ff8a80';
   $('#resStars').innerHTML = endless ? '<span class="bigwave">' + waves + '</span>' : win && !daily ? [0, 1, 2].map(i => '<span class="st' + (i < G.stars ? ' on' : '') + '" style="animation-delay:' + (.25 + i * .25) + 's">★</span>').join('') : win ? '<span class="bigwave">✔</span>' : '<span class="skull">☠</span>';
@@ -79,7 +79,7 @@ function showResult(win) {
   if (G.newAch && G.newAch.length) html += '<div class="wide"><small>Succès débloqués</small><b>' + G.newAch.map(a => a.ic + ' ' + a.name).join(' · ') + '</b></div>';
   $('#resBody').innerHTML = html;
   const nb = $('#resNext');
-  if (win && !last && !endless && !daily && !G.custom) { nb.classList.remove('hidden'); nb.textContent = '▶ Suivante'; nb.onclick = () => startMap(G.mi + 1); }
+  if (win && !last && !endless && !daily && !G.custom) { nb.classList.remove('hidden'); nb.textContent = '▶ Suivante'; nb.onclick = () => startMap(nextZone(G.mi)); }
   else nb.classList.add('hidden');
 }
 
@@ -151,7 +151,7 @@ function buildShop() {
       c.innerHTML = '<div class="sic">♛</div><div class="sinfo"><b>Prestige ' + (P ? P : '') + '</b><small>' + (P ? 'Bonus actuel : +' + 10 * P + ' % dégâts, +' + 5 * P + ' cr de départ, +' + 15 * P + ' % de puces.<br>' : '') + 'Recommence tout (zones, recherches, améliorations, puces) contre un bonus permanent de +10 % de dégâts, +5 crédits de départ et +15 % de puces.</small></div>';
       const bt = document.createElement('button'); bt.className = 'sbuy'; const ok = prestigeReady();
       bt.textContent = ok ? '♛ Prestige ' + (P + 1) : '🔒 Finis la dernière zone'; bt.classList.toggle('off', !ok);
-      bt.onclick = () => { if (!prestigeReady()) { toast('Termine la dernière zone (' + MAPS[NCAMP - 1].name + ') pour débloquer le prestige'); sfx('err'); return; }
+      bt.onclick = () => { if (!prestigeReady()) { toast('Termine la dernière zone (' + MAPS[lastZone()].name + ') pour débloquer le prestige'); sfx('err'); return; }
         if (!confirm('Prestige ' + (P + 1) + ' : tes zones, recherches, améliorations et puces repartent à zéro. Tes succès, statistiques, apparences et charges de pouvoirs sont conservés. Continuer ?')) return;
         Object.assign(save, { prestige: P + 1, chips: 50, unlockT: {}, research: {}, gup: {}, stars: {}, best: {}, unlocked: JSON.parse(JSON.stringify(DEFAULT_SAVE.unlocked)) });
         persist(); sfx('win'); toast('♛ Prestige ' + (P + 1) + ' ! Tes tourelles sont plus fortes pour toujours.'); buildShop(); };

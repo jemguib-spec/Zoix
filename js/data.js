@@ -18,7 +18,7 @@ function segDist(px, py, x1, y1, x2, y2) {
 /* ---------------- cartes ----------------
    Chaque carte = des couloirs (chemins fixes des virus) creusés dans le circuit.
    Les tourelles se posent sur le circuit (zones colorées), pas dans les couloirs. */
-// 6 mondes de 3 zones, chacun avec son propre décor, ses obstacles et son ambiance
+// 8 mondes de 5 zones, chacun avec son propre décor, ses obstacles et son ambiance
 const WORLDS = [
   { name: 'Circuit imprimé', style: 'pcb', ic: '🔌', desc: 'Là où tout commence : pistes de cuivre, puces et robots de maintenance.', panel: ['#c62828', '#9a1313', '#6d0a0a'], obst: ['fan', 'sink', 'fan'], leds: ['#76ff03', '#ff1744', '#ffab00', '#00e5ff'] },
   { name: 'La Fournaise', style: 'forge', ic: '🔥', desc: 'Alimentation en surchauffe : le métal rougeoie et les braises volent.', panel: ['#ef6c00', '#a63f00', '#4e1a00'], obst: ['coil', 'sink', 'coil'], leds: ['#ff3d00', '#ffab00', '#ff6d00', '#ffd740'] },
@@ -81,9 +81,50 @@ const MAPS = [
   { name: 'Antenne relais', base: '#5b8fc9', acc: '#b388ff', waves: 60,
     paths: [[[0, 1], [24, 1], [24, 5], [2, 5], [2, 9], [24, 9], [24, 13], [0, 13]], [[12, 14], [12, 13]], [[25, 7], [20, 7], [20, 9]]] },
   { name: 'Orage numérique', base: '#3d5f8f', acc: '#ffea00', waves: 65,
-    paths: [[[0, 2], [6, 2], [6, 12], [12, 12], [12, 2], [18, 2], [18, 12], [25, 12]], [[25, 2], [22, 2], [22, 7], [18, 7]], [[9, 0], [9, 7], [12, 7]]] }
+    paths: [[[0, 2], [6, 2], [6, 12], [12, 12], [12, 2], [18, 2], [18, 12], [25, 12]], [[25, 2], [22, 2], [22, 7], [18, 7]], [[9, 0], [9, 7], [12, 7]]] },
+  // 2 zones de plus par monde (ajoutées à la fin pour garder les numéros des sauvegardes ; leur place dans la campagne est donnée par CORDER)
+  { name: 'Port PCI', world: 0, base: '#2a6b3a', acc: '#c6ff00', waves: 26,
+    paths: [[[0, 3], [5, 3], [5, 8], [11, 8], [11, 12], [14, 12], [14, 6], [20, 6], [20, 10], [24, 10], [24, 1], [25, 1]]] },
+  { name: 'Pile BIOS', world: 0, base: '#1d5c4a', acc: '#ffd740', waves: 28,
+    paths: [[[0, 10], [4, 10], [4, 4], [9, 4], [9, 9], [15, 9], [15, 5], [18, 5], [18, 1], [24, 1], [24, 9], [25, 9]], [[12, 0], [12, 9]]] },
+  { name: 'Fusible', world: 1, base: '#40231a', acc: '#ff9100', waves: 36,
+    paths: [[[0, 10], [6, 10], [6, 5], [11, 5], [11, 12], [17, 12], [17, 7], [21, 7], [21, 1], [25, 1]]] },
+  { name: 'Transformateur', world: 1, base: '#3b1a12', acc: '#ff5722', waves: 38,
+    paths: [[[0, 13], [4, 13], [4, 4], [7, 4], [7, 8], [12, 8], [12, 3], [15, 3], [15, 10], [19, 10], [19, 5], [22, 5], [22, 13], [25, 13]], [[7, 14], [7, 8]]] },
+  { name: 'Fibre optique', world: 2, base: '#0a2440', acc: '#18ffff', waves: 36,
+    paths: [[[0, 12], [6, 12], [6, 3], [12, 3], [12, 13], [18, 13], [18, 5], [23, 5], [23, 9], [25, 9]]] },
+  { name: 'Cache L3', world: 2, base: '#101a44', acc: '#7c4dff', waves: 38,
+    paths: [[[0, 12], [4, 12], [4, 3], [8, 3], [8, 11], [13, 11], [13, 1], [16, 1], [16, 6], [19, 6], [19, 2], [22, 2], [22, 7], [25, 7]], [[11, 0], [11, 11]]] },
+  { name: 'Routeur', world: 3, base: '#59636b', acc: '#76ff03', waves: 42,
+    paths: [[[0, 5], [6, 5], [6, 10], [9, 10], [9, 5], [15, 5], [15, 10], [18, 10], [18, 1], [24, 1], [24, 11], [25, 11]], [[6, 14], [6, 10]]] },
+  { name: 'Baie de stockage', world: 3, base: '#4b5157', acc: '#ffab00', waves: 48,
+    paths: [[[0, 5], [3, 5], [3, 12], [8, 12], [8, 3], [14, 3], [14, 7], [17, 7], [17, 13], [22, 13], [22, 5], [25, 5]], [[15, 14], [15, 7]], [[12, 14], [12, 3]]] },
+  { name: 'Watercooling', world: 4, base: '#2e6f95', acc: '#b3e5fc', waves: 45,
+    paths: [[[0, 8], [5, 8], [5, 13], [10, 13], [10, 2], [13, 2], [13, 13], [18, 13], [18, 8], [24, 8], [24, 2], [25, 2]]] },
+  { name: 'Chambre froide', world: 4, base: '#26587c', acc: '#80d8ff', waves: 47,
+    paths: [[[0, 7], [4, 7], [4, 2], [10, 2], [10, 8], [14, 8], [14, 2], [19, 2], [19, 10], [23, 10], [23, 1], [25, 1]], [[4, 14], [4, 7]]] },
+  { name: 'Réseau neuronal', world: 5, base: '#1a0a2e', acc: '#00e5ff', waves: 52,
+    paths: [[[0, 1], [3, 1], [3, 9], [7, 9], [7, 1], [13, 1], [13, 8], [17, 8], [17, 3], [21, 3], [21, 9], [24, 9], [24, 1], [25, 1]], [[3, 14], [3, 9]]] },
+  { name: 'Faille du code', world: 5, base: '#14031f', acc: '#ff4081', waves: 56,
+    paths: [[[0, 11], [4, 11], [4, 4], [7, 4], [7, 8], [10, 8], [10, 13], [16, 13], [16, 5], [21, 5], [21, 12], [25, 12]], [[13, 0], [13, 13]], [[6, 0], [6, 4]]] },
+  { name: 'Cartouche', world: 6, base: '#c4a978', acc: '#ff3d00', waves: 56,
+    paths: [[[0, 9], [4, 9], [4, 3], [8, 3], [8, 8], [13, 8], [13, 1], [16, 1], [16, 10], [19, 10], [19, 3], [22, 3], [22, 10], [25, 10]]] },
+  { name: 'Clavier mécanique', world: 6, base: '#b89d6c', acc: '#ffd600', waves: 58,
+    paths: [[[0, 4], [3, 4], [3, 13], [7, 13], [7, 3], [11, 3], [11, 7], [17, 7], [17, 13], [23, 13], [23, 3], [25, 3]], [[17, 0], [17, 7]], [[3, 0], [3, 4]]] },
+  { name: 'Serveur miroir', world: 7, base: '#6b9fd6', acc: '#e1f5fe', waves: 58,
+    paths: [[[0, 8], [4, 8], [4, 2], [7, 2], [7, 7], [11, 7], [11, 2], [15, 2], [15, 9], [20, 9], [20, 4], [25, 4]], [[4, 14], [4, 8]], [[11, 14], [11, 7]]] },
+  { name: 'Tempête de données', world: 7, base: '#4a73a8', acc: '#ff80ab', waves: 62,
+    paths: [[[0, 5], [6, 5], [6, 1], [11, 1], [11, 8], [16, 8], [16, 1], [19, 1], [19, 13], [25, 13]], [[13, 0], [13, 8]], [[5, 14], [5, 5]]] }
 ];
 const NCAMP = MAPS.length; // zones de la campagne ; l'emplacement MAPS[NCAMP] sert aux niveaux créés et aléatoires
+// ordre de la campagne : 5 zones par monde (zone 1, zone 2, les 2 nouvelles, puis la zone 3, la plus dure)
+const ZPW = 5, CORDER = [], CPOS = [];
+for (let w = 0; w < 8; w++) CORDER.push(w * 3, w * 3 + 1, 24 + w * 2, 25 + w * 2, w * 3 + 2);
+CORDER.forEach((mi, p) => { CPOS[mi] = p; });
+const zoneOpen = mi => CPOS[mi] < save.unlocked[curDiff];       // zone débloquée dans la difficulté choisie
+const nextZone = mi => CORDER[CPOS[mi] + 1];                     // zone suivante de la campagne (undefined à la fin)
+const lastZone = () => CORDER[NCAMP - 1];
+const zoneHpK = mi => 1 + (mi < NCAMP ? CPOS[mi] * .015 : .6);    // les virus se renforcent au fil de la campagne
 // cases traversées par un chemin (liste de points alignés)
 function pathTiles(p) { const out = []; for (let i = 0; i < p.length - 1; i++) { let [x, y] = p[i]; const [x2, y2] = p[i + 1]; while (true) { if (!out.length || out[out.length - 1][0] !== x || out[out.length - 1][1] !== y) out.push([x, y]); if (x === x2 && y === y2) break; x += Math.sign(x2 - x); y += Math.sign(y2 - y); } } return out; }
 // fabrique la grille à partir des chemins : '#' circuit, '.' couloir, 'S' entrée, 'E' sortie
@@ -271,7 +312,7 @@ const GUP = {
 const CHIP_MULT = { easy: .8, normal: 1, hard: 1.4, nightmare: 1.9, legend: 2.6, apocalypse: 3.5 };
 const isDemo = () => G && G.demo;
 const prestige = () => isDemo() ? 0 : (save.prestige || 0);
-const prestigeReady = () => Object.keys(save.stars || {}).some(k => k.endsWith((NCAMP - 1) + 'won'));
+const prestigeReady = () => Object.keys(save.stars || {}).some(k => k.endsWith(lastZone() + 'won'));
 const resLvl = k => isDemo() ? 3 : ((save.research || {})[k] || 0);
 const gup = k => isDemo() ? 0 : ((save.gup || {})[k] || 0);
 const unlockedT = k => isDemo() || (G && G.allowed ? G.allowed.includes(k) : (G && G.daily) || UNLOCK[k] === 0 || !!(save.unlockT || {})[k]);
@@ -412,7 +453,7 @@ const rewScale = w => 1 + (w - 1) * .032;
 
 /* ---------------- sauvegarde ---------------- */
 const SAVE_KEY = 'virusdef_save_v1';
-const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1, apocalypse: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false };
+const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1, apocalypse: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false, ordV: 2 };
 function loadSave() {
   const d = JSON.parse(JSON.stringify(DEFAULT_SAVE));
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) { Object.assign(d, s); d.unlocked = Object.assign({}, DEFAULT_SAVE.unlocked, s.unlocked); } } catch (e) { }
@@ -422,6 +463,10 @@ let save = loadSave();
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { } }
 if (!save.tuto && Object.keys(save.stars || {}).length) save.tuto = 1; // anciens joueurs : pas de tutoriel
 for (const k in save.unlocked) if (save.unlocked[k] === 18 && (save.stars || {})[k + '17won']) save.unlocked[k] = 19; // nouveaux mondes : on ouvre la zone 19
+if ((save.ordV || 0) < 2) { // 5 zones par monde : la progression (un nombre de zones dans l'ancien ordre) est convertie une fois
+  for (const k in save.unlocked) { const u = clamp(save.unlocked[k] | 0, 1, 24); save.unlocked[k] = CPOS[u - 1] + 1; }
+  save.ordV = 2; persist();
+}
 function stat(k, n) { if (G && G.demo) return; save.stats = save.stats || {}; save.stats[k] = (save.stats[k] || 0) + (n || 1); }
 
 /* ---------------- succès ---------------- */
