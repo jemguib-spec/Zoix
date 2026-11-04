@@ -106,6 +106,31 @@ async function test(name, page, fn) {
     const e = G.enemies[0]; if (!e || Math.abs(e.max / (ETYPES[e.type].hp * hpScale(e.wave || 1) * G.d.hp * (1 + G.mi * .025)) - 2) > .05) return 'PV non multipliés';
     setState('menu'); return true;
   });
+  await test('éditeur : vagues personnalisées (code, groupes, entrée, boss)', page, () => {
+    const wl = [{ g: [{ t: 'bug', n: 4, gap: .5, d: 0, e: 0 }, { t: 'knight', n: 2, gap: 1, d: 2, e: 2 }] }, { g: [{ t: 'kernel', n: 1, gap: 1, d: 0, e: 1 }, { t: 'spam', n: 12, gap: .2, d: 1.5, e: 0 }] }];
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Vagues', world: 6, waves: 2, wl, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]], [[25, 13], [12, 13], [12, 9]]] });
+    const c = lvlEncode(d), d2 = lvlDecode(c);
+    if (!d2 || JSON.stringify(d2.wl) !== JSON.stringify(wl)) return 'vagues différentes après décodage';
+    playLevel(c); G.cash = 99999;
+    if (G.total !== 2) return 'nombre de vagues : ' + G.total;
+    startWave(); if (G.queue.length !== 6) return 'vague 1 : ' + G.queue.length + ' virus en attente';
+    const kn = G.queue.filter(q => q.type === 'knight'); if (kn.length !== 2 || kn[0].t < 2 || kn[0].ent !== 2) return 'groupe chevaliers mal programmé';
+    for (let i = 0; i < 120; i++) { update(1 / 30); G.hitstop = 0; }
+    const k = G.enemies.find(e => e.type === 'knight'); if (!k || k.route[0] + '' !== G.m.routes[G.m.entries[1][0]][0] + '') return 'le chevalier ne sort pas de l\'entrée 2';
+    for (const e of G.enemies) e.dead = true; G.enemies = []; G.queue = [];
+    startWave(); if (!G.queue.some(q => q.type === 'kernel') || G.queue.filter(q => q.type === 'spam').length !== 12) return 'vague 2 incorrecte';
+    setState('menu'); return true;
+  });
+  await test('nouveaux virus : 3 par monde, présents dans les vagues de leur monde', page, () => {
+    for (let w = 0; w < WORLDS.length; w++) {
+      if (WVIR3[w].length !== 3 || WVIR3[w].some(k => !ETYPES[k] || !EDESC[k] || ETYPES[k].world !== w)) return 'monde ' + w + ' : liste invalide';
+      startMap(w * 3); const seen = new Set(); for (let v = 1; v <= 20; v++) { const wd = waveDef(v); seen.add(wd.type); if (wd.type2) seen.add(wd.type2); }
+      if (!WVIR3[w].every(k => seen.has(k))) return 'monde ' + w + ' : virus absents des 20 premières vagues';
+    }
+    startMap(0); G.cash = 1e5; spawnEnemy('chipset', 3); const e = G.enemies[G.enemies.length - 1], n0 = G.enemies.length; hurt(e, 1e9, true);
+    if (G.enemies.filter(x => !x.dead && x.type === 'bug').length < 3) return 'la puce mère ne libère pas 3 virus';
+    setState('menu'); return true;
+  });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties
     const d = Object.assign({ name: 'Div', world: 0, waves: 20, paths: [[[0, 3], [12, 3], [12, 12]], [[12, 6], [22, 6]]] }, ED_DEF);

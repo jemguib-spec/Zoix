@@ -778,3 +778,49 @@ h2 .ico{color:#4ade80}
 #edPanel.land #edHint{font-size:10.5px}
 #edPanel.land #edStats{font-size:10px}
 @media (max-height:500px){#edPanel.land #edStats{display:none}#edPanel.land #edHint{font-size:10px;padding:4px 6px}#edPanel.land button{padding:5px 3px;font-size:11px}#edPanel.land{gap:4px!important}}
+
+/* ---- fenêtre des réglages : titre et bouton Valider toujours visibles, contenu qui défile ---- */
+#edOpts{padding:calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left))}
+.eo-card{max-height:100%!important;overflow:hidden!important;display:flex!important;flex-direction:column;padding:12px 14px!important}
+.eo-card h3{flex:none;margin:0}
+#edOptsBody{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+#edOptsBody .eo-tabs{position:sticky;top:0;z-index:2;background:rgba(20,26,38,.98)}
+#edOptsOk{flex:none;margin-top:2px}
+@media (max-height:500px){.eo-card{gap:6px!important;padding:8px 10px!important}.eo-card h3{font-size:15px}#edOptsOk{padding:7px 22px!important;font-size:15px}.eo-tabs button{padding:4px 8px;font-size:11.5px}}
+/* ---- vagues personnalisées ---- */
+.eo-seg{display:flex;gap:3px;background:rgba(0,0,0,.3);border-radius:10px;padding:3px}
+.wl-bar{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;touch-action:pan-x}
+.wl-chip{flex:none;width:40px;padding:4px 0!important;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.wl-chip b{font-size:13px}.wl-chip small{font-size:9.5px;opacity:.8}
+.wl-chip.boss{border-color:rgba(244,63,94,.6)!important}
+.wl-chip.on{background:linear-gradient(135deg,#6366f1,#4338ca)!important;color:#fff}
+.wl-edit{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:8px}
+.wg-list{display:flex;flex-direction:column;gap:6px}
+.wg-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:5px 6px}
+.wg-pick{display:flex;flex-direction:column;align-items:center;width:74px;padding:2px!important;border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+.wg-pick.on{border-color:#fbbf24;box-shadow:0 0 0 1px #fbbf24}
+.wg-pick canvas{position:static;width:36px;height:36px}.wg-pick small{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.wg-ctl{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:92px}
+.wg-ctl small{font-size:10px;color:var(--muted)}
+.wg-ctl .eo-pm button{padding:3px 9px!important;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:8px;font-weight:800}
+.wg-ctl .eo-pm b{min-width:52px;font-size:12.5px}
+.wg-del{padding:6px 9px!important;border-radius:9px;background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.45);color:#fecdd3}
+.wg-grid{background:rgba(0,0,0,.25);border-radius:12px;padding:6px}
+.wl-chip{background:rgba(255,255,255,.07)!important;border:1px solid var(--line)!important;border-radius:10px;color:#e2e8f0}
+.wl-chip.on{background:linear-gradient(135deg,#6366f1,#4338ca)!important;border-color:transparent!important;color:#fff}
+.wg-grid .eo-v{opacity:1;filter:none}
+.wg-grid .eo-v.on{box-shadow:inset 0 0 0 2px #fbbf24!important}
+
+/* ---- Options : Exporter / Importer ont chacun leur case (plus de texte coupé) ---- */
+#options .col>.row2:not(.codebox){display:contents}
+#options .col .big{white-space:normal;overflow:visible;text-overflow:clip}
+@media (orientation:landscape) and (max-height:500px){#options .col .big{font-size:12.5px;line-height:1.2}}
+
+/* ---- mode daltonien : bleu / orange à la place de vert / rouge dans toute l'interface ---- */
+body.cb .tbtn span{background:rgba(64,160,255,.18);color:#90caf9}
+body.cb .tbtn.poor span{background:rgba(255,152,0,.18);color:#ffcc80}
+body.cb .stats b{color:#ffb74d;text-shadow:0 0 10px rgba(255,152,0,.35)}
+body.cb .tp-acts .buy,body.cb .ctrls .go,body.cb .big:not(.alt):not(.danger):not(.shopbtn){background:linear-gradient(135deg,#60a5fa,#2563eb)!important;box-shadow:0 10px 26px -10px rgba(37,99,235,.8)!important}
+body.cb .tp-acts .sell,body.cb .big.danger,body.cb .wg-del{background:rgba(255,152,0,.16)!important;border-color:rgba(255,152,0,.55)!important;color:#ffe0b2!important}
+body.cb .eo-v.on{box-shadow:inset 0 0 0 2px #60a5fa!important}
+body.cb .tbars u i{background:linear-gradient(90deg,#60a5fa,#ffd54f)}

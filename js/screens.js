@@ -258,12 +258,12 @@ $('#optSound').onclick = () => { save.sound = !save.sound; persist(); buildOptio
 $('#optMusic').onclick = () => { initAudio(); save.music = !save.music; persist(); buildOptions(); };
 $('#optSide').onclick = () => { save.side = save.side === 'left' ? 'right' : 'left'; persist(); buildOptions(); };
 $('#optVibe').onclick = () => { save.vibe = !save.vibe; persist(); buildOptions(); };
-$('#optCb').onclick = () => { save.cb = !save.cb; persist(); buildOptions(); };
+$('#optCb').onclick = () => { save.cb = !save.cb; persist(); document.body.classList.toggle('cb', !!save.cb); buildOptions(); toast(save.cb ? 'Mode daltonien : le rouge et le vert sont remplacés par l\'orange et le bleu' : 'Mode daltonien désactivé'); };
 $('#volMus').oninput = e => { save.musVol = e.target.value / 100; persist(); };
 $('#volSfx').oninput = e => { save.sfxVol = e.target.value / 100; persist(); };
 $('#volSfx').onchange = () => { initAudio(); sfx('coin'); };
 $('#optDmg').onclick = () => { save.dmgNums = !save.dmgNums; persist(); buildOptions(); };
-$('#optEco').onclick = () => { save.eco = !save.eco; persist(); buildOptions(); layout(); };
+$('#optEco').onclick = () => { save.eco = !save.eco; persist(); if (G) G.eco = save.eco; if (DEMO) DEMO.eco = save.eco; for (const k in baseCache) delete baseCache[k]; buildOptions(); layout(); toast(save.eco ? '🔋 Économie : 30 images/s, moins d\'effets et de particules, résolution réduite' : 'Économie de batterie désactivée'); };
  // codes développeur
 const CODES = {
   PUCES5000: () => { save.chips = (save.chips || 0) + 5000; return '+5000 ⬢ puces'; },

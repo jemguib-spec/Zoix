@@ -336,13 +336,20 @@ let ED = null;
 const hashStr = t => { let h = 7; for (const c of t) h = Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0; return h % 99991; };
 const onEdge = (x, y) => x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1;
 // virus et boss qu'on peut choisir dans l'éditeur (l'ordre fixe le code de partage : ne pas le changer)
-const ED_VIR = ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper', 'worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone'];
+const ED_VIR = ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper', 'worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone',
+  'capa', 'chipset', 'slag', 'phoenix', 'byte', 'stream', 'firewall', 'spam', 'yeti', 'flake', 'spectre', 'replicant', 'knight', 'invader', 'droplet', 'thunder'];
+// tous les virus utilisables dans les vagues personnalisées (ordre fixe : il sert au code de partage, on ne fait qu'ajouter à la fin)
+const ED_WT = ED_VIR.concat(['mini', 'bit', 'boss', 'kernel', 'magma', 'trojan', 'ddos', 'glacier', 'aicore', 'mainframe', 'tempest']);
 const ED_BOSS = ['', 'boss'].concat(WBOSS);
 const ED_DEF = { vir: ['bug', 'runner', 'swarm', 'armor', 'flyer', 'regen', 'splitter', 'shield', 'ghost', 'healer', 'giant', 'jumper'], boss: 'auto', megas: true, cash: 0, lives: 0,
-  obst: [], bonus: [], allowed: null, hp: 100, spd: 100, rew: 100, noRule: false, noPower: false, desc: '' };
+  obst: [], bonus: [], allowed: null, hp: 100, spd: 100, rew: 100, noRule: false, noPower: false, desc: '', wl: null };
 const tilesStr = a => (a || []).map(([x, y]) => x.toString(36) + y.toString(36)).join('');
 const strTiles = t => { const p = []; for (let i = 0; i + 1 < (t || '').length; i += 2) p.push([parseInt(t[i], 36), parseInt(t[i + 1], 36)]); return p; };
 const edBossIdx = d => d.boss === 'auto' ? 99 : Math.max(0, ED_BOSS.indexOf(d.boss));
+// vagues personnalisées : vagues séparées par |, groupes par , et champs d'un groupe par :
+// groupe = virus (rang dans ED_WT), nombre, écart et départ (dixièmes de seconde), entrée (0 = toutes à tour de rôle)
+const wlEncode = wl => wl.map(w => w.g.map(g => [ED_WT.indexOf(g.t), g.n, Math.round(g.gap * 10), Math.round(g.d * 10), g.e || 0].map(v => v.toString(36)).join(':')).join(',')).join('|');
+const wlDecode = s => s.split('|').map(w => ({ g: w.split(',').filter(Boolean).map(gs => { const f = gs.split(':').map(v => parseInt(v, 36)); return { t: ED_WT[f[0]], n: clamp(f[1] || 1, 1, 300), gap: clamp((f[2] || 0) / 10, .1, 5), d: clamp((f[3] || 0) / 10, 0, 60), e: clamp(f[4] || 0, 0, 8) }; }) }));
 // format VD3 (les anciens codes VD1 et VD2 restent lisibles)
 function lvlEncode(d) {
   const mask = (d.vir || ED_DEF.vir).reduce((a, k) => a + (ED_VIR.indexOf(k) >= 0 ? Math.pow(2, ED_VIR.indexOf(k)) : 0), 0);
@@ -351,13 +358,14 @@ function lvlEncode(d) {
     d.paths.filter(p => p.length >= 2).map(p => p.map(([x, y]) => x.toString(36) + y.toString(36)).join('')).join('.') + '~' +
     mask.toString(36) + '~' + edBossIdx(d) + '~' + (d.megas === false ? 0 : 1) + '~' + (d.cash || 0) + '~' + (d.lives || 0) + '~' +
     tilesStr(d.obst) + '~' + tilesStr(d.bonus) + '~' + am.toString(36) + '~' + (d.hp || 100) + '~' + (d.spd || 100) + '~' + (d.rew || 100) + '~' +
-    ((d.noRule ? 1 : 0) + (d.noPower ? 2 : 0)) + '~' + encodeURIComponent((d.desc || '').replace(/~/g, '').slice(0, 140));
+    ((d.noRule ? 1 : 0) + (d.noPower ? 2 : 0)) + '~' + encodeURIComponent((d.desc || '').replace(/~/g, '').slice(0, 140)) +
+    (d.wl && d.wl.length ? '~' + wlEncode(d.wl) : '');
 }
 function lvlDecode(code) {
   try {
-    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10) || (a[0] === 'VD3' && a.length === 18))) return null;
+    const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10) || (a[0] === 'VD3' && (a.length === 18 || a.length === 19)))) return null;
     const world = +a[2], waves = +a[3];
-    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 5 && waves <= 99)) return null;
+    if (!(world >= 0 && world < WORLDS.length) || !(waves >= 1 && waves <= 99)) return null;
     const paths = a[4].split('.').filter(Boolean).map(strTiles);
     const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: decodeURIComponent(a[1]) || 'Niveau', world, waves, paths });
     if (a[0] !== 'VD1') {
@@ -371,6 +379,7 @@ function lvlDecode(code) {
       const am = parseInt(a[12], 36) || 0; d.allowed = am ? TORDER.filter((k, i) => Math.floor(am / Math.pow(2, i)) % 2) : null;
       d.hp = clamp(+a[13] || 100, 25, 400); d.spd = clamp(+a[14] || 100, 50, 200); d.rew = clamp(+a[15] || 100, 25, 300);
       const fl = +a[16] || 0; d.noRule = !!(fl & 1); d.noPower = !!(fl & 2); d.desc = decodeURIComponent(a[17] || '');
+      if (a[18]) { d.wl = wlDecode(a[18]); d.waves = d.wl.length; }
     }
     return edCheck(d) ? null : d;
   } catch (e) { return null; }
@@ -391,12 +400,13 @@ function edCheck(d) { // renvoie le problème, ou null si le niveau est jouable
   if (!entries) return 'Il faut au moins une entrée sur un bord';
   if (all.size < 10) return 'Le couloir est trop court (10 cases minimum)';
   if ((d.obst || []).length > 80 || (d.bonus || []).length > 30) return 'Trop d\'obstacles ou de cases bonus';
+  if (d.wl) { if (!d.wl.length || d.wl.length > 99) return 'Entre 1 et 99 vagues'; for (let i = 0; i < d.wl.length; i++) { const w = d.wl[i]; if (!w.g.length) return 'La vague ' + (i + 1) + ' est vide'; if (w.g.length > 8) return 'Vague ' + (i + 1) + ' : 8 groupes au maximum'; if (w.g.some(g => !ETYPES[g.t])) return 'Vague ' + (i + 1) + ' : virus inconnu'; } }
   if ((d.obst || []).concat(d.bonus || []).some(([x, y]) => !(x >= 0 && y >= 0 && x < COLS && y < ROWS))) return 'Case hors de la carte';
   return null;
 }
 function defToMap(d, seed) {
   const b = MAPS[d.world * 3];
-  return processMap({ name: d.name, base: b.base, acc: b.acc, waves: d.waves, world: d.world, custom: true, paths: d.paths.filter(p => p.length >= 2).map(p => p.map(q => q.slice())),
+  return processMap({ name: d.name, base: b.base, acc: b.acc, waves: d.wl ? d.wl.length : d.waves, wl: d.wl ? JSON.parse(JSON.stringify(d.wl)) : null, world: d.world, custom: true, paths: d.paths.filter(p => p.length >= 2).map(p => p.map(q => q.slice())),
     vir: (d.vir || ED_DEF.vir).slice(), bossK: d.boss === undefined ? 'auto' : d.boss, megas: d.megas !== false, cashC: d.cash || 0, livesC: d.lives || 0,
     obstC: (d.obst || []).map(q => q.slice()), bonusC: (d.bonus || []).map(q => q.slice()), allowedC: d.allowed && d.allowed.length ? d.allowed.slice() : null,
     hpC: (d.hp || 100) / 100, spdC: (d.spd || 100) / 100, rewC: (d.rew || 100) / 100, noRule: !!d.noRule, noPower: !!d.noPower, desc: d.desc || '' }, seed);
@@ -416,7 +426,7 @@ function edUpdate() {
   // un couloir dessiné par-dessus efface les obstacles et bonus qu'il recouvre
   ED.obst = ED.obst.filter(([x, y]) => !onCorridor(x, y)); ED.bonus = ED.bonus.filter(([x, y]) => !onCorridor(x, y) && tileIn(ED.obst, x, y) < 0);
   ED.map = null; try { if (ED.paths.some(p => p.length >= 2)) ED.map = defToMap(ED, 1); } catch (e) { }
-  $('#edName').textContent = '✎ ' + ED.name; $('#edWorld').textContent = WORLDS[ED.world].name; $('#edWaves').textContent = ED.waves + ' vagues';
+  $('#edName').textContent = '✎ ' + ED.name; $('#edWorld').textContent = WORLDS[ED.world].name; $('#edWaves').textContent = (ED.wl ? ED.wl.length : ED.waves) + ' vagues' + (ED.wl ? ' ✎' : '');
   const err = edCheck(ED);
   const nEx = ED.map ? new Set(ED.map.routes.map(r => r[r.length - 1] + '')).size : 0, nEn = ED.map ? ED.map.entries.length : 0, nBr = ED.map ? ED.map.branchAt.length : 0;
   const len = ED.map ? Math.round(ED.map.routes.reduce((a, r) => a + r.length, 0) / Math.max(1, ED.map.routes.length)) : 0;
@@ -642,13 +652,76 @@ $('#lvImport').onclick = () => openImport();
 $('#edName').onclick = () => { const n = prompt('Nom du niveau :', ED.name); if (n && n.trim()) { ED.name = n.trim().slice(0, 30); edUpdate(); } };
 $('#edWPrev').onclick = () => { ED.world = (ED.world + WORLDS.length - 1) % WORLDS.length; edUpdate(); };
 $('#edWNext').onclick = () => { ED.world = (ED.world + 1) % WORLDS.length; edUpdate(); };
-$('#edVMinus').onclick = () => { ED.waves = Math.max(5, ED.waves - 5); edUpdate(); };
-$('#edVPlus').onclick = () => { ED.waves = Math.min(99, ED.waves + 5); edUpdate(); };
+$('#edVMinus').onclick = () => { if (ED.wl) { if (ED.wl.length > 1) ED.wl.pop(); ED.waves = ED.wl.length; } else ED.waves = Math.max(5, ED.waves - 5); edUpdate(); };
+$('#edVPlus').onclick = () => { if (ED.wl) { if (ED.wl.length < 99) ED.wl.push(JSON.parse(JSON.stringify(ED.wl[ED.wl.length - 1]))); ED.waves = ED.wl.length; } else ED.waves = Math.min(99, ED.waves + 5); edUpdate(); };
 $('#edNewPath').onclick = () => { if (ED.cur >= 0 && ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; edUpdate(); toast('Touche une case du bord pour la nouvelle entrée'); };
 $('#edUndo').onclick = () => { if (!ED.hist || !ED.hist.length) return; ED.redo.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.hist.pop()); };
 $('#edRedo').onclick = () => { if (!ED.redo || !ED.redo.length) return; ED.hist.push(JSON.stringify({ p: ED.paths, o: ED.obst, b: ED.bonus, c: ED.cur })); edRestore(ED.redo.pop()); };
 $('#edGen').onclick = () => { if (ED.paths.length && !confirm('Remplacer la carte par un niveau généré au hasard ?')) return; edGenerate(); };
 document.querySelectorAll('#edTools [data-tool]').forEach(b => b.onclick = () => { ED.tool = b.dataset.tool; if (ED.tool !== 'path' && ED.cur >= 0) { if (ED.paths[ED.cur].length < 2) ED.paths.splice(ED.cur, 1); ED.cur = -1; } edUpdate(); });
+// ---- vagues personnalisées ----
+let edWSel = 0, edPick = -1; // vague sélectionnée, groupe dont on choisit le virus
+function autoWaves() { // transforme les vagues automatiques en vagues modifiables
+  const m = defToMap(Object.assign({}, ED, { wl: null }), 1), keep = G, wl = [];
+  G = { m, total: ED.waves, mi: ED.world * 3, demo: false, endless: false, daily: false };
+  try {
+    for (let w = 1; w <= ED.waves; w++) {
+      const wd = waveDef(w), g = [{ t: wd.type, n: wd.n, gap: Math.max(.1, Math.round(ETYPES[wd.type].int * 10) / 10), d: 0, e: 0 }];
+      if (wd.type2) g.push({ t: wd.type2, n: wd.n2, gap: Math.round(ETYPES[wd.type2].int * 13) / 10, d: .4, e: 0 });
+      if (wd.type === 'boss' || wd.wboss) g.push({ t: 'bug', n: 6, gap: .6, d: .5, e: 0 });
+      wl.push({ g });
+    }
+  } finally { G = keep; }
+  return wl;
+}
+const fmtS = v => (Math.round(v * 10) / 10).toString().replace('.', ',') + ' s';
+function edWavesHTML() {
+  edWSel = clamp(edWSel, 0, ED.wl.length - 1);
+  const w = ED.wl[edWSel], tot = w.g.reduce((a, x) => a + x.n, 0), dur = Math.max(...w.g.map(x => x.d + x.gap * (x.n - 1)));
+  const hpT = Math.round(w.g.reduce((a, x) => a + x.n * ETYPES[x.t].hp, 0) * hpScale(edWSel + 1) * (ED.hp / 100));
+  let h = '<div class="eo-sec"><b>Vagues</b> <small>(' + ED.wl.length + ' · touche une vague pour la modifier)</small><div class="wl-bar">';
+  ED.wl.forEach((x, i) => { const n = x.g.reduce((a, y) => a + y.n, 0), boss = x.g.some(y => ETYPES[y.t].boss); h += '<button data-ws="' + i + '" class="wl-chip' + (i === edWSel ? ' on' : '') + (boss ? ' boss' : '') + '"><b>' + (i + 1) + '</b><small>' + (boss ? '👑' : n) + '</small></button>'; });
+  h += '</div><div class="eo-row"><button data-wa="add">＋ Vague</button><button data-wa="dup">⧉ Dupliquer</button><button data-wa="del">🗑 Supprimer</button><button data-wa="left">❮ Avant</button><button data-wa="right">Après ❯</button><button data-wa="fill">🎲 Recréer tout en auto</button></div></div>';
+  h += '<div class="eo-sec wl-edit"><b>Vague ' + (edWSel + 1) + '</b> <small>' + tot + ' virus · arrivée en ' + fmtS(dur) + ' · ≈ ' + hpT + ' PV au total</small><div class="wg-list"></div>' +
+    (w.g.length < 8 ? '<div class="eo-row"><button data-wa="gadd">＋ Ajouter un groupe de virus</button></div>' : '') + '</div>';
+  return h;
+}
+function edWavesBind(box) {
+  if (!ED.wl || edTab !== 'wav' || !box.querySelector('.wg-list')) return;
+  const w = ED.wl[edWSel], nEnt = ED.map ? ED.map.entries.length : 1, re = () => { ED.waves = ED.wl.length; buildEdOpts(); edUpdate(); };
+  const list = box.querySelector('.wg-list');
+  w.g.forEach((g, gi) => {
+    const row = document.createElement('div'); row.className = 'wg-row';
+    const pick = document.createElement('button'); pick.className = 'wg-pick' + (edPick === gi ? ' on' : ''); pick.title = 'Changer de virus';
+    pick.appendChild(enemyIcon(g.t, 40)); const nm = document.createElement('small'); nm.textContent = ETYPES[g.t].name; pick.appendChild(nm);
+    pick.onclick = () => { edPick = edPick === gi ? -1 : gi; buildEdOpts(); }; row.appendChild(pick);
+    const ctl = (lab, val, fm, fn) => { const c = document.createElement('div'); c.className = 'wg-ctl'; c.innerHTML = '<small>' + lab + '</small><span class="eo-pm"><button>−</button><b>' + fm(val) + '</b><button>+</button></span>'; const [m, p] = c.querySelectorAll('button'); m.onclick = () => { fn(-1); re(); }; p.onclick = () => { fn(1); re(); }; row.appendChild(c); };
+    ctl('Nombre', g.n, v => v, d => { const st = g.n >= 20 ? 5 : 1; g.n = clamp(g.n + d * st, 1, 300); });
+    ctl('Écart', g.gap, fmtS, d => { g.gap = clamp(Math.round((g.gap + d * (g.gap >= 1 ? .25 : .1)) * 100) / 100, .1, 5); });
+    ctl('Départ', g.d, v => '+' + fmtS(v), d => { g.d = clamp(Math.round((g.d + d * .5) * 10) / 10, 0, 60); });
+    ctl('Entrée', g.e || 0, v => v ? 'n° ' + v : 'toutes', d => { g.e = ((g.e || 0) + d + nEnt + 1) % (nEnt + 1); });
+    const del = document.createElement('button'); del.className = 'wg-del'; del.textContent = '✕'; del.title = 'Retirer ce groupe';
+    del.onclick = () => { if (w.g.length === 1) { toast('Une vague garde au moins un groupe'); return; } w.g.splice(gi, 1); edPick = -1; re(); }; row.appendChild(del);
+    list.appendChild(row);
+    if (edPick === gi) { // choix du virus du groupe
+      const grid = document.createElement('div'); grid.className = 'eo-vir wg-grid';
+      for (const k of ED_WT) { const b = document.createElement('button'); b.className = 'eo-v' + (k === g.t ? ' on' : ''); b.title = ETYPES[k].name + ' : ' + (EDESC[k] || ''); b.appendChild(enemyIcon(k, 40)); const n = document.createElement('small'); n.textContent = ETYPES[k].name; b.appendChild(n); b.onclick = () => { g.t = k; edPick = -1; re(); }; grid.appendChild(b); }
+      list.appendChild(grid);
+    }
+  });
+  box.querySelectorAll('[data-ws]').forEach(b => b.onclick = () => { edWSel = +b.dataset.ws; edPick = -1; buildEdOpts(); });
+  box.querySelectorAll('[data-wa]').forEach(b => b.onclick = () => {
+    const a = b.dataset.wa, cp = x => JSON.parse(JSON.stringify(x));
+    if (a === 'add') { if (ED.wl.length >= 99) return toast('99 vagues au maximum'); ED.wl.splice(edWSel + 1, 0, { g: [{ t: (ED.vir || ['bug'])[0], n: 10, gap: .8, d: 0, e: 0 }] }); edWSel++; }
+    if (a === 'dup') { if (ED.wl.length >= 99) return toast('99 vagues au maximum'); ED.wl.splice(edWSel + 1, 0, cp(w)); edWSel++; }
+    if (a === 'del') { if (ED.wl.length === 1) return toast('Garde au moins une vague'); ED.wl.splice(edWSel, 1); edWSel = Math.max(0, edWSel - 1); }
+    if (a === 'left' && edWSel > 0) { ED.wl.splice(edWSel - 1, 0, ED.wl.splice(edWSel, 1)[0]); edWSel--; }
+    if (a === 'right' && edWSel < ED.wl.length - 1) { ED.wl.splice(edWSel + 1, 0, ED.wl.splice(edWSel, 1)[0]); edWSel++; }
+    if (a === 'fill') { if (!confirm('Remplacer toutes les vagues par des vagues automatiques ?')) return; ED.wl = autoWaves(); }
+    if (a === 'gadd') { const last = w.g[w.g.length - 1]; w.g.push({ t: last.t, n: 5, gap: last.gap, d: Math.round((last.d + last.gap * last.n) * 10) / 10, e: 0 }); }
+    edPick = -1; re();
+  });
+}
 // réglages du niveau, en onglets : virus, vagues, économie, tourelles, règles, infos
 let edTab = 'vir';
 function buildEdOpts() {
@@ -660,15 +733,25 @@ function buildEdOpts() {
   let h = '<div class="eo-tabs">' + tabs.map(([k, l]) => '<button data-tab="' + k + '" class="' + (edTab === k ? 'on' : '') + '">' + l + '</button>').join('') + '</div><div class="eo-page">';
   if (edTab === 'vir') h += '<div class="eo-sec"><b>Virus présents</b> <small>(' + V.size + ' choisis · ils arrivent dans cet ordre)</small><div class="eo-vir"></div><div class="eo-row"><button data-a="all">Tous</button><button data-a="base">Classiques</button><button data-a="world">Du monde</button></div></div>' +
     '<div class="eo-sec"><b>Boss de la dernière vague</b><div class="eo-row eo-boss">' + ['auto', '', 'boss'].concat(WBOSS).map(k => '<button data-b="' + k + '" class="' + (ED.boss === k ? 'on' : '') + '">' + bossName(k) + '</button>').join('') + '</div></div>';
-  if (edTab === 'wav') h += '<div class="eo-sec eo-nums">' + pm('waves', 'Nombre de vagues', '', ED.waves) + pm('hp', 'Points de vie des virus', ' %', ED.hp, '100 % = normal') + pm('spd', 'Vitesse des virus', ' %', ED.spd) +
-    tog('megas', 'Méga-virus toutes les 10 vagues', ED.megas) + '</div>';
+  if (edTab === 'wav') {
+    h += '<div class="eo-sec eo-nums"><label><span>Composition des vagues<small>' + (ED.wl ? 'Personnalisée : tu choisis les virus de chaque vague, leur nombre, leur rythme et leur entrée.' : 'Automatique : le jeu crée les vagues avec les virus de l\'onglet Virus.') + '</small></span><span class="eo-seg"><button data-wm="auto" class="' + (ED.wl ? '' : 'on') + '">Auto</button><button data-wm="custom" class="' + (ED.wl ? 'on' : '') + '">Personnalisée</button></span></label>' +
+      (ED.wl ? '' : pm('waves', 'Nombre de vagues', '', ED.waves)) + pm('hp', 'Points de vie des virus', ' %', ED.hp, '100 % = normal') + pm('spd', 'Vitesse des virus', ' %', ED.spd) +
+      (ED.wl ? '' : tog('megas', 'Méga-virus toutes les 10 vagues', ED.megas)) + '</div>';
+    if (ED.wl) h += edWavesHTML();
+  }
   if (edTab === 'eco') h += '<div class="eo-sec eo-nums">' + pm('cash', 'Crédits de départ', '', ED.cash || 'auto') + pm('lives', 'Vies', '', ED.lives || 'auto') + pm('rew', 'Crédits gagnés par virus', ' %', ED.rew) + '</div>';
   if (edTab === 'tow') h += '<div class="eo-sec"><b>Tourelles autorisées</b> <small>(' + (ED.allowed ? ED.allowed.length : TORDER.length) + ' / ' + TORDER.length + ' · le joueur doit quand même les avoir débloquées)</small><div class="eo-vir eo-tow"></div><div class="eo-row"><button data-a="tall">Toutes</button><button data-a="tcheap">Petit budget</button><button data-a="tnone">Aucune sauf le Pulseur</button></div></div>';
   if (edTab === 'rul') h += '<div class="eo-sec eo-nums">' + tog('noRule', 'Règle du monde : ' + rule.name, !ED.noRule, rule.desc) + tog('noPower', 'Pouvoirs du joueur', !ED.noPower, 'Frappe orbitale, gel, redémarrage') + '</div>';
   if (edTab === 'inf') h += '<div class="eo-sec eo-nums"><label><span>Nom</span></label><input id="eoName" class="eo-in noico" maxlength="30"><label><span>Message affiché au début<small>Raconte une histoire ou donne un indice (140 caractères)</small></span></label><textarea id="eoDesc" class="eo-in noico" maxlength="140" rows="3"></textarea>' +
     '<label><span>Monde</span><span class="eo-pm"><button data-w="-1">❮</button><b>' + W.name + '</b><button data-w="1">❯</button></span></label></div>';
   box.innerHTML = h + '</div>';
-  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { edTab = b.dataset.tab; buildEdOpts(); });
+  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { edTab = b.dataset.tab; edPick = -1; buildEdOpts(); });
+  box.querySelectorAll('[data-wm]').forEach(b => b.onclick = () => {
+    if (b.dataset.wm === 'custom' && !ED.wl) { ED.wl = autoWaves(); edWSel = 0; toast('Les vagues automatiques sont copiées : modifie-les à ta guise'); }
+    else if (b.dataset.wm === 'auto' && ED.wl) { if (!confirm('Revenir aux vagues automatiques ? Tes vagues personnalisées seront perdues.')) return; ED.wl = null; }
+    ED.waves = ED.wl ? ED.wl.length : ED.waves; buildEdOpts(); edUpdate();
+  });
+  edWavesBind(box);
   const vb = box.querySelector('.eo-vir:not(.eo-tow)');
   if (vb) for (const k of ED_VIR) {
     const b = document.createElement('button'); b.className = 'eo-v' + (V.has(k) ? ' on' : ''); b.title = ETYPES[k].name + ' : ' + EDESC[k];
@@ -687,7 +770,7 @@ function buildEdOpts() {
   box.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a;
     if (a === 'all') ED.vir = ED_VIR.slice(); if (a === 'base') ED.vir = ED_DEF.vir.slice();
-    if (a === 'world') ED.vir = ['bug', 'runner', WVIRUS[ED.world]].concat(ED.world === 7 ? ['flyer'] : ['armor']);
+    if (a === 'world') ED.vir = ED_VIR.filter(k => ['bug', 'runner'].includes(k) || WVIR3[ED.world].includes(k));
     if (a === 'tall') ED.allowed = null; if (a === 'tcheap') ED.allowed = TORDER.filter(k => TOWERS[k].cost <= 40); if (a === 'tnone') ED.allowed = ['pulse'];
     buildEdOpts(); edUpdate();
   });

@@ -211,9 +211,13 @@ function startWave() {
   if (!G.queue.length) G.spawnT = 0;
   let t = G.queue.length ? G.spawnT + .6 : 0;
   const t0 = t;
-  for (let i = 0; i < wd.n; i++) { G.queue.push({ type: wd.type, t, wave: G.wave }); t += et.int; }
-  if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < wd.n2; i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave }); t2 += ETYPES[wd.type2].int * 1.3; } }
-  if (wd.type === 'boss' || wd.wboss) for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: t0 + i * .6 + .5, wave: G.wave });
+  if (wd.groups) { // vague personnalisée : chaque groupe a son départ, son écart et son entrée
+    for (const gr of wd.groups) { let tg = t0 + gr.d; for (let i = 0; i < gr.n; i++) { G.queue.push({ type: gr.t, t: tg, wave: G.wave, ent: gr.e || 0 }); tg += gr.gap; } }
+  } else {
+    for (let i = 0; i < wd.n; i++) { G.queue.push({ type: wd.type, t, wave: G.wave }); t += et.int; }
+    if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < wd.n2; i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave }); t2 += ETYPES[wd.type2].int * 1.3; } }
+    if (wd.type === 'boss' || wd.wboss) for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: t0 + i * .6 + .5, wave: G.wave });
+  }
   G.queue.sort((a, b) => a.t - b.t);
   const bonus = 2 + Math.floor(G.wave / 3) + eb + gup('wave');
   if (eb > 0 && !G.demo) { G.texts.push({ x: COLS / 2, y: 2, t: '⏩ ANTICIPÉE +' + eb + ' cr', col: '#ffd740', life: 1.3, big: true }); stat('early'); }
@@ -223,8 +227,8 @@ function startWave() {
   if (!G.queue.some(q => q.wave < G.wave)) { G.wKills = 0; G.wEarn = 0; G.wLeak = 0; for (const t of G.towers) t.wdmg = 0; }
   const bw = wd.type === 'boss' || wd.wboss;
   if (bw) { G.alarm = wd.wboss ? 3.2 : 2.4; G.shake = wd.wboss ? 10 : 6; sfx('alarm'); }
-  G.banner = { t: wd.wboss ? '☠ ' + et.name.toUpperCase() + ' ☠' : (wd.type === 'boss' ? '⚠ MÉGA-VIRUS ⚠' : 'VAGUE ' + G.wave), sub: wd.wboss ? 'Boss du monde · ' + EDESC[wd.type].replace(/^BOSS[^.]*\. /, '') : wd.n + ' × ' + et.name + (wd.type2 ? ' + ' + wd.n2 + ' × ' + ETYPES[wd.type2].name : ''), life: wd.wboss ? 3.2 : 2.2, max: wd.wboss ? 3.2 : 2.2, boss: bw };
-  toast((bw ? '⚠ ' : '') + 'Vague ' + G.wave + ' : ' + wd.n + ' × ' + et.name + (eb > 0 ? ' · bonus anticipé +' + eb + ' (total +' + bonus + ')' : ' · +' + bonus + ' crédits'));
+  G.banner = { t: wd.wboss ? '☠ ' + et.name.toUpperCase() + ' ☠' : (wd.type === 'boss' ? '⚠ MÉGA-VIRUS ⚠' : 'VAGUE ' + G.wave), sub: wd.wboss ? 'Boss du monde · ' + EDESC[wd.type].replace(/^BOSS[^.]*\. /, '') : wd.label ? wd.label : wd.n + ' × ' + et.name + (wd.type2 ? ' + ' + wd.n2 + ' × ' + ETYPES[wd.type2].name : ''), life: wd.wboss ? 3.2 : 2.2, max: wd.wboss ? 3.2 : 2.2, boss: bw };
+  toast((bw ? '⚠ ' : '') + 'Vague ' + G.wave + ' : ' + (wd.label || wd.n + ' × ' + et.name) + (eb > 0 ? ' · bonus anticipé +' + eb + ' (total +' + bonus + ')' : ' · +' + bonus + ' crédits'));
   sfx('wave'); updatePanel();
 }
 // fait apparaître un virus à l'endroit d'un autre (division, renforts, clone…)
@@ -243,8 +247,8 @@ function earlyBonus() {
   if (left) return 3 + Math.min(40, Math.round(left * .5 + G.wave * .3));
   return G.countdown > 0 ? Math.ceil(G.countdown * .6) : 0;
 }
-function spawnEnemy(type, wave, quiet) {
-  const d = ETYPES[type], ei = quiet ? 0 : G.nextStart++ % G.m.entries.length, ent = G.m.entries[ei], fc = G.forkC = G.forkC || {}, ri = ent[(fc[ei] = (fc[ei] || 0) + 1) % ent.length], route = G.m.routes[ri], s = route[0];
+function spawnEnemy(type, wave, quiet, entK) {
+  const d = ETYPES[type], ei = entK ? (entK - 1) % G.m.entries.length : quiet ? 0 : G.nextStart++ % G.m.entries.length, ent = G.m.entries[ei], fc = G.forkC = G.forkC || {}, ri = ent[(fc[ei] = (fc[ei] || 0) + 1) % ent.length], route = G.m.routes[ri], s = route[0];
   const hp = d.hp * hpScale(wave) * G.d.hp;
   const e = {
     id: uid++, type, x: s[0] + .5, y: s[1] + .5, tx: s[0], ty: s[1], hp, max: hp, spd: d.spd, r: d.r, col: d.col,
@@ -264,7 +268,7 @@ function spawnEnemy(type, wave, quiet) {
   if (G.endless && wave > G.m.waves) { const k = wave - G.m.waves; e.hp = e.max = e.max * (1 + k * .06); e.spd *= 1 + Math.min(.5, k * .01); }
   e.spd0 = e.spd; if (d.boss === 2) e.abT = 4;
   if (!G.demo && !(save.seen || {})[type]) { save.seen = save.seen || {}; save.seen[type] = 1; persist(); if (d.world !== undefined || d.boss) toast('📖 Nouveau virus : ' + d.name + ' — ' + EDESC[type]); }
-  if (G.fx.length < 300 && !quiet) G.fx.push({ kind: 'ring', x: s[0] + .5, y: s[1] + .5, r: .9, col: '#ff5252', life: .35, max: .35 });
+  if (G.fx.length < 300 && !quiet) G.fx.push({ kind: 'ring', x: s[0] + .5, y: s[1] + .5, r: .9, col: CBC().spawn, life: .35, max: .35 });
   if (d.shield) e.sh = e.shMax = e.max * d.shield;
   if (d.ghost) e.phaseT = rand(1, 3);
   if (d.jump) e.jumpT = rand(2, 3.5);
@@ -374,6 +378,7 @@ function onKill(e) {
     let best = null, bd = 2.2; for (const t of G.towers) { const dd = Math.hypot(t.x + .5 - e.x, t.y + .5 - e.y); if (dd < bd) { bd = dd; best = t; } }
     if (best) { best.offT = Math.max(best.offT || 0, 2); best.iced = 2; G.fx.push({ kind: 'ring', x: best.x + .5, y: best.y + .5, r: .8, col: '#b3e5fc', life: .4, max: .4 }); }
   }
+  if (d.onDeath) for (let i = 0; i < d.onDeath[1]; i++) spawnFrom(d.onDeath[0], e, 1);
   if (ETYPES[e.type].split3) for (let i = 0; i < 3; i++) { const b = spawnFrom('bit', e, 1); if (b) b.hp = b.max = Math.max(b.max, e.max * .22); }
   if (e.type === 'kernel') for (let i = 0; i < 4; i++) { const w = spawnFrom('worm', e, 1); if (w) { w.hp = w.max = e.max * .07; w.r = .3; } }
   if (G.demo) return;
@@ -635,7 +640,7 @@ function update(dt) {
   // apparitions
   if (G.queue.length) {
     G.spawnT += dt;
-    while (G.queue.length && G.queue[0].t <= G.spawnT) { const q = G.queue.shift(); spawnEnemy(q.type, q.wave); }
+    while (G.queue.length && G.queue[0].t <= G.spawnT) { const q = G.queue.shift(); spawnEnemy(q.type, q.wave, false, q.ent); }
   }
   // règles du monde
   if (!G.demo && !G.m.noRule && (G.enemies.length || G.queue.length)) {

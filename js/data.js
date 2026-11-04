@@ -301,6 +301,23 @@ const ETYPES = {
   zombie: { name: 'Zombie', hp: 18, spd: 1.2, rew: 2, col: '#9ccc65', r: .28, int: .9, n: 9, revive: true, world: 3 },
   cryo: { name: 'Cryovirus', hp: 24, spd: 1.15, rew: 3, col: '#b3e5fc', r: .29, int: 1, n: 8, noslow: true, chill: true, world: 4 },
   glitch: { name: 'Glitch', hp: 16, spd: 1.5, rew: 3, col: '#ff2bd6', r: .26, int: .85, n: 9, clone: true, world: 5 },
+  // 2 virus de plus par monde
+  capa: { name: 'Condensateur', hp: 26, spd: 1.1, rew: 3, col: '#ffb300', r: .29, int: 1, n: 8, armor: 1, shield: .5, world: 0 },
+  chipset: { name: 'Puce mère', hp: 40, spd: .9, rew: 4, col: '#43a047', r: .33, int: 1.3, n: 6, armor: 1.5, onDeath: ['bug', 3], world: 0 },
+  slag: { name: 'Scorie', hp: 45, spd: .8, rew: 4, col: '#6d4c41', r: .33, int: 1.3, n: 6, armor: 3.5, fireproof: true, world: 1 },
+  phoenix: { name: 'Phénix', hp: 16, spd: 1.7, rew: 3, col: '#ff9100', r: .27, int: .9, n: 8, fly: true, fireproof: true, revive: true, world: 1 },
+  byte: { name: 'Octet', hp: 22, spd: 1.4, rew: 3, col: '#00e5ff', r: .28, int: .9, n: 8, split3: true, world: 2 },
+  stream: { name: 'Flux', hp: 12, spd: 2.4, rew: 2, col: '#7c4dff', r: .23, int: .5, n: 12, jump: true, noslow: true, world: 2 },
+  firewall: { name: 'Pare-feu', hp: 30, spd: .95, rew: 4, col: '#ff7043', r: .31, int: 1.2, n: 6, armor: 2, shield: .9, world: 3 },
+  spam: { name: 'Spam', hp: 3, spd: 2.2, rew: 1, col: '#cddc39', r: .17, int: .18, n: 26, world: 3 },
+  yeti: { name: 'Yéti', hp: 90, spd: .7, rew: 7, col: '#eceff1', r: .42, int: 2, n: 3, lives: 2, armor: 2, noslow: true, world: 4 },
+  flake: { name: 'Flocon', hp: 10, spd: 1.8, rew: 2, col: '#b3e5fc', r: .22, int: .5, n: 12, fly: true, noslow: true, world: 4 },
+  spectre: { name: 'Spectre', hp: 14, spd: 2.1, rew: 3, col: '#18ffff', r: .25, int: .7, n: 9, ghost: true, world: 5 },
+  replicant: { name: 'Réplicant', hp: 24, spd: 1.2, rew: 3, col: '#d500f9', r: .28, int: 1.1, n: 7, heal: .1, clone: true, world: 5 },
+  knight: { name: 'Chevalier', hp: 40, spd: .95, rew: 4, col: '#b0bec5', r: .31, int: 1.2, n: 6, armor: 3, shield: .4, world: 6 },
+  invader: { name: 'Envahisseur', hp: 18, spd: 1.4, rew: 2, col: '#76ff03', r: .26, int: .8, n: 10, jump: true, world: 6 },
+  droplet: { name: 'Goutte', hp: 5, spd: 2, rew: 1, col: '#4fc3f7', r: .18, int: .25, n: 18, fly: true, world: 7 },
+  thunder: { name: 'Cumulonimbus', hp: 35, spd: 1, rew: 4, col: '#78909c', r: .33, int: 1.2, n: 6, fly: true, regen: .05, onDeath: ['droplet', 3], world: 7 },
   // boss de fin de monde (dernière vague de chaque zone)
   kernel: { name: 'Ver Kernel', hp: 900, spd: .55, rew: 90, col: '#76ff03', r: .55, int: 3, n: 1, lives: 10, armor: 3, boss: 2, world: 0 },
   magma: { name: 'Titan de magma', hp: 1100, spd: .5, rew: 100, col: '#ff3d00', r: .58, int: 3, n: 1, lives: 10, armor: 4, boss: 2, fireproof: true, heatwave: true, world: 1 },
@@ -326,16 +343,26 @@ const EDESC = {
   trojan: 'BOSS du Flux de données. Libère des paquets quand il perd des PV.', ddos: 'BOSS de la Salle des serveurs. Appelle sans cesse des renforts.',
   pixel: 'Ordinateur rétro : se brise en 3 bits quand il meurt.', bit: 'Morceau d\'un pixel, petit et rapide.', drone: 'Le Nuage : drone volant très rapide.',
   mainframe: 'BOSS de l\'Ordinateur rétro. Très blindé, il donne un bouclier aux virus autour de lui.', tempest: 'BOSS du Nuage. Il vole, appelle des drones et foudroie tes tourelles.',
+  capa: 'Circuit imprimé : chargé, il se protège derrière une bulle d\'énergie.', chipset: 'Circuit imprimé : blindé, libère 3 virus en mourant.',
+  slag: 'La Fournaise : bloc de lave très blindé, insensible au feu.', phoenix: 'La Fournaise : vole, insensible au feu, renaît une fois de ses cendres.',
+  byte: 'Flux de données : se brise en 3 bits quand il meurt.', stream: 'Flux de données : ultra-rapide, saute plus loin, ne peut pas être ralenti.',
+  firewall: 'Salle des serveurs : blindé et protégé par une grosse bulle d\'énergie.', spam: 'Salle des serveurs : arrive par dizaines, très fragile.',
+  yeti: 'Zone cryogénique : énorme, insensible au gel, coûte 2 vies.', flake: 'Zone cryogénique : flocon volant, insensible au gel.',
+  spectre: 'Cyberespace : rapide et intouchable par moments.', replicant: 'Cyberespace : soigne ses voisins et se duplique quand il est blessé.',
+  knight: 'Ordinateur rétro : armure lourde et bouclier.', invader: 'Ordinateur rétro : envahisseur 8 bits qui saute plus loin.',
+  droplet: 'Le Nuage : petite goutte volante qui arrive en averse.', thunder: 'Le Nuage : nuage d\'orage volant qui se régénère et lâche 3 gouttes en mourant.',
   glacier: 'BOSS de la Zone cryogénique. Bouclier, ne peut pas être ralenti et gèle les tourelles.', aicore: 'BOSS du Cyberespace. Devient intouchable, se soigne et pirate tes tourelles.'
 };
 const isBoss = e => !!ETYPES[e.type].boss;
 // couleurs (mode daltonien : bleu / orange au lieu de vert / rouge)
-const CBC = () => save.cb ? { ok: 'rgba(64,160,255,.35)', bad: 'rgba(255,150,0,.4)', cov: 'rgba(64,160,255,', nocov: 'rgba(255,150,0,.35)', hp: ['#42a5f5', '#ff9800'] }
-  : { ok: 'rgba(100,255,120,.25)', bad: 'rgba(255,60,60,.3)', cov: 'rgba(105,240,174,', nocov: 'rgba(255,60,60,.28)', hp: ['#66bb6a', '#ef5350'] };
+const CBC = () => save.cb ? { ok: 'rgba(64,160,255,.35)', bad: 'rgba(255,150,0,.4)', cov: 'rgba(64,160,255,', nocov: 'rgba(255,150,0,.35)', hp: ['#42a5f5', '#ff9800'], rgb: '255,150,0', spawn: '#ff9800' }
+  : { ok: 'rgba(100,255,120,.25)', bad: 'rgba(255,60,60,.3)', cov: 'rgba(105,240,174,', nocov: 'rgba(255,60,60,.28)', hp: ['#66bb6a', '#ef5350'], rgb: '255,40,40', spawn: '#ff5252' };
 // pastille au-dessus des virus à surveiller : [symbole, couleur]
 const BADGE = { healer: ['✚', '#2e7d32'], shield: ['◈', '#0277bd'], regen: ['♻', '#558b2f'], ghost: ['◌', '#5c6bc0'], zombie: ['☠', '#33691e'], glitch: ['⧉', '#ad1457'], splitter: ['÷', '#e65100'], pixel: ['÷', '#e65100'], giant: ['▲', '#6d4c41'], armor: ['■', '#455a64'], jumper: ['↟', '#689f38'], ember: ['🔥', '#bf360c'], cryo: ['❄', '#0288d1'], packet: ['»', '#00838f'] };
 const SUPPORT = { healer: 1, shield: 1, regen: 1 };
 const WBOSS = ['kernel', 'magma', 'trojan', 'ddos', 'glacier', 'aicore', 'mainframe', 'tempest'], WVIRUS = ['worm', 'ember', 'packet', 'zombie', 'cryo', 'glitch', 'pixel', 'drone'];
+// les 3 virus exclusifs de chaque monde
+const WVIR3 = [['worm', 'capa', 'chipset'], ['ember', 'slag', 'phoenix'], ['packet', 'byte', 'stream'], ['zombie', 'firewall', 'spam'], ['cryo', 'yeti', 'flake'], ['glitch', 'spectre', 'replicant'], ['pixel', 'knight', 'invader'], ['drone', 'droplet', 'thunder']];
 // règles propres à chaque monde
 const RULES = {
   pcb: { name: 'Apprentissage', desc: 'Pas de règle spéciale : le monde idéal pour apprendre.' },
@@ -349,6 +376,11 @@ const RULES = {
 };
 function waveDef(w) {
   const g = G && !G.demo ? G : null, wi = g ? worldIdx(g.mi) : 0;
+  if (g && g.m.wl && g.m.wl[w - 1]) { // vague composée à la main dans l'éditeur
+    const gr = g.m.wl[w - 1].g, n = gr.reduce((a, x) => a + x.n, 0);
+    const bg = gr.find(x => ETYPES[x.t].boss === 2) || gr.find(x => x.t === 'boss'), main = bg || gr[0], other = gr.find(x => x !== main && x.t !== main.t);
+    return { groups: gr, type: main.t, n: main.n, type2: other ? other.t : undefined, n2: other ? other.n : 0, total: n, wboss: !!(bg && bg.t !== 'boss'), label: gr.map(x => x.n + ' × ' + ETYPES[x.t].name).join(' + ') };
+  }
   if (g && g.m.vir) { // niveau créé : seulement les virus choisis, introduits un par un
     const V = g.m.vir, bk = g.m.bossK;
     if (w === g.total && bk !== '') return bk === 'auto' ? { type: WBOSS[Math.min(WBOSS.length - 1, wi)], n: 1, wboss: true } : { type: bk, n: bk === 'boss' ? 2 : 1, wboss: bk !== 'boss' };
@@ -362,7 +394,8 @@ function waveDef(w) {
   if (g && !g.endless && w === g.total && !g.daily) return { type: WBOSS[Math.min(WBOSS.length - 1, wi)], n: 1, wboss: true };
   if (g && g.endless && w % 25 === 0) return { type: WBOSS[(w / 25 - 1 + wi) % WBOSS.length], n: 1 + Math.floor(w / 75), wboss: true };
   if (w % (g && g.mod === 'bosses' ? 5 : 10) === 0) return { type: 'boss', n: Math.ceil(w / 20) };
-  if (g && w >= 7 && (w === 7 || w % 4 === 3)) { const t = WVIRUS[Math.min(WVIRUS.length - 1, wi)]; return { type: t, n: Math.round(ETYPES[t].n * (1 + w * .025)) }; }
+  const WL = WVIR3[Math.min(WVIR3.length - 1, wi)], wn = w >= 15 ? 3 : w >= 11 ? 2 : 1;
+  if (g && w >= 7 && (w === 7 || w % 4 === 3)) { const t = w === 7 ? WL[0] : w === 11 ? WL[1] : w === 15 ? WL[2] : WL[(w >> 2) % wn]; return { type: t, n: Math.round(ETYPES[t].n * (1 + w * .025)) }; }
   const intro = { 1: 'bug', 3: 'runner', 5: 'swarm', 6: 'armor', 8: 'flyer', 12: 'regen', 14: 'splitter', 16: 'shield', 18: 'ghost', 21: 'healer', 24: 'giant', 27: 'jumper' };
   const avail = []; for (const k in intro) if (w >= +k) avail.push(intro[k]);
   const type = intro[w] || avail[(w * 7 + 3) % avail.length];
@@ -370,6 +403,7 @@ function waveDef(w) {
   if (w >= 9 && !intro[w]) { // à partir de la vague 9 : deux sortes de virus mélangées
     const t2 = avail[(w * 5 + 1) % avail.length];
     if (t2 !== type) { res.type2 = t2; res.n2 = Math.round(ETYPES[t2].n * (.45 + w * .012)); }
+    if (g && w >= 12 && w % 3 === 0) { const t3 = WL[(w >> 1) % wn]; res.type2 = t3; res.n2 = Math.round(ETYPES[t3].n * (.4 + w * .01)); } // un virus du monde se mêle à la vague
   }
   return res;
 }
