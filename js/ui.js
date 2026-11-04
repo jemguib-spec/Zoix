@@ -350,8 +350,66 @@ const edBossIdx = d => d.boss === 'auto' ? 99 : Math.max(0, ED_BOSS.indexOf(d.bo
 // groupe = virus (rang dans ED_WT), nombre, écart et départ (dixièmes de seconde), entrée (0 = toutes à tour de rôle)
 const wlEncode = wl => wl.map(w => w.g.map(g => [ED_WT.indexOf(g.t), g.n, Math.round(g.gap * 10), Math.round(g.d * 10), g.e || 0].map(v => v.toString(36)).join(':')).join(',')).join('|');
 const wlDecode = s => s.split('|').map(w => ({ g: w.split(',').filter(Boolean).map(gs => { const f = gs.split(':').map(v => parseInt(v, 36)); return { t: ED_WT[f[0]], n: clamp(f[1] || 1, 1, 300), gap: clamp((f[2] || 0) / 10, .1, 5), d: clamp((f[3] || 0) / 10, 0, 60), e: clamp(f[4] || 0, 0, 8) }; }) }));
-// format VD3 (les anciens codes VD1 et VD2 restent lisibles)
+// ---- format VD4 : code compact (bits serrés en base64url), environ 3 fois plus court que VD3 ----
+function BitW() { const b = []; return { put(v, n) { for (let i = n - 1; i >= 0; i--) b.push((v >>> i) & 1); }, bytes() { const o = new Uint8Array(Math.ceil(b.length / 8)); b.forEach((x, i) => { if (x) o[i >> 3] |= 128 >> (i & 7); }); return o; } }; }
+function BitR(by) { let p = 0; return { get(n) { let v = 0; for (let i = 0; i < n; i++) { const k = p++; v = v * 2 + ((by[k >> 3] >> (7 - (k & 7))) & 1); } return v; }, left() { return by.length * 8 - p; } }; }
+const b64u = by => btoa(String.fromCharCode(...by)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+const putStr = (w, s, nb) => { const by = new TextEncoder().encode(s); const n = Math.min(by.length, (1 << nb) - 1); w.put(n, nb); for (let i = 0; i < n; i++) w.put(by[i], 8); };
+const getStr = (r, nb) => { const n = r.get(nb), by = new Uint8Array(n); for (let i = 0; i < n; i++) by[i] = r.get(8); return new TextDecoder().decode(by); };
+// entiers de taille variable (code exp-Golomb d'ordre k) : les petites valeurs prennent peu de bits
+const putVar = (w, v, k) => { const u = v + (1 << k), nb = Math.floor(Math.log2(u)); w.put(0, nb - k); w.put(u, nb + 1); };
+const getVar = (r, k) => { let z = 0; while (r.left() > 0 && r.get(1) === 0) z++; const nb = z + k; return (1 << nb) + r.get(nb) - (1 << k); };
+const putPt = (w, [x, y]) => { w.put(x, 5); w.put(y, 4); }, getPt = r => [r.get(5), r.get(4)];
 function lvlEncode(d) {
+  const w = BitW(), vir = d.vir || ED_DEF.vir, virDef = vir.join() === ED_DEF.vir.join(), ps = d.paths.filter(p => p.length >= 2);
+  w.put(1, 3); w.put(d.world, 3); w.put(clamp(d.waves, 1, 99), 7); putStr(w, (d.name || 'Niveau').slice(0, 30), 6);
+  w.put(ps.length, 4);
+  for (const p of ps) { w.put(p.length, 6); putPt(w, p[0]); for (let i = 1; i < p.length; i++) { const v = p[i][0] === p[i - 1][0]; w.put(v ? 1 : 0, 1); w.put(v ? p[i][1] : p[i][0], v ? 4 : 5); } }
+  const am = d.allowed && d.allowed.length < TORDER.length ? d.allowed.reduce((a, k) => a | (1 << TORDER.indexOf(k)), 0) : 0;
+  const F = [!virDef, d.boss !== 'auto', d.megas === false, !!d.cash, !!d.lives, !!(d.obst || []).length, !!(d.bonus || []).length, !!am, (d.hp || 100) !== 100, (d.spd || 100) !== 100, (d.rew || 100) !== 100, !!d.noRule, !!d.noPower, !!d.desc, !!(d.wl && d.wl.length)];
+  F.forEach(f => w.put(f ? 1 : 0, 1));
+  if (F[0]) for (const k of ED_VIR) w.put(vir.includes(k) ? 1 : 0, 1);
+  if (F[1]) w.put(Math.max(0, ED_BOSS.indexOf(d.boss)), 4);
+  if (F[3]) w.put(clamp(d.cash, 0, 2000), 11);
+  if (F[4]) w.put(clamp(d.lives, 0, 99), 7);
+  if (F[5]) { w.put(d.obst.length, 7); d.obst.forEach(q => putPt(w, q)); }
+  if (F[6]) { w.put(d.bonus.length, 5); d.bonus.forEach(q => putPt(w, q)); }
+  if (F[7]) w.put(am, TORDER.length);
+  if (F[8]) w.put(clamp(Math.round((d.hp - 25) / 25), 0, 15), 4);
+  if (F[9]) w.put(clamp(Math.round((d.spd - 50) / 10), 0, 15), 4);
+  if (F[10]) w.put(clamp(Math.round((d.rew - 25) / 25), 0, 15), 4);
+  if (F[13]) putStr(w, d.desc.slice(0, 140), 9);
+  if (F[14]) { w.put(d.wl.length, 7); for (const wv of d.wl) { w.put(wv.g.length - 1, 3); for (const g of wv.g) { w.put(ED_WT.indexOf(g.t), 6); putVar(w, clamp(g.n, 1, 300) - 1, 3); putVar(w, clamp(Math.round(g.gap * 10), 1, 50) - 1, 2); putVar(w, clamp(Math.round(g.d * 10), 0, 600), 1); putVar(w, g.e || 0, 0); } } }
+  return 'VD4~' + b64u(w.bytes());
+}
+function lvlDecode4(s) {
+  const r = BitR(unb64u(s));
+  if (r.get(3) !== 1) return null;
+  const d = JSON.parse(JSON.stringify(ED_DEF)); d.world = r.get(3); d.waves = r.get(7); d.name = getStr(r, 6) || 'Niveau';
+  d.paths = []; for (let n = r.get(4), i = 0; i < n; i++) { const L = r.get(6), p = [getPt(r)]; for (let j = 1; j < L; j++) { const v = r.get(1), c = r.get(v ? 4 : 5), q = p[j - 1]; p.push(v ? [q[0], c] : [c, q[1]]); } d.paths.push(p); }
+  const F = []; for (let i = 0; i < 15; i++) F.push(r.get(1) === 1);
+  if (F[0]) { d.vir = ED_VIR.filter(() => r.get(1)); if (!d.vir.length) return null; }
+  if (F[1]) { d.boss = ED_BOSS[r.get(4)]; if (d.boss === undefined) return null; }
+  d.megas = !F[2];
+  if (F[3]) d.cash = r.get(11);
+  if (F[4]) d.lives = r.get(7);
+  if (F[5]) for (let n = r.get(7), i = 0; i < n; i++) d.obst.push(getPt(r));
+  if (F[6]) for (let n = r.get(5), i = 0; i < n; i++) d.bonus.push(getPt(r));
+  if (F[7]) { const am = r.get(TORDER.length); d.allowed = TORDER.filter((k, i) => am & (1 << i)); }
+  if (F[8]) d.hp = 25 + 25 * r.get(4);
+  if (F[9]) d.spd = 50 + 10 * r.get(4);
+  if (F[10]) d.rew = 25 + 25 * r.get(4);
+  d.noRule = F[11]; d.noPower = F[12];
+  if (F[13]) d.desc = getStr(r, 9);
+  if (F[14]) { d.wl = []; for (let n = r.get(7), i = 0; i < n; i++) { const g = []; for (let m = r.get(3) + 1, j = 0; j < m; j++) { const t = ED_WT[r.get(6)], n = getVar(r, 3) + 1, gap = (getVar(r, 2) + 1) / 10, dl = getVar(r, 1) / 10, e = getVar(r, 0); if (!t || n > 300 || gap > 5 || dl > 60 || e > 8) return null; g.push({ t, n, gap, d: dl, e }); } d.wl.push({ g }); } d.waves = d.wl.length; }
+  if (r.left() < 0) return null;
+  return d;
+}
+// identifiant d'un niveau pour ses records (indépendant du nom et du format du code)
+const lvKeyOf = code => { const d = lvlDecode(code); return d ? hashStr(JSON.stringify([d.world, d.waves, d.paths, d.vir, d.boss, d.obst, d.bonus, d.wl, d.hp, d.spd, d.allowed])) : 0; };
+// format VD3 (lisible ; les anciens codes VD1, VD2 et VD3 restent valides)
+function lvlEncode3(d) {
   const mask = (d.vir || ED_DEF.vir).reduce((a, k) => a + (ED_VIR.indexOf(k) >= 0 ? Math.pow(2, ED_VIR.indexOf(k)) : 0), 0);
   const am = d.allowed && d.allowed.length < TORDER.length ? d.allowed.reduce((a, k) => a + Math.pow(2, TORDER.indexOf(k)), 0) : 0;
   return 'VD3~' + encodeURIComponent((d.name || 'Niveau').replace(/~/g, '').slice(0, 30)) + '~' + d.world + '~' + d.waves + '~' +
@@ -363,6 +421,7 @@ function lvlEncode(d) {
 }
 function lvlDecode(code) {
   try {
+    if (code.trim().startsWith('VD4~')) { const d = lvlDecode4(code.trim().slice(4)); return d && !edCheck(d) ? d : null; }
     const a = code.trim().split('~'); if (!((a[0] === 'VD1' && a.length === 5) || (a[0] === 'VD2' && a.length === 10) || (a[0] === 'VD3' && (a.length === 18 || a.length === 19)))) return null;
     const world = +a[2], waves = +a[3];
     if (!(world >= 0 && world < WORLDS.length) || !(waves >= 1 && waves <= 99)) return null;
@@ -523,11 +582,11 @@ function edGenerate() {
 function playLevel(code, fromEditor) {
   const d = lvlDecode(code); if (!d) { toast('Niveau invalide'); return; }
   MAPS[NCAMP] = defToMap(d, hashStr(code)); delete thumbs[NCAMP]; initAudio();
-  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor, lvKey: hashStr(code.split('~').slice(2).join('~')) });
+  startMap(NCAMP, { custom: true, fromEditor: !!fromEditor, lvKey: lvKeyOf(code) });
 }
 // partage : fenêtre avec le code, copie et partage natif (navigateur ou appli Android)
 const APP = window.AndroidApp || null; // pont fourni par l'appli Android
-const LVL_RE = /VD[123]~[^\s#&]+/;
+const LVL_RE = /VD[1-4]~[^\s#&]+/;
 const shareLink = code => location.protocol.startsWith('http') ? location.href.split('#')[0].split('?')[0] + '#lvl=' + code : '';
 function copyText(t, okMsg) {
   const ok = () => { toast(okMsg); sfx('coin'); };
@@ -539,7 +598,8 @@ function copyText(t, okMsg) {
 function shareLevel(code) {
   const d = lvlDecode(code); if (!d) return;
   const link = shareLink(code), msg = 'Essaie mon niveau « ' + d.name + ' » sur Virus Défense ! Ouvre Créer des niveaux → Importer, et colle ce code :\n' + code + (link ? '\n' + link : '');
-  $('#shareName').textContent = d.name; $('#shareCode').value = code;
+  $('#shareName').textContent = d.name; $('#shareCode').value = code; $('#shareLen').textContent = code.length + ' caractères';
+  drawQR($('#shareQR'), link || code);
   $('#shareLink').classList.toggle('hidden', !link);
   $('#shareNative').classList.toggle('hidden', !(APP && APP.share) && !navigator.share);
   $('#shareNative').onclick = () => { if (APP && APP.share) APP.share(msg); else navigator.share({ title: 'Virus Défense · ' + d.name, text: msg }).catch(() => { }); };
@@ -547,6 +607,52 @@ function shareLevel(code) {
   $('#shareLink').onclick = () => copyText(link, '🔗 Lien copié');
   $('#shareBox').classList.remove('hidden');
 }
+// QR code du niveau (bibliothèque qrcode-generator, licence MIT)
+function drawQR(cv, text) {
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  try {
+    const q = qrcode(0, text.length > 600 ? 'L' : 'M'); q.addData(text, 'Byte'); q.make();
+    const n = q.getModuleCount(), cell = Math.floor(cv.width / (n + 6)), off = Math.floor((cv.width - cell * n) / 2);
+    g.fillStyle = '#0b1410'; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(off + c * cell, off + r * cell, cell, cell);
+    cv.parentNode.classList.remove('hidden');
+  } catch (e) { cv.parentNode.classList.add('hidden'); } // code trop long pour un QR code
+}
+// lecture d'un QR code : détecteur du navigateur, sinon jsQR (chargé seulement quand on scanne)
+let jsQRp = null, scan = null;
+const loadJsQR = () => jsQRp || (jsQRp = new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'js/vendor/jsQR.js'; s.onload = () => ok(window.jsQR); s.onerror = ko; document.head.appendChild(s); }));
+async function readQR(src, w, h) {
+  if ('BarcodeDetector' in window) { try { const r = await new BarcodeDetector({ formats: ['qr_code'] }).detect(src); if (r[0]) return r[0].rawValue; return null; } catch (e) { } }
+  const jq = await loadJsQR(), c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(src, 0, 0, w, h);
+  const res = jq(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'attemptBoth' }); return res ? res.data : null;
+}
+function gotQR(txt) {
+  if (!txt || !LVL_RE.test(txt)) { toast('Ce QR code n\'est pas un niveau de Virus Défense'); sfx('err'); return false; }
+  closeScan(); if (importLevel(txt)) { $('#importBox').classList.add('hidden'); vibe(30); if (state === 'levels') buildLevels(); else setState('levels'); } return true;
+}
+async function openScan() {
+  const box = $('#scanBox'), v = $('#scanVid'); box.classList.remove('hidden'); $('#scanMsg').textContent = 'Vise le QR code du niveau…';
+  try { const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); scan = { st, on: true }; v.srcObject = st; await v.play(); }
+  catch (e) { box.classList.add('hidden'); toast('Caméra indisponible : choisis « Depuis une photo »'); sfx('err'); return; }
+  const tick = async () => {
+    if (!scan || !scan.on) return;
+    if (v.videoWidth) { const k = Math.min(1, 640 / v.videoWidth); try { const t = await readQR(v, Math.round(v.videoWidth * k), Math.round(v.videoHeight * k)); if (t && LVL_RE.test(t)) { gotQR(t); return; } } catch (e) { } }
+    setTimeout(tick, 250);
+  };
+  tick();
+}
+function closeScan() { if (scan) { scan.on = false; scan.st.getTracks().forEach(t => t.stop()); scan = null; } $('#scanVid').srcObject = null; $('#scanBox').classList.add('hidden'); }
+$('#scanClose').onclick = closeScan;
+$('#importScan').onclick = () => { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('Caméra indisponible : choisis « Depuis une photo »'); return; } openScan(); };
+$('#importPhoto').onclick = () => { $('#importFile').value = ''; $('#importFile').click(); };
+$('#importFile').onchange = async () => {
+  const f = $('#importFile').files[0]; if (!f) return;
+  try {
+    const img = await createImageBitmap(f); let t = null;
+    for (const mx of [1000, 1800, 600]) { const k = Math.min(1, mx / Math.max(img.width, img.height)); t = await readQR(img, Math.round(img.width * k), Math.round(img.height * k)); if (t) break; }
+    if (!t) { toast('Aucun QR code trouvé sur cette photo'); sfx('err'); return; }
+    gotQR(t);
+  } catch (e) { toast('Impossible de lire cette image'); sfx('err'); }
+};
 function importLevel(txt) {
   const m = (txt || '').match(LVL_RE), d = m && lvlDecode(m[0]);
   if (!d) { toast('Code de niveau invalide'); sfx('err'); return false; }
@@ -634,7 +740,7 @@ function buildLevels() {
     const info = document.createElement('div'); info.className = 'lvinfo';
         let mm = null; try { mm = defToMap(d, 1); } catch (e) { }
     const nEx = mm ? new Set(mm.routes.map(r => r[r.length - 1] + '')).size : 1;
-    const rec = (save.lvBest || {})[hashStr(l.code.split('~').slice(2).join('~'))], esc = t => t.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+    const rec = (save.lvBest || {})[lvKeyOf(l.code)], esc = t => t.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
     info.innerHTML = '<b>' + esc(d.name) + '</b><small>' + WORLDS[d.world].name + ' · ' + d.waves + ' vagues · ' + (mm ? mm.entries.length : 1) + ' entrée(s) · ' + nEx + ' sortie(s)' + (mm && mm.branchAt.length ? ' · ' + mm.branchAt.length + ' division(s)' : '') + ' · ' + d.vir.length + ' virus' +
       ((d.obst || []).length ? ' · ' + d.obst.length + ' obstacle(s)' : '') + ((d.bonus || []).length ? ' · ' + d.bonus.length + ' bonus' : '') + '</small>' +
       (d.desc ? '<small class="lvdesc">« ' + esc(d.desc) + ' »</small>' : '') +

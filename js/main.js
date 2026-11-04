@@ -53,7 +53,7 @@ document.body.classList.toggle('cb', !!save.cb);
 layout();
 setState('menu');
 { // niveau partagé par lien (#lvl=…)
-  const hm = location.hash.match(/lvl=(VD[123]~[^&#\s]+)/);
+  const hm = location.hash.match(/lvl=(VD[1-4]~[^&#\s]+)/);
   if (hm) { history.replaceState(null, '', location.pathname + location.search); if (importLevel(hm[1])) setState('levels'); }
 }
 requestAnimationFrame(frame);

@@ -824,3 +824,22 @@ body.cb .tp-acts .buy,body.cb .ctrls .go,body.cb .big:not(.alt):not(.danger):not
 body.cb .tp-acts .sell,body.cb .big.danger,body.cb .wg-del{background:rgba(255,152,0,.16)!important;border-color:rgba(255,152,0,.55)!important;color:#ffe0b2!important}
 body.cb .eo-v.on{box-shadow:inset 0 0 0 2px #60a5fa!important}
 body.cb .tbars u i{background:linear-gradient(90deg,#60a5fa,#ffd54f)}
+
+/* ---- partage : code compact + QR code ; import : scanner ---- */
+.mcard{background:rgba(14,19,30,.97)!important;border:1px solid var(--line-2);border-radius:20px!important;box-shadow:0 20px 50px rgba(0,0,0,.8)!important}
+.mcard h3{color:#fff!important}
+#shareBox .mcard{width:min(680px,96vw)}
+.share-row{display:flex;gap:14px;align-items:center}
+.share-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.share-txt small{color:var(--muted);font-size:11px;text-align:right}
+.share-qr{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px}
+.share-qr canvas{position:static;width:170px;height:170px;border-radius:12px;background:#fff;box-shadow:0 0 0 4px #fff,0 8px 24px rgba(0,0,0,.6)}
+.share-qr small{color:var(--muted);font-size:11px}
+@media (orientation:portrait){.share-row{flex-direction:column-reverse}.share-qr canvas{width:min(220px,60vw);height:min(220px,60vw)}}
+@media (max-height:420px){.share-qr canvas{width:130px;height:130px}}
+.scan-card{width:min(520px,96vw)}
+.scan-view{position:relative;width:100%;aspect-ratio:4/3;max-height:60vh;border-radius:14px;overflow:hidden;background:#000}
+.scan-view video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan-frame{position:absolute;inset:14% 22%;border:3px solid #4ade80;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.35);animation:scanPulse 1.4s ease-in-out infinite}
+@keyframes scanPulse{50%{border-color:#a7f3d0}}
+#scanMsg{text-align:center}

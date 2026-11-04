@@ -87,7 +87,7 @@ async function test(name, page, fn) {
     const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Complet', world: 6, waves: 25, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]],
       obst: [[5, 5], [6, 5]], bonus: [[8, 3]], allowed: ['pulse', 'cannon'], hp: 150, spd: 80, rew: 200, noRule: true, noPower: true, desc: 'Bonne chance !' });
     const c = lvlEncode(d), d2 = lvlDecode(c);
-    if (!d2 || !c.startsWith('VD3~')) return 'code invalide';
+    if (!d2 || !c.startsWith('VD4~')) return 'code invalide';
     const keys = ['obst', 'bonus', 'allowed', 'hp', 'spd', 'rew', 'noRule', 'noPower', 'desc'];
     for (const k of keys) if (JSON.stringify(d2[k]) !== JSON.stringify(d[k])) return k + ' différent';
     return true;
@@ -130,6 +130,16 @@ async function test(name, page, fn) {
     startMap(0); G.cash = 1e5; spawnEnemy('chipset', 3); const e = G.enemies[G.enemies.length - 1], n0 = G.enemies.length; hurt(e, 1e9, true);
     if (G.enemies.filter(x => !x.dead && x.type === 'bug').length < 3) return 'la puce mère ne libère pas 3 virus';
     setState('menu'); return true;
+  });
+  await test('partage : code compact VD4 et QR code relu par le scanner', page, async () => {
+    const d = Object.assign(JSON.parse(JSON.stringify(ED_DEF)), { name: 'Zoé à l\'école', world: 5, waves: 20, paths: [[[0, 2], [20, 2], [20, 9], [4, 9], [4, 12]]], obst: [[6, 5]], desc: 'Défi ★' });
+    const c4 = lvlEncode(d), c3 = lvlEncode3(d), d2 = lvlDecode(c4);
+    if (!c4.startsWith('VD4~') || !d2 || d2.name !== d.name || d2.desc !== d.desc) return 'VD4 invalide';
+    if (c4.length >= c3.length * .75) return 'code pas assez court : ' + c4.length + ' / ' + c3.length;
+    if (!lvlDecode(c3)) return 'ancien format VD3 illisible';
+    const cv = document.createElement('canvas'); cv.width = cv.height = 220; document.body.appendChild(cv); drawQR(cv, c4);
+    const t = await readQR(cv, 220, 220); cv.remove();
+    return t === c4 || 'QR relu : ' + t;
   });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties
