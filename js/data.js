@@ -185,17 +185,17 @@ MAPS.forEach((m, i) => processMap(m, i));
 const DIFFS = {
   easy: { name: 'Facile', hp: .75, lives: 30, cash: 35, col: '#4ade80', desc: 'Virus fragiles · 30 vies' },
   normal: { name: 'Normal', hp: 1.15, lives: 20, cash: 25, col: '#60a5fa', desc: 'L\'expérience équilibrée · 20 vies' },
-  hard: { name: 'Difficile', hp: 1.65, lives: 15, cash: 22, col: '#f97316', desc: 'Virus coriaces · 15 vies' },
-  nightmare: { name: 'Cauchemar', hp: 2.3, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies' },
-  legend: { name: 'Légende', hp: 3, lives: 5, cash: 22, col: '#e040fb', desc: 'Impossible ? · 5 vies', spd: 1.05 },
-  apocalypse: { name: 'Apocalypse', hp: 4.2, lives: 3, cash: 20, col: '#ff1744', desc: 'Virus 15 % plus rapides · 3 vies', spd: 1.15 }
+  hard: { name: 'Difficile', hp: 1.65, lives: 15, cash: 22, col: '#f97316', desc: 'Virus coriaces · 15 vies', endG: .05 },
+  nightmare: { name: 'Cauchemar', hp: 2.3, lives: 10, cash: 20, col: '#ef4444', desc: 'Pour les experts · 10 vies', endG: .055 },
+  legend: { name: 'Légende', hp: 3, lives: 5, cash: 22, col: '#e040fb', desc: 'Impossible ? · 5 vies', spd: 1.05, endG: .06 },
+  apocalypse: { name: 'Apocalypse', hp: 4.2, lives: 3, cash: 20, col: '#ff1744', desc: 'Virus 15 % plus rapides · 3 vies', spd: 1.15, endG: .065 }
 };
 
 const TOWERS = {
   pulse: { name: 'Pulseur', cost: 5, range: 2.2, rate: 1.1, dmg: 6, col: '#b388ff', proj: 'bullet', spd: 9, desc: 'Pas cher : idéal pour couvrir les couloirs.' },
   gatling: { name: 'Mitrailleuse', short: 'Mitraill.', cost: 12, range: 2.3, rate: 4, dmg: 2.2, col: '#ff4fa3', proj: 'bullet', spd: 12, desc: 'Cadence de tir très rapide.' },
   cannon: { name: 'Canon', cost: 30, range: 2.7, rate: .6, dmg: 11, splash: .8, col: '#ffab40', proj: 'shell', spd: 6, ground: true, desc: 'Obus explosifs. Ne touche pas les volants.' },
-  frost: { name: 'Cryo', cost: 35, range: 2.3, rate: 1, dmg: 2, slow: .5, slowT: 1.6, splash: .7, col: '#4fc3f7', proj: 'ice', spd: 8, desc: 'Gèle et ralentit les virus.' },
+  frost: { name: 'Cryo', cost: 50, range: 2.3, rate: 1, dmg: 2, slow: .5, slowT: 1.6, splash: .7, col: '#4fc3f7', proj: 'ice', spd: 8, desc: 'Gèle et ralentit les virus.' },
   laser: { name: 'Laser', cost: 100, range: 4.2, rate: .55, dmg: 75, col: '#ff3d3d', proj: 'beam', desc: 'Très longue portée, dégâts énormes.' },
   tesla: { name: 'Tesla', cost: 150, range: 2.8, rate: 1.1, dmg: 22, chain: 4, col: '#ffe600', proj: 'chain', desc: 'Éclair qui rebondit sur plusieurs virus.' },
   flame: { name: 'Lance-flammes', short: 'Flammes', cost: 60, range: 1.9, rate: 8, dmg: 1.4, burn: 5, col: '#ff6d00', proj: 'flame', desc: 'Brûle tous les virus devant lui.' },
@@ -275,7 +275,7 @@ function tStats(type, lvl, path) {
   const d = TOWERS[type], k = lvl - 1, A = lvl >= 5 && path !== 1, B = lvl >= 5 && path === 1;
   const s = {
     dmg: d.dmg * Math.pow(1.55, k) * (1 + .08 * resLvl(type)) * (1 + .1 * prestige()), range: (d.range + .25 * k) * (1 + .03 * resLvl(type)), rate: d.rate * Math.pow(1.12, k),
-    splash: d.splash ? (d.splash + (type === 'cannon' ? .08 : .12) * k) * (A && type === 'cannon' ? 1.4 : 1) : 0, slow: d.slow ? Math.max(.25, d.slow - .07 * k) : 0, slowT: d.slowT ? d.slowT + .3 * k : 0,
+    splash: d.splash ? (d.splash + (type === 'cannon' ? .08 : .12) * k) * (A && type === 'cannon' ? 1.4 : 1) : 0, slow: d.slow ? Math.max(.35, d.slow - .05 * k) : 0, slowT: d.slowT ? d.slowT + .3 * k : 0,
     chain: d.chain ? d.chain + k + (A ? 3 : 0) : 0, special: A, alt: B,
     burn: d.burn ? d.burn * Math.pow(1.4, k) * (A ? 2 : 1) : 0,
     boost: type === 'boost' ? (A ? .6 : .2 + .08 * Math.min(k, 3)) : 0, gain: type === 'miner' ? (3 + 2 * k) * (A ? 2 : 1) : 0
@@ -284,7 +284,7 @@ function tStats(type, lvl, path) {
     case 'pulse': s.dmg *= 2.2; s.range += .5; break;
     case 'gatling': s.incend = true; break;
     case 'cannon': s.range += 1.5; s.dmg *= 1.2; s.rate *= .75; break;
-    case 'frost': s.splash *= 2; s.slow = Math.max(.15, s.slow - .15); break;
+    case 'frost': s.splash *= 1.6; s.slow = Math.max(.28, s.slow - .08); break;
     case 'flame': s.range += 1; s.pierce = true; break;
     case 'missile': s.dmg *= 3; s.splash *= 1.8; s.rate *= .8; break;
     case 'laser': s.ramp = true; break;

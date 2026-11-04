@@ -67,6 +67,21 @@ function drawTower(c, type, lvl, ang, time, flash, cached) {
     } else drawTurret(c, type, lvl, ang, time, flash);
   } finally { GD = null; NEO = null; MAT = null; }
 }
+// version rapide : la tourelle entière (socle + tourelle) est peinte une fois par orientation (24 directions) puis recopiée
+const fastCache = new Map(), NOROT = { tesla: 1, boost: 1, miner: 1, vortex: 1 };
+function drawTowerFast(t) {
+  const px = Math.min(80, Math.max(16, Math.round(L.s * DPR / 4) * 4)), N = 24, rot = !NOROT[t.type];
+  const ab = rot ? Math.round((((t.ang % TAU) + TAU) % TAU) / TAU * N) % N : 0, fb = rot ? 0 : Math.floor(G.time * 6) % 12;
+  const key = t.type + t.lvl + ':' + px + ':' + (save.skin || '') + ':' + curTS().join() + ':' + ab + ':' + fb;
+  let c = fastCache.get(key);
+  if (!c) {
+    if (fastCache.size > 900) fastCache.delete(fastCache.keys().next().value); // on oublie la plus ancienne
+    c = document.createElement('canvas'); c.width = c.height = Math.ceil(px * 1.6); const g = c.getContext('2d'); g.setTransform(px, 0, 0, px, px * .8, px * .8);
+    drawTower(g, t.type, t.lvl, ab / N * TAU, fb / 6, 0, true); fastCache.set(key, c);
+  }
+  const f = rot && t.flash > 0 ? t.flash / .07 * .08 : 0;
+  ctx.drawImage(c, -.8 - Math.cos(t.ang) * f, -.8 - Math.sin(t.ang) * f, 1.6, 1.6);
+}
 let NEO = null, GD = null, MAT = null; // NEO : couleur néon en cours ; GD : contexte cible des lueurs
 // ---- style « jouet brillant » : contours épais, couleurs vives, reflets ----
 const OUT = '#1b1230';
@@ -843,7 +858,26 @@ function face(e, r, lw, o) {
     for (let i = 0; i < nt; i++) { const y0 = -mw + (i + .5) * (2 * mw / nt); ctx.beginPath(); ctx.moveTo(mx, y0 - mw / nt * .6); ctx.lineTo(mx + r * .1, y0); ctx.lineTo(mx, y0 + mw / nt * .6); ctx.fill(); }
   }
 }
-function drawEnemy(e) {
+// version rapide quand il y a beaucoup de virus : le corps est peint une fois par sorte et par image d'animation, puis tourné
+const enemyCache = new Map();
+function drawEnemyFast(e) {
+  const d = ETYPES[e.type];
+  if ((e.age || 0) < .35 || d.boss || e.phased) { drawEnemy(e); return; }
+  const px = Math.min(80, Math.max(16, Math.round(L.s * DPR / 4) * 4)), fr = Math.floor(e.anim * 6) % 8, hit = e.hit > 0 ? 1 : 0, ext = e.r * 2 + .3;
+  const key = e.type + ':' + px + ':' + fr + ':' + hit + ':' + (e.id % 3) + ':' + curTS().join();
+  let c = enemyCache.get(key);
+  if (!c) {
+    if (enemyCache.size > 700) enemyCache.delete(enemyCache.keys().next().value);
+    const sz = Math.ceil(px * ext * 2); c = document.createElement('canvas'); c.width = c.height = sz;
+    const g = c.getContext('2d'), keep = ctx; g.setTransform(px, 0, 0, px, sz / 2, sz / 2);
+    ctx = g; try { drawEnemy({ type: e.type, x: 0, y: 0, r: e.r, col: e.col, ang: 0, anim: fr / 6, age: 1, hp: 1, max: 1, id: e.id % 3, fly: e.fly, hit }, true); } catch (er) { } ctx = keep;
+    enemyCache.set(key, c);
+  }
+  ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang || 0); ctx.drawImage(c, -ext, -ext, ext * 2, ext * 2); ctx.restore();
+  drawEnemy(e, false, true); // auras, bouclier, glace : toujours à jour
+}
+function drawEnemy(e, bodyOnly, aurasOnly) {
+  if (aurasOnly) { enemyAuras(e); return; }
   const d = ETYPES[e.type], r = e.r, [lx, ly] = lightFor(e.ang), col = e.hit > 0 ? '#ffffff' : d.col;
   const lw = Math.max(.025, r * .14), t = e.anim;
   ctx.save(); ctx.translate(e.x, e.y);
@@ -1195,10 +1229,14 @@ function drawEnemy(e) {
   }
   if (G && !e.phased && d.world === undefined) wearHat(e, r, lw, t); // les virus exclusifs d'un monde ont déjà leur propre look
   ctx.restore(); ctx.globalAlpha = 1;
-
+  if (!bodyOnly) enemyAuras(e);
+}
+function enemyAuras(e) {
+  const d = ETYPES[e.type], r = e.r;
   // --- auras (sans rotation) ---
   if (d.boss === 2) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = rgbaA(d.col).replace('A', (.35 + .25 * Math.sin(e.anim * 5)).toFixed(2)); ctx.lineWidth = .05; ctx.setLineDash([.2, .12]); ctx.lineDashOffset = -e.anim; ctx.beginPath(); ctx.arc(e.x, e.y, r * 1.75, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); }
-  if (e.type === 'regen' || e.slowT > 0 || e.frozen > 0) {
+  if (!(e.frozen > 0) && G && G.enemies.length > 70 && (e.type === 'regen' || e.slowT > 0)) { ctx.fillStyle = e.slowT > 0 ? 'rgba(130,210,255,.8)' : 'rgba(120,255,140,.7)'; ctx.beginPath(); ctx.arc(e.x, e.y - r * 1.15, r * .16, 0, TAU); ctx.fill(); } // foule : simple pastille au lieu du halo
+  else if (e.type === 'regen' || e.slowT > 0 || e.frozen > 0) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     const c = e.frozen > 0 ? 'rgba(180,240,255,.75)' : e.slowT > 0 ? 'rgba(130,210,255,.5)' : 'rgba(120,255,140,.4)';
     glowDot(e.x, e.y, r * 1.8, c, 'rgba(255,255,255,.2)'); ctx.restore();
@@ -1567,7 +1605,8 @@ function render() {
   }
   for (const f of G.fx) if (f.kind === 'bad') { ctx.fillStyle = 'rgba(' + CBC().rgb + ',' + (f.life / f.max * .6) + ')'; ctx.fillRect(f.x, f.y, 1, 1); }
   // virus au sol (sous les tourelles qui débordent un peu)
-  for (const e of G.enemies) if (!e.fly) drawEnemy(e);
+  const lodE = save.eco || G.enemies.length > 70, dE = lodE ? drawEnemyFast : drawEnemy;
+  for (const e of G.enemies) if (!e.fly) dE(e);
   // cases bonus (éditeur de niveaux) : +30 % de dégâts pour la tourelle posée dessus
   if (G.bonus) for (const k of G.bonus) {
     const x = k % COLS, y = Math.floor(k / COLS), pu = .5 + .5 * Math.sin(G.time * 3 + k);
@@ -1575,7 +1614,8 @@ function render() {
     ctx.strokeStyle = 'rgba(255,215,64,' + (.55 + .35 * pu).toFixed(2) + ')'; ctx.lineWidth = .045; ctx.setLineDash([.16, .1]); ctx.strokeRect(x + .08, y + .08, .84, .84); ctx.setLineDash([]);
     if (!G.towerAt[y][x]) star(ctx, x + .5, y + .5, .16);
   }
-  // tourelles
+  // tourelles (beaucoup de tourelles ou de virus : images en cache pour rester fluide)
+  const lod = save.eco || G.towers.length > 36 || G.enemies.length > 150;
   for (const t of G.towers) {
     const age = G.time - t.born; ctx.save(); ctx.translate(t.x + .5, t.y + .5);
     if (age < 1.2) placeAnim(t, age, true);
@@ -1585,7 +1625,7 @@ function render() {
       ctx.strokeStyle = pb ? 'rgba(64,196,255,.85)' : 'rgba(255,215,64,.8)'; ctx.lineWidth = .035; ctx.setLineDash([.12, .09]); ctx.lineDashOffset = -G.time * .6;
       ctx.beginPath(); ctx.arc(0, 0, .58, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     }
-    drawTower(ctx, t.type, t.lvl, t.ang, G.time, t.flash || 0, true);
+    if (lod) drawTowerFast(t); else drawTower(ctx, t.type, t.lvl, t.ang, G.time, t.flash || 0, true);
     if (age < 1.2) { ctx.globalAlpha = 1; placeAnim(t, age, false); }
     if (t.lvl >= TMAX && t.path === 1) { ctx.fillStyle = '#40c4ff'; ctx.strokeStyle = OUT; ctx.lineWidth = .03; ctx.beginPath(); ctx.arc(.33, -.33, .12, 0, TAU); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#012'; ctx.font = '900 .16px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('B', .33, -.32); }
     if (t.hot) { ctx.globalCompositeOperation = 'lighter'; glowDot(0, .3, .25, 'rgba(255,110,0,' + (.35 + .2 * Math.sin(G.time * 5 + t.id)).toFixed(2) + ')'); ctx.globalCompositeOperation = 'source-over'; }
@@ -1645,7 +1685,7 @@ function render() {
     ctx.fillStyle = p.col; ctx.beginPath(); ctx.moveTo(-.12, -.035); ctx.lineTo(-.16, -.07); ctx.lineTo(-.08, -.035); ctx.moveTo(-.12, .035); ctx.lineTo(-.16, .07); ctx.lineTo(-.08, .035); ctx.fill();
     ctx.restore();
   }
-  for (const e of G.enemies) if (e.fly) drawEnemy(e);
+  for (const e of G.enemies) if (e.fly) dE(e);
   // particules de fumée
   for (const q of G.parts) if (q.smoke) {
     const k = q.life / q.max, r = q.size * (1 + (1 - k) * 2.5);
@@ -1762,9 +1802,13 @@ function render() {
     g.addColorStop(0, 'rgba(255,0,0,0)'); g.addColorStop(1, 'rgba(255,0,0,' + (.12 + .1 * a).toFixed(2) + ')'); ctx.fillStyle = g; ctx.fillRect(L.ax, L.ay, L.aw, L.ah);
     if (G.time - (G.dangerT || -9) > 4) { G.dangerT = G.time; sfx('leak'); }
   }
+  const crowd = G.enemies.length > 60; // foule : barres plus fines, et seulement pour les virus bien entamés
   for (const e of G.enemies) {
     if (e.hp >= e.max) continue;
-    const [sx, sy] = toScreen(e.x, e.y), w = T * (isBoss(e) ? 1.2 : .6), y = sy - T * e.r - 10, k = e.hp / e.max;
+    const bs = isBoss(e), k = e.hp / e.max;
+    if (crowd && !bs && k > .8) continue;
+    const [sx, sy] = toScreen(e.x, e.y), w = T * (bs ? 1.2 : crowd ? .42 : .6), y = sy - T * e.r - (crowd ? 6 : 10);
+    if (crowd && !bs) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(sx - w / 2 - 1, y - 1, w + 2, 4); ctx.fillStyle = k > .5 ? CBC().hp[0] : k > .25 ? '#ffca28' : CBC().hp[1]; ctx.fillRect(sx - w / 2, y, w * k, 2); continue; }
     ctx.fillStyle = 'rgba(0,0,0,.7)'; rr(ctx, sx - w / 2 - 1.5, y - 1.5, w + 3, 6, 2); ctx.fill();
     const g = ctx.createLinearGradient(0, y, 0, y + 3); const col = k > .5 ? CBC().hp[0] : k > .25 ? '#ffca28' : CBC().hp[1];
     g.addColorStop(0, shade(col, .4)); g.addColorStop(1, shade(col, -.3)); ctx.fillStyle = g; ctx.fillRect(sx - w / 2, y, w * k, 3);

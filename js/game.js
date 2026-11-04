@@ -214,8 +214,10 @@ function startWave() {
   if (wd.groups) { // vague personnalisée : chaque groupe a son départ, son écart et son entrée
     for (const gr of wd.groups) { let tg = t0 + gr.d; for (let i = 0; i < gr.n; i++) { G.queue.push({ type: gr.t, t: tg, wave: G.wave, ent: gr.e || 0 }); tg += gr.gap; } }
   } else {
-    for (let i = 0; i < wd.n; i++) { G.queue.push({ type: wd.type, t, wave: G.wave }); t += et.int; }
-    if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < wd.n2; i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave }); t2 += ETYPES[wd.type2].int * 1.3; } }
+    // au-delà de 70 virus d'une même sorte, on n'en ajoute plus : ils deviennent plus résistants (la vague reste aussi dure mais le jeu reste fluide)
+    const cap = n => Math.min(n, 70), hk = n => n > 70 ? n / 70 : 1;
+    for (let i = 0; i < cap(wd.n); i++) { G.queue.push({ type: wd.type, t, wave: G.wave, hk: hk(wd.n) }); t += et.int; }
+    if (wd.type2) { let t2 = t0 + .4; for (let i = 0; i < cap(wd.n2); i++) { G.queue.push({ type: wd.type2, t: t2, wave: G.wave, hk: hk(wd.n2) }); t2 += ETYPES[wd.type2].int * 1.3; } }
     if (wd.type === 'boss' || wd.wboss) for (let i = 0; i < 6; i++) G.queue.push({ type: 'bug', t: t0 + i * .6 + .5, wave: G.wave });
   }
   G.queue.sort((a, b) => a.t - b.t);
@@ -265,7 +267,8 @@ function spawnEnemy(type, wave, quiet, entK) {
   if (G.muts && G.muts.giant) e.hp = e.max = e.max * 1.6;
   if (G.mod === 'armored') e.armor += 3;
   if (G.d.spd) e.spd *= G.d.spd;
-  if (G.endless && wave > G.m.waves) { const k = wave - G.m.waves; e.hp = e.max = e.max * (1 + k * .06); e.spd *= 1 + Math.min(.5, k * .01); }
+  // mode infini : PV en croissance exponentielle, plus rapide dans les difficultés élevées (endG)
+  if (G.endless && wave > G.m.waves) { const k = wave - G.m.waves; e.hp = e.max = e.max * Math.pow(1 + (G.d.endG || .045), k); e.spd *= 1 + Math.min(.5, k * .01); }
   e.spd0 = e.spd; if (d.boss === 2) e.abT = 4;
   if (!G.demo && !(save.seen || {})[type]) { save.seen = save.seen || {}; save.seen[type] = 1; persist(); if (d.world !== undefined || d.boss) toast('📖 Nouveau virus : ' + d.name + ' — ' + EDESC[type]); }
   if (G.fx.length < 300 && !quiet) G.fx.push({ kind: 'ring', x: s[0] + .5, y: s[1] + .5, r: .9, col: CBC().spawn, life: .35, max: .35 });
@@ -465,6 +468,14 @@ function combo(e, k) {
   if (!save.combos[k]) { save.combos[k] = 1; persist(); toast('🧪 Combinaison découverte : ' + COMBOS[k].name + ' — ' + COMBOS[k].desc); unlockAch('combo1'); if (Object.keys(save.combos).length >= Object.keys(COMBOS).length) unlockAch('combo4'); }
 }
 const chilled = o => o.frozen > 0 || o.slowT > 0;
+// étourdissement / gel avec résistance : plus un virus vient d'être bloqué, moins le blocage suivant dure (et les boss résistent deux fois plus)
+// => impossible de figer une vague entière en boucle avec plusieurs tourelles de gel / Tesla
+function ccStun(e, dur, freeze) {
+  const k = 1 / (1 + (e.ccR || 0)) * (isBoss(e) ? .5 : 1), d = dur * k;
+  if (d < .05) return;
+  e.stunT = Math.max(e.stunT || 0, d); if (freeze) e.frozen = Math.max(e.frozen || 0, d);
+  e.ccR = Math.min(6, (e.ccR || 0) + d * 1.2);
+}
 // mines : case de couloir libre à portée, de préférence sur un passage
 function mineSpot(t) {
   const r = t.st.range, c = [];
@@ -493,7 +504,7 @@ function updateMines(dt) {
       if (e.dead || e.fly || Math.hypot(e.x - m.x, e.y - m.y) > m.splash + e.r) continue;
       let dm = m.dmg; if (e.frozen > 0) { dm *= 2.5; combo(e, 'shatter'); } else if (e.pushT > G.time) { dm *= 2; combo(e, 'trap'); }
       hurt(e, dm);
-      if (m.stun) e.stunT = Math.max(e.stunT || 0, m.stun);
+      if (m.stun) ccStun(e, m.stun);
       if (m.sticky && !ETYPES[e.type].noslow) { e.slowF = Math.min(e.slowT > 0 ? e.slowF : 1, .3); e.slowT = Math.max(e.slowT, 3); }
     }
     G.fx.push({ kind: 'ring', x: m.x, y: m.y, r: m.splash, col: m.col, life: .3, max: .3 });
@@ -509,7 +520,7 @@ function fire(t, e) {
   switch (d.proj) {
     case 'bullet': case 'shell': case 'ice': {
       const mk = tg => G.projs.push({ kind: d.proj, x: mx, y: my, tgt: tg, lx: tg.x, ly: tg.y, spd: d.spd, dmg: s.dmg, splash: s.splash, slow: s.slow, slowT: s.slowT, ground: d.ground, src: t, col: s.special ? '#ffe066' : d.col,
-        pierce: s.special && t.type === 'gatling', stun: s.special && t.type === 'cannon' ? .45 : 0, freeze: s.special && t.type === 'frost' ? .2 : 0, incend: s.incend });
+        pierce: s.special && t.type === 'gatling', stun: s.special && t.type === 'cannon' ? .45 : 0, freeze: s.special && t.type === 'frost' ? .12 : 0, incend: s.incend });
       mk(e);
       if (t.type === 'cannon') smoke(mx, my, 2, .12);
       if (s.special && t.type === 'pulse') { t.skip = e; const e2 = findTarget(t); t.skip = null; if (e2) mk(e2); }
@@ -561,19 +572,19 @@ function fire(t, e) {
       break;
     }
     case 'chain': {
-      const surge = (o, dm) => { if (chilled(o)) { dm *= 1.5; o.stunT = Math.max(o.stunT || 0, .4); combo(o, 'surge'); } hurt(o, dm); };
+      const surge = (o, dm) => { if (chilled(o)) { dm *= 1.5; ccStun(o, .4); combo(o, 'surge'); } hurt(o, dm); };
       if (s.storm) { // tempête : frappe tous les virus à portée
         let n = 0;
         for (const o of G.enemies) { if (o.dead || o.phased || Math.hypot(o.x - cx, o.y - cy) > s.range) continue; surge(o, s.dmg * .75); if (n++ < 8) G.fx.push({ kind: 'chain', pts: [[cx, cy - .1], [o.x, o.y]], col: '#80d8ff', life: .18, max: .18 }); }
         break;
       }
       const hit = new Set([e]); let cur = e, dmg = s.dmg; const pts = [[cx, cy - .1], [e.x, e.y]];
-      surge(e, dmg); if (s.special) e.stunT = .3;
+      surge(e, dmg); if (s.special) ccStun(e, .3);
       for (let i = 1; i < s.chain; i++) {
         let nb = null, nd = 1.8;
         for (const o of G.enemies) { if (o.dead || hit.has(o)) continue; const dd = Math.hypot(o.x - cur.x, o.y - cur.y); if (dd < nd) { nd = dd; nb = o; } }
         if (!nb) break;
-        dmg *= .85; surge(nb, dmg); if (s.special) nb.stunT = .3; hit.add(nb); cur = nb; pts.push([nb.x, nb.y]);
+        dmg *= .85; surge(nb, dmg); if (s.special) ccStun(nb, .3); hit.add(nb); cur = nb; pts.push([nb.x, nb.y]);
       }
       G.fx.push({ kind: 'chain', pts, col: d.col, life: .18, max: .18 });
       break;
@@ -590,9 +601,9 @@ function impact(p) {
         let dm = p.dmg;
         if (e.frozen > 0 && (p.kind === 'shell' || p.kind === 'missile')) { dm *= 2.5; combo(e, 'shatter'); }
         hurt(e, dm, p.pierce);
-        if (p.stun) e.stunT = Math.max(e.stunT || 0, p.stun);
+        if (p.stun) ccStun(e, p.stun);
         const ns = ETYPES[e.type].noslow, ik = G.th === 'ice' && !G.m.noRule ? 1.5 : 1;
-        if (p.freeze && !ns && Math.random() < p.freeze) { e.stunT = Math.max(e.stunT || 0, 1.1 * ik); e.frozen = 1.1 * ik; }
+        if (p.freeze && !ns && Math.random() < p.freeze) ccStun(e, 1.1 * ik, true);
         if (p.slow && !ns) { e.slowF = e.slowT > 0 ? Math.min(e.slowF, p.slow) : p.slow; e.slowT = Math.max(e.slowT, p.slowT * ik); }
       }
     }
@@ -640,7 +651,7 @@ function update(dt) {
   // apparitions
   if (G.queue.length) {
     G.spawnT += dt;
-    while (G.queue.length && G.queue[0].t <= G.spawnT) { const q = G.queue.shift(); spawnEnemy(q.type, q.wave, false, q.ent); }
+    while (G.queue.length && G.queue[0].t <= G.spawnT) { const q = G.queue.shift(); spawnEnemy(q.type, q.wave, false, q.ent); if (q.hk > 1) { const e = G.enemies[G.enemies.length - 1]; e.hp = e.max = e.max * q.hk; e.rew = Math.round(e.rew * q.hk); } }
   }
   // règles du monde
   if (!G.demo && !G.m.noRule && (G.enemies.length || G.queue.length)) {
@@ -682,6 +693,7 @@ function update(dt) {
     if (e.type === 'giant' && Math.random() < dt * 4) G.parts.push({ smoke: true, x: e.x + rand(-.2, .2), y: e.y + rand(-.2, .2), vx: 0, vy: 0, life: .6, max: .6, size: .12 });
     if (e.jumpT !== undefined && !(e.stunT > 0)) { e.jumpT -= dt; if (e.jumpT <= 0) { e.jumpT = rand(2.5, 3.5); const to = Math.min(e.route.length - 2, e.ri + 4); if (to > e.ri) { G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); e.ri = to; const p2 = e.route[to]; e.x = p2[0] + .5; e.y = p2[1] + .5; G.fx.push({ kind: 'ring', x: e.x, y: e.y, r: .5, col: '#b2ff59', life: .3, max: .3 }); } } }
     if (e.frozen > 0) e.frozen -= dt;
+    if (e.ccR > 0 && !(e.stunT > 0)) e.ccR = Math.max(0, e.ccR - dt * .5); // la résistance retombe quand le virus est libre
     if (e.burnT > 0) { e.burnT -= dt; G.shooter = e.burnSrc || null; hurt(e, e.burnDps * dt, true); e.hit = 0; if (Math.random() < dt * 12) G.parts.push({ fire: true, x: e.x + rand(-e.r, e.r) * .6, y: e.y + rand(-e.r, e.r) * .6, vx: rand(-.2, .2), vy: rand(-.6, -.2), life: .35, max: .35, size: rand(.06, .11), col: '#ff9100' }); if (e.dead) continue; }
     let mv = e.spd * e.slowF * dt;
     if (e.stunT > 0) { e.stunT -= dt; mv = 0; }
@@ -756,7 +768,7 @@ function update(dt) {
   for (let i = G.fx.length - 1; i >= 0; i--) { G.fx[i].life -= dt; if (G.fx[i].life <= 0) G.fx.splice(i, 1); }
   for (let i = G.parts.length - 1; i >= 0; i--) { const q = G.parts[i]; q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.deb) { q.rot += q.vr * dt; if (q.deb === 'ember') q.vy -= 2.5 * dt; else if (q.deb === 'feather') { q.vy += .4 * dt; q.vx += Math.sin(q.life * 9) * .04; } } if (q.smoke) { q.vx *= .96; q.vy *= .96; } else { q.vx *= .9; q.vy *= .9; } if (q.life <= 0) G.parts.splice(i, 1); }
   for (let i = G.texts.length - 1; i >= 0; i--) { const t = G.texts[i]; t.life -= dt; t.y -= .6 * dt; if (t.life <= 0) G.texts.splice(i, 1); }
-  const pmax = G.eco ? 160 : 500; if (G.parts.length > pmax) G.parts.splice(0, G.parts.length - pmax);
+  const pmax = G.eco ? 160 : G.enemies.length > 70 || G.towers.length > 36 ? 220 : 500; // moins de particules quand l'écran est chargé if (G.parts.length > pmax) G.parts.splice(0, G.parts.length - pmax);
   // fin de vague / victoire
   const clear = !G.queue.length && !G.enemies.length;
   if (clear && G.wave > 0 && G.recapW !== G.wave && !G.demo) { // bilan de la vague
