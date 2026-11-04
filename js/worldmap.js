@@ -175,32 +175,44 @@ function wmDraw(g, L) {
   // couleur du monde ; les mondes très clairs (glace, nuage) prennent une teinte plus soutenue pour que le chemin ressorte
   const acc = w => { const c = MAPS[w * 3].acc, v = parseInt(c.slice(1), 16), lum = ((v >> 16 & 255) * .3 + (v >> 8 & 255) * .59 + (v & 255) * .11) / 255; return lum > .8 ? WORLDS[w].panel[0] : c; };
   // fond : chaque monde a ses couleurs, son décor estompé et son ambiance ; fondu entre deux mondes
+  // chaque paysage déborde de F sur ses voisins ; le monde suivant apparaît en fondu progressif par-dessus le précédent
+  const F = Math.min(L.seg * .2, (L.land ? W : H) * .3), dpr = g.getTransform().a || 1;
+  const off = WM.off || (WM.off = document.createElement('canvas')), og = off.getContext('2d');
+  if (off.width !== g.canvas.width || off.height !== g.canvas.height) { off.width = g.canvas.width; off.height = g.canvas.height; }
   for (let w = 0; w < WORLDS.length; w++) {
-    const [x, y, rw, rh] = wmSegRect(L, w); if (x > W || y > H || x + rw < 0 || y + rh < 0) continue;
-    drawScene(g, w, x, y, rw + 1, rh + 1, WM.t + w * 3); // paysage peint du monde (js/scenery.js)
-    if (!wmUnlocked(w)) { g.fillStyle = 'rgba(4,6,12,.55)'; g.fillRect(x, y, rw + 1, rh + 1); }
-    if (w > 0) { // fondu avec le monde précédent
-      const Q = WORLDS[w - 1].panel, f = 140;
-      const gf = L.land ? g.createLinearGradient(x - f, 0, x + f, 0) : g.createLinearGradient(0, y + rh + f, 0, y + rh - f);
-      gf.addColorStop(0, rgbaA(shade(Q[2], -.2)).replace('A', 0)); gf.addColorStop(.5, rgbaA(shade(Q[2], -.2)).replace('A', .55)); gf.addColorStop(1, rgbaA(shade(Q[2], -.2)).replace('A', 0));
-      g.fillStyle = gf; if (L.land) g.fillRect(x - f, 0, f * 2, H); else g.fillRect(0, y + rh - f, W, f * 2);
-    }
+    let [x, y, rw, rh] = wmSegRect(L, w);
+    if (L.land) { x -= F; rw += F * 2; } else { y -= F; rh += F * 2; }
+    if (x > W || y > H || x + rw < 0 || y + rh < 0) continue;
+    const paint = c => { drawScene(c, w, x, y, rw + 1, rh + 1, WM.t + w * 3); if (!wmUnlocked(w)) { c.fillStyle = 'rgba(4,6,12,.55)'; c.fillRect(x, y, rw + 1, rh + 1); } };
+    if (w === 0) { paint(g); continue; }
+    og.setTransform(1, 0, 0, 1, 0, 0); og.globalCompositeOperation = 'source-over'; og.clearRect(0, 0, off.width, off.height); og.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paint(og);
+    const gm = L.land ? og.createLinearGradient(x, 0, x + F * 2, 0) : og.createLinearGradient(0, y + rh, 0, y + rh - F * 2);
+    gm.addColorStop(0, 'rgba(0,0,0,0)'); gm.addColorStop(.5, 'rgba(0,0,0,.55)'); gm.addColorStop(1, 'rgba(0,0,0,1)');
+    og.globalCompositeOperation = 'destination-in'; og.fillStyle = gm; og.fillRect(0, 0, W, H); og.globalCompositeOperation = 'source-over';
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(off, 0, 0); g.restore();
   }
   // tracé du parcours : piste de circuit à double rail, courbe lisse qui passe par toutes les zones
   const pts = L.nodes.map(o => wmXY(L, o.a, o.c));
-  const pre = wmXY(L, L.nodes[0].a - L.seg * .2, L.nodes[0].c * .5), post = wmXY(L, L.nodes[NCAMP - 1].a + L.seg * .2, 0);
-  const all = [pre].concat(pts, [post]);
-  const ctrl = i => { const p0 = all[Math.max(0, i - 1)], p1 = all[i], p2 = all[i + 1], p3 = all[Math.min(all.length - 1, i + 2)];
+  // points de passage : avant la 1re zone, les zones, et une ligne droite qui traverse chaque portail (d = zone atteinte, wc = couleur)
+  const all = [{ p: wmXY(L, L.nodes[0].a - L.seg * .2, L.nodes[0].c * .5), d: 0, wc: 0 }], gates = [];
+  L.nodes.forEach((o, n) => {
+    if (o.k === 0 && o.w > 0) { const prev = L.nodes[n - 1], ga = L.pad + o.w * L.seg, gc = (prev.c + o.c) / 2, st = L.seg * .045;
+      gates[o.w] = wmXY(L, ga, gc); for (const da of [-st, 0, st]) all.push({ p: wmXY(L, ga + da, gc), d: n, wc: o.w - 1 }); }
+    all.push({ p: pts[n], d: n, wc: Math.max(0, o.w - (o.k === 0 && o.w > 0 ? 1 : 0)) });
+  });
+  all.push({ p: wmXY(L, L.nodes[NCAMP - 1].a + L.seg * .2, 0), d: NCAMP, wc: WORLDS.length - 1 });
+  gates[0] = (() => { const a = all[0].p, b = pts[0]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; })();
+  const P = all.map(o => o.p);
+  const ctrl = i => { const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
     return [p1, [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6], p2]; };
   const curve = i => { const [a, b, c, d] = ctrl(i); g.beginPath(); g.moveTo(a[0], a[1]); g.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]); };
-  // milieu exact d'un tronçon de piste et sa direction (pour poser les portails dessus)
-  const onPath = i => { const [a, b, c, d] = ctrl(i); return [(a[0] + 3 * b[0] + 3 * c[0] + d[0]) / 8, (a[1] + 3 * b[1] + 3 * c[1] + d[1]) / 8, d[0] - a[0] + c[0] - b[0], d[1] - a[1] + c[1] - b[1]]; };
   const sw = Math.min(W, H) * .024; g.lineCap = 'round'; g.lineJoin = 'round';
-  const vis = i => { const [x1, y1] = all[i], [x2, y2] = all[i + 1]; return !(Math.max(x1, x2) < -80 || Math.min(x1, x2) > W + 80 || Math.max(y1, y2) < -80 || Math.min(y1, y2) > H + 80); };
+  const vis = i => { const [x1, y1] = P[i], [x2, y2] = P[i + 1]; return !(Math.max(x1, x2) < -80 || Math.min(x1, x2) > W + 80 || Math.max(y1, y2) < -80 || Math.min(y1, y2) > H + 80); };
   for (let i = 0; i < all.length - 1; i++) { if (!vis(i)) continue; curve(i); g.setLineDash([]); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = sw * 2.6; g.stroke(); }
   for (let i = 0; i < all.length - 1; i++) {
     if (!vis(i)) continue;
-    const open = i === 0 || un(i), w = clamp(Math.floor(Math.max(0, i - 1) / ZPW), 0, WORLDS.length - 1), col = acc(w);
+    const open = i === 0 || un(all[i + 1].d), col = acc(all[i + 1].wc);
     curve(i);
     g.setLineDash([]); g.strokeStyle = open ? shade(col, -.55) : '#1d2128'; g.lineWidth = sw * 2; g.stroke();             // fond de la piste
     g.strokeStyle = open ? rgbaA(col).replace('A', .22) : 'rgba(255,255,255,.04)'; g.lineWidth = sw * 3.2; g.stroke();     // halo
@@ -211,19 +223,20 @@ function wmDraw(g, L) {
   // portails entre les mondes
   WM.hit = [];
   for (let w = 0; w < WORLDS.length; w++) {
-    const [gx, gy, tx, ty] = onPath(w * ZPW), s = Math.min(W, H) * .075;
+    const [gx, gy] = gates[w], s = Math.min(W, H) * .075;
     if (gx < -s * 4 || gx > W + s * 4 || gy < -s * 4 || gy > H + s * 4) continue;
-    const open = wmUnlocked(w), c = acc(w), lean = L.land || Math.abs(ty) < 1e-3 ? 0 : clamp(tx / ty, -1.2, 1.2); // l'arche suit la pente de la piste
-    g.save(); g.translate(gx, gy + s * .45); g.save(); g.transform(1, 0, lean, 1, 0, 0);
+    const open = wmUnlocked(w), c = acc(w);
+    g.save(); g.translate(gx, gy); g.save(); // la piste passe tout droit au milieu de l'arche
+    if (L.land) g.rotate(-Math.PI / 2); g.translate(0, s * .8); // en paysage la piste est horizontale : l'arche est tournée vers elle
     wmGlow(g, 0, -s * 1.2, s * 2.2, c, open ? .25 + .08 * Math.sin(WM.t * 2) : .05);
     for (const sx of [-1, 1]) { wmBox(g, sx * s * .95 - s * .2, -s * 1.6, s * .4, s * 1.7, shade(c, -.05), shade(c, -.65), s * .08); g.fillStyle = shade(c, -.75); g.fillRect(sx * s * .95 - s * .28, -s * .02, s * .56, s * .16); wmGlow(g, sx * s * .95, -s * 1.65, s * .5, c, open ? .9 : .2); }
     g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = s * .26; g.beginPath(); g.arc(0, -s * 1.5, s * .95, Math.PI, 0); g.stroke();
     g.strokeStyle = open ? c : 'rgba(255,255,255,.3)'; g.lineWidth = s * .16; g.stroke();
     if (open) { g.save(); g.beginPath(); g.arc(0, -s * 1.5, s * .8, Math.PI, 0); g.lineTo(s * .8, 0); g.lineTo(-s * .8, 0); g.closePath(); g.clip(); const gp = g.createLinearGradient(0, -s * 2.4, 0, 0); gp.addColorStop(0, rgbaA(c).replace('A', .45)); gp.addColorStop(1, rgbaA(c).replace('A', .05)); g.fillStyle = gp; g.fillRect(-s, -s * 2.4, s * 2, s * 2.4); for (let k = 0; k < 4; k++) { const q = (WM.t * .7 + k / 4) % 1; g.strokeStyle = 'rgba(255,255,255,' + (.35 * (1 - q)) + ')'; g.lineWidth = 1.5; g.beginPath(); g.ellipse(0, -s * .8, s * .75 * q, s * .9 * q, 0, 0, TAU); g.stroke(); } g.restore(); }
-    if (!open) { g.save(); g.translate(0, -s * .55); wmPadlock(g, s * .8); g.restore(); }
-    g.restore(); g.translate(lean * -s * 2.69, 0);
+    if (!open) { g.save(); g.translate(0, -s * .8); if (L.land) g.rotate(Math.PI / 2); wmPadlock(g, s * .8); g.restore(); }
+    g.restore(); g.translate(0, L.land ? s * 1.1 : s * .8);
     // panneau du monde
-    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7, lx = gx - lean * s * 2.69; g.translate(clamp(lx, tw / 2 + 8, Math.max(tw / 2 + 8, W - tw / 2 - 8)) - lx, 0); // le panneau reste dans l'écran
+    const lab = 'Monde ' + (w + 1) + ' · ' + WORLDS[w].name; g.font = '800 ' + Math.round(s * .36) + 'px Rubik, system-ui'; const tw = g.measureText(lab).width + s * .7, lx = gx; g.translate(clamp(lx, tw / 2 + 8, Math.max(tw / 2 + 8, W - tw / 2 - 8)) - lx, 0); // le panneau reste dans l'écran
     g.fillStyle = 'rgba(8,12,20,.88)'; rr(g, -tw / 2, -s * 3.05, tw, s * .72, s * .36); g.fill(); g.strokeStyle = open ? c : 'rgba(255,255,255,.25)'; g.lineWidth = s * .05; g.stroke();
     g.fillStyle = open ? '#fff' : 'rgba(255,255,255,.6)'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(lab, 0, -s * 2.69);
     if (open) { const st = wmStars(w); g.font = '700 ' + Math.round(s * .26) + 'px Rubik, system-ui'; g.fillStyle = '#ffd740'; g.fillText('★ ' + st + ' / ' + ZPW * 3, 0, -s * 2.12); }
