@@ -148,7 +148,8 @@ async function test(name, page, fn) {
     for (let i = 0; i < WORLDS.length; i++) { const c = document.createElement('canvas').getContext('2d'); c.translate(100, 100); drawIsland(c, i, 60, 1, true); }
     const c2 = document.createElement('canvas'); c2.width = 900; c2.height = 410; wmDraw(c2.getContext('2d'), L);
     wmOpen(3); if (mapPage !== 3) return 'aller au monde 4 impossible';
-    setState('menu'); return true;
+    setState('menu'); if (getComputedStyle($('#maps')).display !== 'none') return 'la carte reste affichée par-dessus le menu';
+    return true;
   });
   await test('éditeur : divisions et sorties multiples', page, () => {
     // une entrée, une division au milieu : 2 trajets et 2 sorties

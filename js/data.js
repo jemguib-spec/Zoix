@@ -453,7 +453,7 @@ const rewScale = w => 1 + (w - 1) * .032;
 
 /* ---------------- sauvegarde ---------------- */
 const SAVE_KEY = 'virusdef_save_v1';
-const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1, apocalypse: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false, ordV: 2 };
+const DEFAULT_SAVE = { chips: 50, unlockT: {}, research: {}, gup: {}, unlocked: { easy: 1, normal: 1, hard: 1, nightmare: 1, legend: 1, apocalypse: 1 }, side: 'right', music: true, stars: {}, best: {}, sound: true, vibe: true, autoWave: true, stats: {}, ach: {}, seen: {}, combos: {}, chal: {}, endless: {}, daily: {}, tuto: 0, eco: false };
 function loadSave() {
   const d = JSON.parse(JSON.stringify(DEFAULT_SAVE));
   try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) { Object.assign(d, s); d.unlocked = Object.assign({}, DEFAULT_SAVE.unlocked, s.unlocked); } } catch (e) { }

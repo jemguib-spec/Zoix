@@ -259,7 +259,7 @@ $('#optImport').onclick = () => {
   try { const d = JSON.parse(decodeURIComponent(escape(atob(code.replace(/^VD1:/, ''))))); if (typeof d !== 'object' || d.chips === undefined) throw 0; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), d); persist(); toast('📥 Sauvegarde importée !'); buildOptions(); }
   catch (e) { toast('Code invalide'); sfx('err'); }
 };
-$('#optReset').onclick = () => { if (confirm('Effacer toute la progression ?')) { const keep = { side: save.side, music: save.music, sound: save.sound, vibe: save.vibe, autoWave: save.autoWave }; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), keep); persist(); buildOptions(); } };
+$('#optReset').onclick = () => { if (confirm('Effacer toute la progression ?')) { const keep = { side: save.side, music: save.music, sound: save.sound, vibe: save.vibe, autoWave: save.autoWave, ordV: 2 }; save = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SAVE)), keep); persist(); buildOptions(); } };
 
 function pauseGame() { if (state === 'play' && G && !G.over) setState('pause'); }
 function resumeGame() { if (state === 'pause') setState('play'); }
